@@ -4,6 +4,7 @@ import google.generativeai as genai
 from PyPDF2 import PdfReader
 from docx import Document
 import json
+import re
 
 app = Flask(__name__)
 
@@ -50,7 +51,12 @@ def analyze_resume(text):
 
     For each criterion, provide a sub-score out of the specified weight and a brief comment explaining the score. Calculate the total score by summing the sub-scores.
 
-    Provide an overall assessment summarizing the strengths and weaknesses of the resume, and offer specific tips for improvement.
+    Additionally, provide line-by-line improvement suggestions by:
+    1. Identifying weak or vague phrases and suggesting stronger alternatives
+    2. Highlighting missing important keywords or skills
+    3. Pointing out formatting issues or inconsistencies
+    4. Suggesting ways to make achievements more quantifiable
+    5. Recommending better action verbs where applicable
 
     Return the analysis results strictly in the following JSON format without any additional text or explanations:
 
@@ -76,8 +82,25 @@ def analyze_resume(text):
             "Length": "<comment>",
             "Format Indicators": "<comment>"
         }},
+        "line_by_line_feedback": [
+            {{
+                "line_number": <line number>,
+                "original_text": "<original text>",
+                "suggestion": "<improvement suggestion>",
+                "reason": "<reason for suggestion>"
+            }}
+        ],
         "overall_assessment": "<summary of strengths and weaknesses>",
-        "improvement_tips": "<specific tips for enhancement>"
+        "improvement_tips": "<specific tips for enhancement>",
+        "keyword_suggestions": [
+            {{
+                "category": "<category name>",
+                "missing_keywords": ["<keyword1>", "<keyword2>", ...]
+            }}
+        ],
+        "action_verb_alternatives": {{
+            "<weak_verb>": ["<strong_alternative1>", "<strong_alternative2>", ...]
+        }}
     }}
 
     Resume text:
@@ -93,20 +116,34 @@ def analyze_resume(text):
         
         # Clean the response text to ensure it's valid JSON
         # Look for JSON content between curly braces
-        import re
         json_match = re.search(r'({.*})', response_text, re.DOTALL)
         if json_match:
             json_str = json_match.group(1)
             # Parse the response as JSON
             analysis_result = json.loads(json_str)
-            return analysis_result
         else:
             # If no JSON pattern found, try parsing the whole response
             try:
                 analysis_result = json.loads(response_text)
-                return analysis_result
             except:
                 return {"error": "Failed to extract JSON from the response"}
+        
+        # Post-process the result to ensure consistency
+        if "score" in analysis_result:
+            # Round the total score to ensure consistency
+            analysis_result["score"] = round(analysis_result["score"])
+            
+            # Also standardize the sub-scores if needed
+            if "sub_scores" in analysis_result:
+                for key in analysis_result["sub_scores"]:
+                    analysis_result["sub_scores"][key] = round(analysis_result["sub_scores"][key], 1)
+                    
+                # Recalculate the total score based on standardized sub-scores to ensure consistency
+                total = sum(analysis_result["sub_scores"].values())
+                analysis_result["score"] = round(total)
+        
+        return analysis_result
+        
     except json.JSONDecodeError as e:
         return {"error": f"Failed to parse analysis result as JSON: {str(e)}"}
     except Exception as e:
