@@ -6,12 +6,21 @@ from PyPDF2 import PdfReader
 from docx import Document
 import json
 import re
+import csv
+from jobspy import scrape_jobs
+from io import StringIO
+import pandas as pd
+from datetime import datetime
+from typing import Dict, List, Any, Optional
+import traceback
+import uuid
+from jobspy import scrape_jobs
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
 
 # Configure Gemini API
-GEMINI_API_KEY = 'AIzaSyDCSbDt2Xdd3xvvIIwqqcc9EiZfQ_mTyHM'  # Replace with your actual API key
+GEMINI_API_KEY = 'AIzaSyDCSbDt2Xdd3xvvIIwqqcc9EiZfQ_mTyHM'  
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-2.0-flash', generation_config={
     'temperature': 0
@@ -175,6 +184,525 @@ def analyze():
 
     except Exception as e:
         return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
+
+def format_job_for_frontend(job_dict):
+    """
+    Transform JobSpy job data format to match the frontend's expected format exactly
+    """
+    # Generate a unique ID if not present
+    if 'job_id' in job_dict and job_dict['job_id']:
+        job_id = str(job_dict['job_id'])
+    else:
+        job_id = str(uuid.uuid4())
+    
+    # Map experience level based on job title and description
+    job_level = "Entry-Level"
+    title_lower = job_dict.get('title', '').lower()
+    description_lower = job_dict.get('description', '').lower() if job_dict.get('description') else ''
+    
+    if any(level in title_lower or level in description_lower for level in ['senior', 'lead', 'sr.', 'sr ']):
+        job_level = "Senior"
+    elif any(level in title_lower or level in description_lower for level in ['mid', 'intermediate']):
+        job_level = "Mid-Level"
+    elif any(level in title_lower or level in description_lower for level in ['executive', 'director', 'vp', 'c-level']):
+        job_level = "Executive"
+    
+    # Parse location
+    city = ''
+    state = ''
+    country = 'United States'  # Default
+    
+    if job_dict.get('location'):
+        location_parts = job_dict.get('location', '').split(',')
+        if len(location_parts) >= 1:
+            city = location_parts[0].strip()
+        if len(location_parts) >= 2:
+            state = location_parts[1].strip()
+        
+    if job_dict.get('country'):
+        country = job_dict.get('country')
+    
+    # Format location as per frontend requirement
+    location = {
+        "country": country,
+        "city": city,
+        "state": state,
+    }
+    
+    # Format salary
+    salary = None
+    if job_dict.get('compensation_min') is not None or job_dict.get('compensation_max') is not None:
+        salary = {
+            "interval": job_dict.get('compensation_interval', 'yearly'),
+            "min_amount": job_dict.get('compensation_min', 0),
+            "max_amount": job_dict.get('compensation_max', 0),
+            "currency": job_dict.get('compensation_currency', 'USD'),
+            "salary_source": "direct_data",
+        }
+    
+    # Determine job type
+    job_type = job_dict.get('job_type', '').lower() if job_dict.get('job_type') else ''
+    if not job_type:
+        if 'full-time' in description_lower or 'fulltime' in description_lower:
+            job_type = 'fulltime'
+        elif 'part-time' in description_lower or 'parttime' in description_lower:
+            job_type = 'parttime'
+        elif 'contract' in description_lower:
+            job_type = 'contract'
+        elif 'intern' in description_lower:
+            job_type = 'internship'
+        else:
+            job_type = 'fulltime'  # Default
+    
+    # Extract emails using regex
+    emails = []
+    if job_dict.get('description'):
+        email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+        found_emails = re.findall(email_pattern, job_dict.get('description', ''))
+        if found_emails:
+            emails = found_emails
+    
+    # Extract skills from description
+    skills = []
+    common_skills = [
+        "Python", "JavaScript", "React", "Angular", "Vue", "TypeScript", "Node.js", 
+        "Java", "C++", "C#", ".NET", "AWS", "Azure", "SQL", "NoSQL", "MongoDB",
+        "Docker", "Kubernetes", "Git", "HTML", "CSS", "PHP", "Ruby", "Swift",
+        "Go", "Rust", "Redux", "GraphQL", "REST API", "Django", "Flask", "Spring"
+    ]
+    
+    for skill in common_skills:
+       if skill.lower() in description_lower or (job_dict.get('description') and skill in job_dict.get('description')):
+            skills.append(skill)
+    
+    # Extract job function based on title/description
+    job_function = []
+    if "frontend" in title_lower or "front-end" in title_lower or "front end" in title_lower:
+        job_function.append("Frontend Development")
+    if "backend" in title_lower or "back-end" in title_lower or "back end" in title_lower:
+        job_function.append("Backend Development")
+    if "fullstack" in title_lower or "full-stack" in title_lower or "full stack" in title_lower:
+        job_function.append("Full Stack Development")
+    if not job_function:
+        job_function.append("Software Development")  # Default
+    
+    # Company industry based on description/site
+    company_industry = "Technology"  # Default
+    industry_keywords = {
+        "healthcare": ["healthcare", "medical", "health"],
+        "finance": ["finance", "banking", "investment"],
+        "retail": ["retail", "e-commerce", "shop"],
+        "education": ["education", "school", "teaching"],
+        "manufacturing": ["manufacturing", "factory", "production"],
+    }
+    
+    for industry, keywords in industry_keywords.items():
+        if any(keyword in description_lower for keyword in keywords):
+            company_industry = industry.capitalize()
+            break
+    
+    # Format for frontend
+    formatted_job = {
+        "id": job_id,
+        "title": job_dict.get('title', ''),
+        "company": job_dict.get('company', ''),
+        "company_url": job_dict.get('company_url', ''),
+        "job_url": job_dict.get('url', ''),
+        "location": location,
+        "is_remote": job_dict.get('is_remote', False),
+        "description": job_dict.get('description', ''),
+        "job_type": job_type,
+        "job_function": job_function,
+        "salary": salary,
+        "date_posted": job_dict.get('date_posted', datetime.now().isoformat()),
+        "emails": emails,
+        "skills": skills,
+        "job_level": job_level,
+        "company_industry": company_industry,
+        "company_logo": "",  # JobSpy doesn't provide this
+        "company_country": location["country"],
+        "company_addresses": [f"{location['city']}, {location['state']}"] if location['city'] and location['state'] else [],
+        "company_employees_label": "",  # JobSpy doesn't provide this
+        "company_revenue_label": "",  # JobSpy doesn't provide this
+        "company_description": ""  # JobSpy doesn't provide this
+    }
+    
+    return formatted_job
+
+@app.route('/api/search-jobs', methods=['GET', 'POST'])
+def search_jobs():
+    """
+    Endpoint to search for jobs using JobSpy and format them for the frontend
+    """
+    try:
+        # Get parameters from request (either GET or POST)
+        if request.method == 'POST':
+            params = request.json if request.json else {}
+        else:
+            params = request.args.to_dict(flat=False)
+            
+            # Convert parameters to appropriate types
+            for key, value in params.items():
+                if len(value) == 1:
+                    params[key] = value[0]  # Extract single values from lists
+                
+                # Convert boolean strings to actual booleans
+                if key == 'is_remote' or key == 'easy_apply' or key == 'linkedin_fetch_description' or key == 'enforce_annual_salary':
+                    if isinstance(params[key], str):
+                        params[key] = params[key].lower() == 'true'
+                
+                # Convert numeric strings to integers
+                if key in ['distance', 'results_wanted', 'hours_old', 'offset', 'verbose']:
+                    if isinstance(params[key], str) and params[key].isdigit():
+                        params[key] = int(params[key])
+                
+                # Handle site_name as a list
+                if key == 'site_name' and isinstance(params[key], str):
+                    if ',' in params[key]:
+                        params[key] = [site.strip() for site in params[key].split(',')]
+
+        # Map frontend filters to JobSpy parameters
+        if 'filters' in params:
+            filters = params['filters']
+            # Handle searchTerm
+            if filters.get('searchTerm'):
+                params['search_term'] = filters['searchTerm']
+            
+            # Handle location
+            if filters.get('location'):
+                if filters['location'] != 'remote':
+                    params['location'] = filters['location']
+                else:
+                    params['is_remote'] = True
+            
+            # Handle jobType
+            if filters.get('jobType'):
+                params['job_type'] = filters['jobType']
+            
+            # Handle datePosted - convert to hours_old
+            if filters.get('datePosted'):
+                date_posted_map = {
+                    'today': 24,
+                    'week': 168,  # 7 days * 24 hours
+                    'month': 720  # 30 days * 24 hours
+                }
+                if filters['datePosted'] in date_posted_map:
+                    params['hours_old'] = date_posted_map[filters['datePosted']]
+            
+            # Handle experienceLevel
+            if filters.get('experienceLevel'):
+                # JobSpy doesn't directly support experience level filtering
+                # We'll handle this in post-processing
+                pass
+            
+            # Handle salaryRange
+            if filters.get('salaryRange'):
+                # JobSpy doesn't directly support salary range filtering
+                # We'll handle this in post-processing
+                pass
+            
+            # Remove the filters key as JobSpy doesn't use it
+            params.pop('filters', None)
+
+        # Ensure we have at least search_term or google_search_term
+        if 'search_term' not in params and 'google_search_term' not in params:
+            # Use a default search term if none provided
+            params['search_term'] = 'software developer'
+
+        # Set some defaults if not specified
+        if 'site_name' not in params:
+            params['site_name'] = ['linkedin', 'indeed', 'glassdoor']
+        if 'results_wanted' not in params:
+            params['results_wanted'] = 25
+        if 'verbose' not in params:
+            params['verbose'] = 0
+
+        # Call jobspy's scrape_jobs function
+        jobs = scrape_jobs(**params)
+        
+        # Convert to frontend format
+        result = []
+        for _, row in jobs.iterrows():
+            job_dict = row.to_dict()
+            
+            # Handle non-serializable objects (like numpy types)
+            for key, value in job_dict.items():
+                if pd.isna(value):
+                    job_dict[key] = None
+                elif isinstance(value, (pd.Timestamp, datetime)):
+                    job_dict[key] = value.isoformat()
+            
+            # Format job for frontend
+            formatted_job = format_job_for_frontend(job_dict)
+            
+            # Apply additional filters that JobSpy doesn't handle natively
+            include_job = True
+            
+            # Filter by experience level if specified
+            if 'filters' in params and params['filters'].get('experienceLevel'):
+                exp_level = params['filters']['experienceLevel']
+                if exp_level == 'entry' and formatted_job['job_level'] != 'Entry-Level':
+                    include_job = False
+                elif exp_level == 'mid' and formatted_job['job_level'] != 'Mid-Level':
+                    include_job = False
+                elif exp_level == 'senior' and formatted_job['job_level'] != 'Senior':
+                    include_job = False
+                elif exp_level == 'executive' and formatted_job['job_level'] != 'Executive':
+                    include_job = False
+            
+            # Filter by salary range if specified
+            if 'filters' in params and params['filters'].get('salaryRange') and formatted_job['salary']:
+                salary_range = params['filters']['salaryRange']
+                min_salary, max_salary = None, None
+                
+                if '-' in salary_range:
+                    parts = salary_range.split('-')
+                    min_salary = int(parts[0]) if parts[0] else None
+                    max_salary = int(parts[1]) if parts[1] else None
+                else:
+                    min_salary = int(salary_range)
+                
+                if min_salary and formatted_job['salary']['max_amount'] < min_salary:
+                    include_job = False
+                if max_salary and formatted_job['salary']['min_amount'] > max_salary:
+                    include_job = False
+            
+            if include_job:
+                result.append(formatted_job)
+            
+        return jsonify(result)
+    
+    except Exception as e:
+        # Log the full traceback for debugging
+        traceback_str = traceback.format_exc()
+        app.logger.error(f"Error searching jobs: {traceback_str}")
+        
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback_str
+        }), 500
+
+@app.route('/api/job/<string:job_id>', methods=['GET'])
+def get_job_by_id(job_id):
+    """
+    Endpoint to get a specific job by ID
+    Uses a simulated database lookup with cached search results
+    """
+    try:
+        # Instead of doing a new search every time, we'll use the search parameters
+        # from the request to find similar jobs, then look for our target job
+        
+        # Get search parameters from the query string if available
+        search_term = request.args.get('search_term', 'software developer')
+        location = request.args.get('location', '')
+        
+        # Build parameters for job search
+        params = {
+            'site_name': ['linkedin', 'indeed', 'glassdoor'],
+            'search_term': search_term,
+            'results_wanted': 100,  # Request more results to increase chance of finding the job
+            'verbose': 0
+        }
+        
+        # Add location if provided
+        if location:
+            params['location'] = location
+            
+        # Add remote flag if specified
+        if request.args.get('is_remote') == 'true':
+            params['is_remote'] = True
+            
+        app.logger.info(f"Searching for job with ID: {job_id} using params: {params}")
+            
+        # Call jobspy's scrape_jobs function
+        jobs = scrape_jobs(**params)
+        
+        # Look for a job with matching ID or similar characteristics
+        target_job = None
+        potential_matches = []
+        
+        for _, row in jobs.iterrows():
+            job_dict = row.to_dict()
+            
+            # Handle non-serializable objects
+            for key, value in job_dict.items():
+                if pd.isna(value):
+                    job_dict[key] = None
+                elif isinstance(value, (pd.Timestamp, datetime)):
+                    job_dict[key] = value.isoformat()
+            
+            # Format job
+            formatted_job = format_job_for_frontend(job_dict)
+            
+            # Exact match by ID
+            if formatted_job['id'] == job_id:
+                target_job = formatted_job
+                break
+                
+            # Collect potential matches based on URL (in case ID changed but URL is consistent)
+            if job_dict.get('url') and 'url' in request.args and job_dict['url'] == request.args['url']:
+                potential_matches.append(formatted_job)
+                
+        # If we didn't find an exact match but have potential matches, use the first one
+        if not target_job and potential_matches:
+            target_job = potential_matches[0]
+        
+        if target_job:
+            return jsonify(target_job)
+        else:
+            # If we couldn't find it, create a mock job as fallback
+            # (In production, you'd store jobs in a database instead)
+            mock_job = {
+                "id": job_id,
+                "title": request.args.get('title', 'Software Developer'),
+                "company": request.args.get('company', 'Example Company'),
+                "description": "Job details could not be retrieved. Please view the original job posting.",
+                "job_type": request.args.get('job_type', 'fulltime'),
+                "job_level": request.args.get('job_level', 'Mid-Level'),
+                "location": {
+                    "city": request.args.get('city', ''),
+                    "state": request.args.get('state', ''),
+                    "country": request.args.get('country', 'US')
+                },
+                "is_remote": request.args.get('is_remote', 'false').lower() == 'true',
+                "salary": None,
+                "date_posted": request.args.get('date_posted', datetime.now().isoformat()),
+                "postedDate": request.args.get('date_posted', datetime.now().isoformat()),
+                "url": request.args.get('url', ''),
+                "source": request.args.get('source', '')
+            }
+            
+            return jsonify(mock_job)
+    
+    except Exception as e:
+        traceback_str = traceback.format_exc()
+        app.logger.error(f"Error fetching job: {traceback_str}")
+        
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback_str
+        }), 500
+    
+@app.route('/api/apply-job/<string:job_id>', methods=['POST'])
+def apply_to_job(job_id):
+    """
+    Endpoint to simulate applying to a job
+    In a real implementation, this would submit an application
+    """
+    try:
+        # Simulate API call delay - in reality, this would submit application data
+        return jsonify({
+            'success': True,
+            'message': f'Successfully applied to job {job_id}',
+            'job_id': job_id
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/job-search-parameters', methods=['GET'])
+def get_job_search_parameters():
+    """
+    Returns the available parameters for the job search API
+    """
+    parameters = {
+        "site_name": {
+            "type": "list or string",
+            "description": "Job boards to search",
+            "options": ["linkedin", "zip_recruiter", "indeed", "glassdoor", "google", "bayt", "naukri"],
+            "default": "all"
+        },
+        "search_term": {
+            "type": "string",
+            "description": "Job search keywords"
+        },
+        "google_search_term": {
+            "type": "string",
+            "description": "Search term for Google jobs (this is the only parameter for filtering Google jobs)"
+        },
+        "location": {
+            "type": "string",
+            "description": "Job location"
+        },
+        "distance": {
+            "type": "integer",
+            "description": "Search radius in miles",
+            "default": 50
+        },
+        "job_type": {
+            "type": "string",
+            "description": "Type of job",
+            "options": ["fulltime", "parttime", "internship", "contract"]
+        },
+        "is_remote": {
+            "type": "boolean",
+            "description": "Filter for remote jobs"
+        },
+        "results_wanted": {
+            "type": "integer",
+            "description": "Number of job results to retrieve for each site"
+        },
+        "easy_apply": {
+            "type": "boolean",
+            "description": "Filter for jobs hosted on the job board site"
+        },
+        "description_format": {
+            "type": "string",
+            "description": "Format type of job descriptions",
+            "options": ["markdown", "html"],
+            "default": "markdown"
+        },
+        "offset": {
+            "type": "integer",
+            "description": "Start search from an offset (e.g., 25 will start from the 25th result)"
+        },
+        "hours_old": {
+            "type": "integer",
+            "description": "Filter jobs by hours since posted"
+        },
+        "verbose": {
+            "type": "integer",
+            "description": "Controls verbosity of runtime printouts",
+            "options": [0, 1, 2],
+            "default": 2
+        },
+        "linkedin_fetch_description": {
+            "type": "boolean",
+            "description": "Fetch full description and direct job URL for LinkedIn"
+        },
+        "country_indeed": {
+            "type": "string",
+            "description": "Filter country on Indeed & Glassdoor"
+        },
+        "enforce_annual_salary": {
+            "type": "boolean",
+            "description": "Convert wages to annual salary"
+        }
+    }
+    
+    # Add limitations
+    limitations = {
+        "indeed": [
+            "Only one from this list can be used in a search: hours_old, job_type & is_remote, easy_apply"
+        ],
+        "linkedin": [
+            "Only one from this list can be used in a search: hours_old, easy_apply"
+        ],
+        "supported_countries": {
+            "linkedin": "LinkedIn searches globally & uses only the location parameter",
+            "ziprecruiter": "ZipRecruiter searches for jobs in US/Canada & uses only the location parameter",
+            "indeed_glassdoor": "Indeed & Glassdoor support most countries, but country_indeed parameter is required"
+        }
+    }
+    
+    return jsonify({
+        "parameters": parameters,
+        "limitations": limitations
+    })
+
 
 if __name__ == '__main__':
     app.run(debug=True)
