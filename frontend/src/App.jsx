@@ -5,6 +5,7 @@ import JobDetailsPage from "./pages/JobDetailsPage";
 import ResumeParserPage from "./pages/ResumeParserPage";
 import ResumeCreater from "./pages/ResumeCreater";
 import Layout from "./components/layout/Layout";
+import SavedJobsPage from "./pages/SavedJobsPage";
 
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
           <Route path="/job" element={<JobDetailsPage />} />
           <Route path="/resume-parser" element={<ResumeParserPage />} />
           <Route path="/create-resume" element={<ResumeCreater />} />
+          <Route path="/saved" element={<SavedJobsPage />} />
         </Routes>
       </Layout>
     </>

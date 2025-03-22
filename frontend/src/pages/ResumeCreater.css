@@ -103,7 +103,6 @@
 /* Main content area */
 .main-content {
   flex: 1;
-  padding: 20px;
   overflow-y: auto;
   display: flex;
   justify-content: center;
@@ -115,8 +114,8 @@
   min-height: 1100px; /* A4 size approximation */
   max-height: 1100px; /* Ensure it stays on one page */
   background-color: white;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 40px; /* Increased padding */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+  padding: 12px;/* Increased padding */
   margin: 0 auto;
   overflow-y: auto;
   font-size: 0.95rem; /* Slightly smaller font size */
