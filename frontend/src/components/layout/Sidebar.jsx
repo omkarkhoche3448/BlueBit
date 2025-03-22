@@ -8,7 +8,7 @@ import {
   setSalaryRange,
   setDatePosted,
   clearFilters,
-} from "../../store/slices/filterSlice";
+} from "../../slices/filterSlice";
 import {filterOptions} from "../../data/filterOptions"
 
 function Sidebar() {
