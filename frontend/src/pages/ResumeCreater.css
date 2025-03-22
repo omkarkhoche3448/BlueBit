@@ -1,4 +1,4 @@
-/* Base styles */
+/* Base styles and variables */
 :root {
   --primary-color: #3b82f6;
   --background-color: #f9fafb;
@@ -6,6 +6,7 @@
   --text-color: #1f2937;
   --border-color: #e5e7eb;
   --hover-color: #f3f4f6;
+  --icon-gap: 10px;
 }
 
 * {
@@ -49,8 +50,8 @@ body {
   margin-bottom: 10px;
 }
 
-.templates,
-.add-section {
+/* Template selection section */
+.templates {
   margin-bottom: 20px;
 }
 
@@ -84,23 +85,30 @@ body {
   border-radius: 50%;
 }
 
+/* Buttons in sidebar */
+.add-section {
+  margin-bottom: 20px;
+}
+
 .add-section button,
 .download-btn {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background-color: #fff;
-  border: 1px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.875rem;
-  margin-bottom: 8px;
   transition: all 0.2s;
 }
 
-.add-section button:hover,
-.download-btn:hover {
+.add-section button {
+  background-color: #fff;
+  border: 1px solid var(--border-color);
+  margin-bottom: 8px;
+}
+
+.add-section button:hover {
   background-color: var(--hover-color);
 }
 
@@ -116,7 +124,7 @@ body {
   opacity: 0.9;
 }
 
-/* Main content styles */
+/* Main content area */
 .main-content {
   flex: 1;
   padding: 20px;
@@ -129,17 +137,21 @@ body {
   width: 100%;
   max-width: 800px;
   min-height: 1100px; /* A4 size approximation */
+  max-height: 1100px; /* Ensure it stays on one page */
   background-color: white;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 40px;
+  padding: 40px; /* Increased padding */
   margin: 0 auto;
+  overflow-y: auto;
+  font-size: 0.95rem; /* Slightly smaller font size */
 }
 
-/* Resume section styles */
+/* Resume sections */
 .resume-sections {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px; /* Reduced from 20px */
+  width: 100%;
 }
 
 .resume-section {
@@ -154,11 +166,13 @@ body {
   border-color: var(--border-color);
 }
 
+/* Section headers */
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+  width: 100%;
 }
 
 .section-header h3 {
@@ -167,8 +181,10 @@ body {
   border-bottom: 2px solid var(--primary-color);
   padding-bottom: 5px;
   outline: none;
+  width: auto;
 }
 
+/* Section control buttons */
 .section-controls {
   display: flex;
   gap: 8px;
@@ -198,24 +214,27 @@ body {
   color: #ef4444;
 }
 
-/* Personal info section */
+/* Personal info section styling */
 .personal-info {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 15px; /* Reduced from 20px */
+  width: 100%;
 }
 
 .personal-info h1 {
-  font-size: 2rem;
+  font-size: 1.75rem; /* Reduced from 2rem */
   margin-bottom: 5px;
   outline: none;
+  text-align: center;
 }
 
 .personal-info h2 {
-  font-size: 1.25rem;
+  font-size: 1.1rem; /* Reduced from 1.25rem */
   color: var(--primary-color);
   font-weight: 500;
-  margin-bottom: 10px;
+  margin-bottom: 8px; /* Reduced from 10px */
   outline: none;
+  text-align: center;
 }
 
 .contact-info {
@@ -223,46 +242,71 @@ body {
   justify-content: center;
   gap: 15px;
   flex-wrap: wrap;
+  width: 100%;
 }
 
-.contact-info span {
-  outline: none;
+/* Icon spacing fixes */
+.contact-info .flex {
+  gap: var(--icon-gap);
 }
 
-/* Text section */
+.flex .lucide,
+.flex svg {
+  margin-right: var(--icon-gap);
+}
+
+.flex.items-center svg,
+.flex.items-center .lucide {
+  margin-right: var(--icon-gap);
+}
+
+/* Section content */
+.section-content {
+  width: 100%;
+}
+
 .section-content p {
   outline: none;
+  width: 100%;
 }
 
 /* Experience and education sections */
 .experience-list,
-.education-list {
+.education-list,
+.projects-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px; /* Reduced from 15px */
+  width: 100%;
 }
 
 .experience-item,
-.education-item {
-  margin-bottom: 15px;
+.education-item,
+.project-item {
+  margin-bottom: 10px; /* Reduced from 15px */
+  width: 100%;
 }
 
 .experience-header,
-.education-header {
+.education-header,
+.project-header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  width: 100%;
 }
 
 .experience-header h4,
-.education-header h4 {
+.education-header h4,
+.project-header h4 {
   font-size: 1.1rem;
   margin-bottom: 5px;
   outline: none;
 }
 
 .experience-header span,
-.education-header span {
+.education-header span,
+.project-header span {
   font-size: 0.875rem;
   color: #6b7280;
   outline: none;
@@ -277,29 +321,67 @@ body {
   outline: none;
 }
 
-.experience-item p {
+.experience-item p,
+.project-item p {
   font-size: 0.875rem;
   outline: none;
+  margin-bottom: 4px;
+}
+
+.project-tech {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--primary-color);
+  outline: none;
+}
+
+.project-link {
+  font-size: 0.8rem;
+  color: #3b82f6;
+  text-decoration: none;
+  outline: none;
+}
+
+.project-link:hover {
+  text-decoration: underline;
+}
+
+/* Experience item icon spacing */
+.experience-item .flex,
+.education-item .flex,
+.project-item .flex {
+  gap: var(--icon-gap);
+}
+
+.experience-item .mr-4,
+.education-item .mr-4,
+.project-item .mr-4 {
+  margin-right: var(--icon-gap);
 }
 
 /* Skills section */
 .skills-container {
-  margin-top: 10px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  width: 100%;
 }
 
 .skills-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 6px;
+  margin-bottom: 8px;
+  width: 100%;
 }
 
 .skill-tag {
   display: flex;
   align-items: center;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 16px;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
+  margin-bottom: 4px;
+  margin-right: 4px;
 }
 
 .skill-tag span {
@@ -318,25 +400,26 @@ body {
 
 .add-skill input {
   width: 100%;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 0.875rem;
 }
 
+/* Add item button */
 .add-item-btn {
   display: flex;
   align-items: center;
   gap: 5px;
   background: none;
   border: 1px dashed var(--border-color);
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.875rem;
   width: 100%;
   justify-content: center;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .add-item-btn:hover {
@@ -346,17 +429,57 @@ body {
 /* Template-specific styles */
 /* Creative template */
 .resume-container[style*="Poppins"] .section-header h3::after {
+  content: "";
+  display: block;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 12px;
+  height: 1px;
+  border-radius: 1px;
   background-color: var(--primary-color);
 }
 
 .resume-container[style*="Poppins"] .experience-item::before,
-.resume-container[style*="Poppins"] .education-item::before {
+.resume-container[style*="Poppins"] .education-item::before,
+.resume-container[style*="Poppins"] .project-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  border-radius: 1px;
   background-color: var(--primary-color);
 }
 
 /* Professional template */
 .resume-container[style*="Roboto"] .personal-info {
-  border-left-color: var(--primary-color);
+  border-left: 4px solid var(--primary-color);
+  padding-left: 16px;
+  text-align: left;
+}
+
+/* Creative template specific fixes */
+.resume-container[style*="Poppins"] .personal-info {
+  text-align: left;
+}
+
+.resume-container[style*="Poppins"] .personal-info .contact-info {
+  justify-content: flex-start;
+}
+
+/* Template-specific icon spacing */
+.resume-container[style*="Roboto"] .contact-info .flex {
+  gap: 12px;
+}
+
+.resume-container[style*="Poppins"] .flex.items-center {
+  gap: 10px;
+}
+
+.resume-container[style*="Poppins"] .flex.items-center svg {
+  margin-right: 8px;
 }
 
 /* Responsive styles */
@@ -376,7 +499,8 @@ body {
   }
 
   .experience-header,
-  .education-header {
+  .education-header,
+  .project-header {
     flex-direction: column;
     align-items: flex-start;
   }
@@ -385,5 +509,49 @@ body {
     flex-direction: column;
     align-items: center;
   }
+
+  /* Increased icon spacing on mobile */
+  .contact-info .flex {
+    gap: 12px;
+  }
+
+  .flex .lucide,
+  .flex svg {
+    margin-right: 12px;
+  }
+
+  .experience-item .mr-4,
+  .education-item .mr-4,
+  .project-item .mr-4 {
+    margin-right: 12px;
+  }
 }
 
+/* PDF-specific styles */
+@media print {
+  .resume-container {
+    padding: 0.5in;
+    max-height: none;
+    box-shadow: none;
+  }
+  
+  .section-controls,
+  .add-item-btn,
+  .add-skill,
+  .remove-tag {
+    display: none !important;
+  }
+  
+  .skills-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .skill-tag {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    color: #3b82f6 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
