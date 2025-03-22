@@ -30,7 +30,7 @@ function Header() {
     { to: "/", label: "Jobs", icon: Briefcase, active: isHomePage },
     { to: "/search", label: "Search Jobs", icon: Search, active: isSearchPage },
     { to: "/resume-parser", label: "Resume Analyzer", icon: MessageSquare },
-    // { to: "/services", label: "Services", icon: Bell },
+    { to: "/create-resume", label: "Create Resume", icon: Bell },
     { to: "/profile", label: "Profile", icon: User },
   ];
 
