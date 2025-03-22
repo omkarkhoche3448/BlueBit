@@ -12,6 +12,7 @@ function Header() {
   const isHomePage = location.pathname === "/";
   const isResumeParserPage = location.pathname === "/resume-parser";
   const isSearchPage = location.pathname === "/search";
+  const isResumeCreater = location.pathname === "/create-resume";
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -64,7 +65,7 @@ function Header() {
             </div>
           </div>
 
-          {!isSearchPage && !isHomePage && !isResumeParserPage && (
+          {!isSearchPage && !isHomePage && !isResumeParserPage && !isResumeCreater && (
             <div className="hidden md:block flex-1 max-w-lg mx-auto">
               <form onSubmit={handleSearch} className="w-full">
                 <div className="relative">
