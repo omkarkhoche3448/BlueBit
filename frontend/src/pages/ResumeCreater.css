@@ -225,15 +225,15 @@
   gap: var(--icon-gap);
 }
 
-.flex .lucide,
+/* .flex .lucide,
 .flex svg {
   margin-right: var(--icon-gap);
-}
+} */
 
-.flex.items-center svg,
+/* .flex.items-center svg,
 .flex.items-center .lucide {
   margin-right: var(--icon-gap);
-}
+} */
 
 /* Section content */
 .section-content {
@@ -489,11 +489,11 @@
   .contact-info .flex {
     gap: 12px;
   }
-
+/* 
   .flex .lucide,
   .flex svg {
     margin-right: 12px;
-  }
+  } */
 
   .experience-item .mr-4,
   .education-item .mr-4,

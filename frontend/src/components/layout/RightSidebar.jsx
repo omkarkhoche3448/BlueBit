@@ -39,7 +39,7 @@ function RightSidebar() {
     <div className="space-y-4">
       {/* Trending Jobs Section */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="p-4 border-b">
+        <div className="p-4 border-b border-gray-300">
           <h3 className="font-medium flex items-center">
             <TrendingUp className="h-4 w-4 mr-2 text-blue-600" />
             Trending Jobs
@@ -64,7 +64,7 @@ function RightSidebar() {
 
       {/* Resources Section */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="p-4 border-b">
+        <div className="p-4 border-b border-gray-300">
           <h3 className="font-medium">Resources</h3>
         </div>
         <div className="p-4">

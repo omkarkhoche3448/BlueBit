@@ -68,7 +68,7 @@ function Sidebar() {
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden sticky top-20">
       {/* User Profile Section */}
-      <div className="p-4 border-b">
+      <div className="p-4 border-b border-gray-300">
         <div className="flex items-center space-x-3">
           <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
             <User className="h-6 w-6 text-blue-600" />
@@ -84,7 +84,7 @@ function Sidebar() {
       </div>
 
       {/* Saved Jobs Section */}
-      <div className="p-4 border-b">
+      <div className="p-4  border-b border-gray-300">
         <div className="flex items-center justify-between">
           <h3 className="font-medium flex items-center">
             <Bookmark className="h-4 w-4 mr-2" />
