@@ -105,6 +105,20 @@ const initialSections = [
     type: "list",
   },
   {
+    id: "projects",
+    title: "Projects",
+    content: [
+      {
+        id: "proj1",
+        name: "Project Name",
+        description: "Brief description of the project and your role.",
+        technologies: "Technologies used",
+        link: "https://project-link.com",
+      },
+    ],
+    type: "list",
+  },
+  {
     id: "skills",
     title: "Skills",
     content: ["JavaScript", "React", "Node.js", "HTML/CSS", "Git", "Agile Methodologies"],
@@ -121,6 +135,16 @@ function ResumeCreater() {
   const pdfRef = useRef()
   const { toPDF, targetRef } = usePDF({
     filename: "resume.pdf",
+    options: {
+      // Ensure proper rendering of background colors and styles
+      scale: 1,
+      margin: {
+        top: "0.5in",
+        right: "0.5in",
+        bottom: "0.5in",
+        left: "0.5in",
+      },
+    },
   })
 
   // Handle drag and drop reordering
@@ -205,38 +229,47 @@ function ResumeCreater() {
               {section.content.title}
             </h2>
             <div className="contact-info">
-              <span
-                contentEditable
-                suppressContentEditableWarning
-                onBlur={(e) =>
-                  updateSection(section.id, {
-                    content: { ...section.content, email: e.target.textContent },
-                  })
-                }
-              >
-                {section.content.email}
+              <span className="flex items-center">
+                <Mail size={16} className="mr-2" style={{ color: activeTemplate.color }} />
+                <span
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) =>
+                    updateSection(section.id, {
+                      content: { ...section.content, email: e.target.textContent },
+                    })
+                  }
+                >
+                  {section.content.email}
+                </span>
               </span>
-              <span
-                contentEditable
-                suppressContentEditableWarning
-                onBlur={(e) =>
-                  updateSection(section.id, {
-                    content: { ...section.content, phone: e.target.textContent },
-                  })
-                }
-              >
-                {section.content.phone}
+              <span className="flex items-center">
+                <Phone size={16} className="mr-2" style={{ color: activeTemplate.color }} />
+                <span
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) =>
+                    updateSection(section.id, {
+                      content: { ...section.content, phone: e.target.textContent },
+                    })
+                  }
+                >
+                  {section.content.phone}
+                </span>
               </span>
-              <span
-                contentEditable
-                suppressContentEditableWarning
-                onBlur={(e) =>
-                  updateSection(section.id, {
-                    content: { ...section.content, location: e.target.textContent },
-                  })
-                }
-              >
-                {section.content.location}
+              <span className="flex items-center">
+                <MapPin size={16} className="mr-2" style={{ color: activeTemplate.color }} />
+                <span
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) =>
+                    updateSection(section.id, {
+                      content: { ...section.content, location: e.target.textContent },
+                    })
+                  }
+                >
+                  {section.content.location}
+                </span>
               </span>
             </div>
           </div>
@@ -762,6 +795,202 @@ function ResumeCreater() {
     }
   }
 
+  // Render project items based on template
+  const renderProjectItem = (section, item, i) => {
+    switch (activeTemplate.id) {
+      case "minimal":
+        return (
+          <div key={item.id} className={`project-item ${getTemplateStyles("experience")}`}>
+            <div className="project-header">
+              <h4
+                contentEditable
+                suppressContentEditableWarning
+                onBlur={(e) => {
+                  const newContent = [...section.content]
+                  newContent[i] = { ...newContent[i], name: e.target.textContent }
+                  updateSection(section.id, { content: newContent })
+                }}
+              >
+                {item.name}
+              </h4>
+              <span
+                contentEditable
+                suppressContentEditableWarning
+                className="project-link"
+                onBlur={(e) => {
+                  const newContent = [...section.content]
+                  newContent[i] = { ...newContent[i], link: e.target.textContent }
+                  updateSection(section.id, { content: newContent })
+                }}
+              >
+                {item.link}
+              </span>
+            </div>
+            <p
+              contentEditable
+              suppressContentEditableWarning
+              onBlur={(e) => {
+                const newContent = [...section.content]
+                newContent[i] = { ...newContent[i], description: e.target.textContent }
+                updateSection(section.id, { content: newContent })
+              }}
+            >
+              {item.description}
+            </p>
+            <div
+              contentEditable
+              suppressContentEditableWarning
+              className="project-tech"
+              onBlur={(e) => {
+                const newContent = [...section.content]
+                newContent[i] = { ...newContent[i], technologies: e.target.textContent }
+                updateSection(section.id, { content: newContent })
+              }}
+            >
+              {item.technologies}
+            </div>
+          </div>
+        )
+
+      case "professional":
+        return (
+          <div key={item.id} className={`project-item ${getTemplateStyles("experience")}`}>
+            <div className="flex items-start">
+              <div className="mr-4 mt-1">
+                <Briefcase size={18} style={{ color: activeTemplate.color }} />
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-baseline mb-1">
+                  <h4
+                    contentEditable
+                    suppressContentEditableWarning
+                    className="text-lg font-bold"
+                    onBlur={(e) => {
+                      const newContent = [...section.content]
+                      newContent[i] = { ...newContent[i], name: e.target.textContent }
+                      updateSection(section.id, { content: newContent })
+                    }}
+                  >
+                    {item.name}
+                  </h4>
+                  <a
+                    href={item.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    contentEditable
+                    suppressContentEditableWarning
+                    className="text-sm font-medium text-blue-500 hover:underline"
+                    onBlur={(e) => {
+                      const newContent = [...section.content]
+                      newContent[i] = { ...newContent[i], link: e.target.textContent }
+                      updateSection(section.id, { content: newContent })
+                    }}
+                  >
+                    {item.link}
+                  </a>
+                </div>
+                <p
+                  contentEditable
+                  suppressContentEditableWarning
+                  className="text-sm mb-2"
+                  onBlur={(e) => {
+                    const newContent = [...section.content]
+                    newContent[i] = { ...newContent[i], description: e.target.textContent }
+                    updateSection(section.id, { content: newContent })
+                  }}
+                >
+                  {item.description}
+                </p>
+                <div
+                  contentEditable
+                  suppressContentEditableWarning
+                  className="text-sm font-medium"
+                  style={{ color: activeTemplate.color }}
+                  onBlur={(e) => {
+                    const newContent = [...section.content]
+                    newContent[i] = { ...newContent[i], technologies: e.target.textContent }
+                    updateSection(section.id, { content: newContent })
+                  }}
+                >
+                  {item.technologies}
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+
+      case "creative":
+        return (
+          <div
+            key={item.id}
+            className={`project-item ${getTemplateStyles("experience")}`}
+            style={{
+              beforeBackgroundColor: activeTemplate.color,
+            }}
+          >
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2">
+              <h4
+                contentEditable
+                suppressContentEditableWarning
+                className="text-lg font-bold"
+                onBlur={(e) => {
+                  const newContent = [...section.content]
+                  newContent[i] = { ...newContent[i], name: e.target.textContent }
+                  updateSection(section.id, { content: newContent })
+                }}
+              >
+                {item.name}
+              </h4>
+              <a
+                href={item.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                contentEditable
+                suppressContentEditableWarning
+                className="text-sm hover:underline mt-1 md:mt-0"
+                style={{ color: activeTemplate.color }}
+                onBlur={(e) => {
+                  const newContent = [...section.content]
+                  newContent[i] = { ...newContent[i], link: e.target.textContent }
+                  updateSection(section.id, { content: newContent })
+                }}
+              >
+                {item.link}
+              </a>
+            </div>
+            <p
+              contentEditable
+              suppressContentEditableWarning
+              className="text-sm mb-2"
+              onBlur={(e) => {
+                const newContent = [...section.content]
+                newContent[i] = { ...newContent[i], description: e.target.textContent }
+                updateSection(section.id, { content: newContent })
+              }}
+            >
+              {item.description}
+            </p>
+            <div
+              contentEditable
+              suppressContentEditableWarning
+              className="text-sm font-medium"
+              style={{ color: activeTemplate.color }}
+              onBlur={(e) => {
+                const newContent = [...section.content]
+                newContent[i] = { ...newContent[i], technologies: e.target.textContent }
+                updateSection(section.id, { content: newContent })
+              }}
+            >
+              {item.technologies}
+            </div>
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
+
   // Render skill tags based on template
   const renderSkillTag = (section, skill, i) => {
     return (
@@ -928,6 +1157,28 @@ function ResumeCreater() {
                                   }}
                                 >
                                   <Plus size={16} /> Add Education
+                                </button>
+                              </div>
+                            )}
+
+                            {section.type === "list" && section.id === "projects" && (
+                              <div className="projects-list">
+                                {section.content.map((item, i) => renderProjectItem(section, item, i))}
+                                <button
+                                  className="add-item-btn"
+                                  onClick={() => {
+                                    const newContent = [...section.content]
+                                    newContent.push({
+                                      id: `proj-${Date.now()}`,
+                                      name: "Project Name",
+                                      description: "Brief description of the project and your role.",
+                                      technologies: "Technologies used",
+                                      link: "https://project-link.com",
+                                    })
+                                    updateSection(section.id, { content: newContent })
+                                  }}
+                                >
+                                  <Plus size={16} /> Add Project
                                 </button>
                               </div>
                             )}
