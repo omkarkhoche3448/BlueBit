@@ -1,4 +1,5 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import os
 import google.generativeai as genai
 from PyPDF2 import PdfReader
@@ -7,11 +8,14 @@ import json
 import re
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Configure Gemini API
 GEMINI_API_KEY = 'AIzaSyDCSbDt2Xdd3xvvIIwqqcc9EiZfQ_mTyHM'  # Replace with your actual API key
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-2.0-flash')  # Ensure this is the correct model name
+model = genai.GenerativeModel('gemini-2.0-flash', generation_config={
+    'temperature': 0
+})  # Set temperature to 0 for deterministic outputs
 
 # Function to extract text from PDF files
 def extract_text_from_pdf(file):
@@ -111,34 +115,23 @@ def analyze_resume(text):
         response = model.generate_content(prompt)
         response_text = response.text
         
-        # Debug print - can be removed in production
-        print("Raw response:", response_text)
-        
-        # Clean the response text to ensure it's valid JSON
-        # Look for JSON content between curly braces
         json_match = re.search(r'({.*})', response_text, re.DOTALL)
         if json_match:
             json_str = json_match.group(1)
-            # Parse the response as JSON
             analysis_result = json.loads(json_str)
         else:
-            # If no JSON pattern found, try parsing the whole response
             try:
                 analysis_result = json.loads(response_text)
             except:
                 return {"error": "Failed to extract JSON from the response"}
         
-        # Post-process the result to ensure consistency
         if "score" in analysis_result:
-            # Round the total score to ensure consistency
             analysis_result["score"] = round(analysis_result["score"])
             
-            # Also standardize the sub-scores if needed
             if "sub_scores" in analysis_result:
                 for key in analysis_result["sub_scores"]:
                     analysis_result["sub_scores"][key] = round(analysis_result["sub_scores"][key], 1)
                     
-                # Recalculate the total score based on standardized sub-scores to ensure consistency
                 total = sum(analysis_result["sub_scores"].values())
                 analysis_result["score"] = round(total)
         
@@ -149,18 +142,13 @@ def analyze_resume(text):
     except Exception as e:
         return {"error": f"Analysis failed: {str(e)}"}
 
-# Route to serve the homepage
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-# Route to handle resume analysis
-@app.route('/analyze', methods=['POST'])
+# API endpoint for resume analysis
+@app.route('/api/analyze', methods=['POST'])
 def analyze():
-    if 'resume' not in request.files:
+    if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
 
-    file = request.files['resume']
+    file = request.files['file']
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
 
