@@ -36,7 +36,6 @@ def search_jobs():
         # Replace NaN values with None before converting to dict
         jobs = jobs.replace({pd.NA: None, float('nan'): None})
         jobs_dict = jobs.to_dict(orient='records')
-        print(jobs_dict)
         
         return jsonify(jobs_dict)
     except Exception as e:
