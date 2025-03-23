@@ -156,6 +156,10 @@ function JobCard({ job }) {
       className="block"
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
+      onClick={(e) => {
+        e.preventDefault();
+        window.open(job.job_url_direct || job.job_url, '_blank', 'noopener,noreferrer');
+      }}
     >
       <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden border border-gray-200">
         <div className="p-4">

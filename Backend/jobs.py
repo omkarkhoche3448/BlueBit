@@ -21,7 +21,7 @@ def search_jobs():
             
             # Convert frontend filters to JobSpy parameters
             params = {
-                'site_name': ['indeed', 'linkedin'],
+                'site_name': ['indeed', 'linkedin', 'glassdoor'],
                 'search_term': filters.get('searchTerm', 'software engineer'),
                 'location': filters.get('location', 'New York'),
                 'results_wanted': 50,
