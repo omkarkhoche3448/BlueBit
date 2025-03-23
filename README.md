@@ -1,5 +1,3 @@
-# BlueBit
-BlueBit
 # BlueBit - AI-Powered Job Search & Resume Platform
 
 BlueBit is a comprehensive job search platform that helps job seekers find opportunities, analyze their resumes with ATS scoring, and manage their job applications - all in one place.
