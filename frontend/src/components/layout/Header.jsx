@@ -32,7 +32,7 @@ function Header() {
     { to: "/search", label: "Search Jobs", icon: Search, active: isSearchPage },
     { to: "/resume-parser", label: "Resume Analyzer", icon: MessageSquare },
     { to: "/create-resume", label: "Create Resume", icon: Bell },
-    { to: "/profile", label: "Profile", icon: User },
+    // { to: "/profile", label: "Profile", icon: User },
   ];
 
   const getLinkClasses = (isActive) =>
@@ -66,7 +66,7 @@ function Header() {
           </div>
 
           {!isSearchPage && !isHomePage && !isResumeParserPage && !isResumeCreater && (
-            <div className="hidden md:block flex-1 max-w-lg mx-auto">
+            <div className="hidden md:block flex-1 max-w-sm mx-auto">
               <form onSubmit={handleSearch} className="w-full">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

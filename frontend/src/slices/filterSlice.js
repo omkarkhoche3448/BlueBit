@@ -1,4 +1,4 @@
-import { createSlice } from "@reduxjs/toolkit"
+import { createSlice } from "@reduxjs/toolkit";
 
 const filterSlice = createSlice({
   name: "filters",
@@ -10,40 +10,60 @@ const filterSlice = createSlice({
     salaryRange: "",
     datePosted: "",
     sortBy: "relevance",
+    isRemote: "",
+    companyIndustry: "",
+    companySize: "",
+    jobLevel: "",
   },
   reducers: {
     setSearchTerm: (state, action) => {
-      state.searchTerm = action.payload
+      state.searchTerm = action.payload;
     },
     setJobType: (state, action) => {
-      state.jobType = action.payload
+      state.jobType = action.payload;
     },
     setLocation: (state, action) => {
-      state.location = action.payload
+      state.location = action.payload;
     },
     setExperienceLevel: (state, action) => {
-      state.experienceLevel = action.payload
+      state.experienceLevel = action.payload;
     },
     setSalaryRange: (state, action) => {
-      state.salaryRange = action.payload
+      state.salaryRange = action.payload;
     },
     setDatePosted: (state, action) => {
-      state.datePosted = action.payload
+      state.datePosted = action.payload;
     },
     setSortBy: (state, action) => {
-      state.sortBy = action.payload
+      state.sortBy = action.payload;
+    },
+    setIsRemote: (state, action) => {
+      state.isRemote = action.payload;
+    },
+    setCompanyIndustry: (state, action) => {
+      state.companyIndustry = action.payload;
+    },
+    setCompanySize: (state, action) => {
+      state.companySize = action.payload;
+    },
+    setJobLevel: (state, action) => {
+      state.jobLevel = action.payload;
     },
     clearFilters: (state) => {
-      state.jobType = ""
-      state.location = ""
-      state.experienceLevel = ""
-      state.salaryRange = ""
-      state.datePosted = ""
-      state.searchTerm = ""
-      state.sortBy = "relevance"
+      state.jobType = "";
+      state.location = "";
+      state.experienceLevel = "";
+      state.salaryRange = "";
+      state.datePosted = "";
+      state.searchTerm = "";
+      state.sortBy = "relevance";
+      state.isRemote = "";
+      state.companyIndustry = "";
+      state.companySize = "";
+      state.jobLevel = "";
     },
   },
-})
+});
 
 export const {
   setSearchTerm,
@@ -53,8 +73,11 @@ export const {
   setSalaryRange,
   setDatePosted,
   setSortBy,
+  setIsRemote,
+  setCompanyIndustry,
+  setCompanySize,
+  setJobLevel,
   clearFilters,
-} = filterSlice.actions
+} = filterSlice.actions;
 
-export default filterSlice.reducer
-
+export default filterSlice.reducer;

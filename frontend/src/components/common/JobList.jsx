@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchJobs } from "../../slices/jobsSlice";
 import JobCard from "./JobCard";
+import { useLocation } from "react-router-dom";
 
 function JobList() {
   const dispatch = useDispatch();
   const { jobs, loading, error } = useSelector((state) => state.jobs);
   const filters = useSelector((state) => state.filters);
+  const location = useLocation();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -94,8 +96,9 @@ function JobList() {
     );
   }
 
+  const isHomePage = location.pathname === "/";
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isHomePage ? "max-w-xl ml-2" : ""}`}>
       <div className="space-y-4">
         {currentJobs.map((job) => (
           <JobCard key={job.id} job={job} />
@@ -190,7 +193,7 @@ function JobList() {
                       onClick={() => handlePageChange(pageNum)}
                       className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
                         currentPage === pageNum
-                          ? "bg-blue-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                          ? "bg-blue-600 text-white focus:z-20 focus-visible:outline  focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                           : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
                       }`}
                     >

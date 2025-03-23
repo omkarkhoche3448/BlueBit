@@ -2,6 +2,26 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 
 const API_BASE_URL = "http://localhost:8000/api"
 
+// Load savedJobs from localStorage on initial load
+const loadSavedJobsFromStorage = () => {
+  try {
+    const savedJobs = localStorage.getItem('savedJobs')
+    return savedJobs ? JSON.parse(savedJobs) : []
+  } catch (error) {
+    console.error('Error loading saved jobs from localStorage:', error)
+    return []
+  }
+}
+
+// Save jobs to localStorage
+const saveJobsToStorage = (jobs) => {
+  try {
+    localStorage.setItem('savedJobs', JSON.stringify(jobs))
+  } catch (error) {
+    console.error('Error saving jobs to localStorage:', error)
+  }
+}
+
 export const fetchJobs = createAsyncThunk("jobs/fetchJobs", async (filters, { rejectWithValue }) => {
   try {
     // Construct the API URL
@@ -64,49 +84,11 @@ export const applyToJob = createAsyncThunk("jobs/applyToJob", async (id, { rejec
   }
 })
 
-export const saveJob = createAsyncThunk("jobs/saveJob", async (job, { rejectWithValue }) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/save-job/${job.id}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(job),
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json()
-      return rejectWithValue(errorData.error || "Failed to save job")
-    }
-
-    return job
-  } catch (error) {
-    return rejectWithValue(error.message)
-  }
-})
-
-export const unsaveJob = createAsyncThunk("jobs/unsaveJob", async (jobId, { rejectWithValue }) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/save-job/${jobId}`, {
-      method: "DELETE",
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json()
-      return rejectWithValue(errorData.error || "Failed to unsave job")
-    }
-
-    return jobId
-  } catch (error) {
-    return rejectWithValue(error.message)
-  }
-})
-
 const jobsSlice = createSlice({
   name: "jobs",
   initialState: {
     jobs: [],
-    savedJobs: [],
+    savedJobs: loadSavedJobsFromStorage(), // Load from localStorage on init
     appliedJobs: [],
     currentJob: null,
     loading: false,
@@ -122,6 +104,9 @@ const jobsSlice = createSlice({
       } else {
         state.savedJobs.push(job)
       }
+      
+      // Update localStorage whenever savedJobs changes
+      saveJobsToStorage(state.savedJobs)
     },
     clearErrors: (state) => {
       state.error = null
@@ -172,24 +157,6 @@ const jobsSlice = createSlice({
       .addCase(applyToJob.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
-      })
-      
-      // Handle saveJob
-      .addCase(saveJob.fulfilled, (state, action) => {
-        const job = action.payload
-        const savedJobIndex = state.savedJobs.findIndex((savedJob) => savedJob.id === job.id)
-        if (savedJobIndex === -1) {
-          state.savedJobs.push(job)
-        }
-      })
-      
-      // Handle unsaveJob
-      .addCase(unsaveJob.fulfilled, (state, action) => {
-        const jobId = action.payload
-        const savedJobIndex = state.savedJobs.findIndex((savedJob) => savedJob.id === jobId)
-        if (savedJobIndex >= 0) {
-          state.savedJobs.splice(savedJobIndex, 1)
-        }
       })
   },
 })
