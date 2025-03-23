@@ -134,13 +134,13 @@ function Sidebar() {
         />
 
         {/* Salary Range Filter */}
-        <FilterSelect
+        {/* <FilterSelect
           label="Salary Range"
           icon={DollarSign}
           value={filters.salaryRange}
           options={filterOptions.salaryRange}
           onChange={handleFilterChange("salaryRange")}
-        />
+        /> */}
 
         {/* Date Posted Filter */}
         <FilterSelect
