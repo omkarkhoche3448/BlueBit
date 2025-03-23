@@ -47,7 +47,7 @@ def get_job_by_id(job_id):
         jobs = scrape_jobs(
             site_name=['indeed', 'linkedin'],
             search_term='software engineer',
-            results_wanted=100
+            results_wanted=1000
         )
         
         # Replace NaN values with None before converting to dict
