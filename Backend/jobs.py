@@ -25,11 +25,39 @@ def search_jobs():
                 'search_term': filters.get('searchTerm', 'software engineer'),
                 'location': filters.get('location', 'New York'),
                 'results_wanted': 50,
-                'job_type': filters.get('jobType'),
-                'is_remote': filters.get('location') == 'remote'
             }
+            
+            # Only add parameters if they have valid values
+            if filters.get('jobType'):
+                params['job_type'] = filters.get('jobType')
+                
+            if filters.get('experienceLevel'):
+                params['experience_level'] = filters.get('experienceLevel')
+                
+            if filters.get('company'):
+                params['company_name'] = filters.get('company')
+            
+            # Handle is_remote properly - ensure it's a boolean
+            is_remote = filters.get('isRemote')
+            if isinstance(is_remote, bool):
+                params['is_remote'] = is_remote
+            elif isinstance(is_remote, str):
+                if is_remote.lower() == 'true':
+                    params['is_remote'] = True
+                elif is_remote.lower() == 'false':
+                    params['is_remote'] = False
+            # If is_remote is None or invalid, don't include it in params
         else:
-            params = request.args.to_dict()
+            # Handle GET parameters more carefully
+            params = {}
+            for key, value in request.args.items():
+                if key == 'is_remote':
+                    if value.lower() == 'true':
+                        params[key] = True
+                    elif value.lower() == 'false':
+                        params[key] = False
+                else:
+                    params[key] = value
         
         jobs = scrape_jobs(**params)
         
