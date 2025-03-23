@@ -24,7 +24,7 @@ def search_jobs():
                 'site_name': ['indeed', 'linkedin'],
                 'search_term': filters.get('searchTerm', 'software engineer'),
                 'location': filters.get('location', 'New York'),
-                'results_wanted': 20,
+                'results_wanted': 50,
                 'job_type': filters.get('jobType'),
                 'is_remote': filters.get('location') == 'remote'
             }
@@ -43,25 +43,7 @@ def search_jobs():
 
 @app.route('/api/job/<string:job_id>', methods=['GET'])
 def get_job_by_id(job_id):
-    try:
-        jobs = scrape_jobs(
-            site_name=['indeed', 'linkedin'],
-            search_term='software engineer',
-            results_wanted=1000
-        )
-        
-        # Replace NaN values with None before converting to dict
-        jobs = jobs.replace({pd.NA: None, float('nan'): None})
-        jobs_dict = jobs.to_dict(orient='records')
-        
-        # Find the job with matching ID
-        job = next((job for job in jobs_dict if str(job.get('job_id')) == job_id), None)
-        
-        if job:
-            return jsonify(job)
-        return jsonify({'error': 'Job not found'}), 404
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    pass
 
 @app.route('/api/apply-job/<string:job_id>', methods=['POST'])
 def apply_to_job(job_id):
