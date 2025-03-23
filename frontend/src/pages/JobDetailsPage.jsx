@@ -38,8 +38,8 @@ function JobDetailsPage() {
     if (currentJob) {
       dispatch(applyToJob(currentJob.id))
       // Redirect to application form or external site
-      if (currentJob.applicationUrl) {
-        window.open(currentJob.applicationUrl, "_blank")
+      if (currentJob.job_url_direct) {
+        window.open(currentJob.job_url_direct, "_blank")
       }
     }
   }
@@ -53,7 +53,45 @@ function JobDetailsPage() {
       })
     } else {
       // Fallback for browsers that don't support navigator.share
+      navigator.clipboard.writeText(window.location.href)
       alert("Share link copied to clipboard!")
+    }
+  }
+
+  // Format salary information
+  const formatSalary = (job) => {
+    if (job.min_amount && job.max_amount) {
+      return `$${job.min_amount}/hr - $${job.max_amount}/hr ${job.currency || ''}`
+    } else if (job.min_amount) {
+      return `$${job.min_amount}/hr+ ${job.currency || ''}`
+    } else if (job.max_amount) {
+      return `Up to $${job.max_amount}/hr ${job.currency || ''}`
+    }
+    return null
+  }
+  
+  // Format job type
+  const formatJobType = (type) => {
+    if (!type) return null
+    
+    const types = {
+      "fulltime": "Full-time",
+      "parttime": "Part-time",
+      "contract": "Contract",
+      "temporary": "Temporary",
+      "internship": "Internship"
+    }
+    
+    return types[type] || type
+  }
+  
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return null
+    try {
+      return new Date(dateString).toLocaleDateString()
+    } catch (e) {
+      return null
     }
   }
 
@@ -115,7 +153,7 @@ function JobDetailsPage() {
           <div className="flex-shrink-0 h-16 w-16 rounded bg-gray-100 flex items-center justify-center mb-4 md:mb-0 md:mr-6 overflow-hidden">
             {currentJob.company_logo ? (
               <img
-                src={currentJob.company_logo || "/placeholder.svg"}
+                src={currentJob.company_logo}
                 alt={`${currentJob.company} logo`}
                 className="h-full w-full object-contain"
               />
@@ -133,18 +171,14 @@ function JobDetailsPage() {
               {currentJob.location && (
                 <div className="flex items-center text-sm text-gray-500">
                   <MapPin className="h-4 w-4 mr-1" />
-                  <span>
-                    {currentJob.is_remote
-                      ? "Remote"
-                      : `${currentJob.location.city}${currentJob.location.state ? `, ${currentJob.location.state}` : ""}${currentJob.location.country ? `, ${currentJob.location.country}` : ""}`}
-                  </span>
+                  <span>{currentJob.is_remote ? "Remote" : currentJob.location}</span>
                 </div>
               )}
 
               {currentJob.job_type && (
                 <div className="flex items-center text-sm text-gray-500">
                   <Briefcase className="h-4 w-4 mr-1" />
-                  <span>{currentJob.job_type}</span>
+                  <span>{formatJobType(currentJob.job_type)}</span>
                 </div>
               )}
 
@@ -155,23 +189,17 @@ function JobDetailsPage() {
                 </div>
               )}
 
-              {currentJob.salary && (
+              {(currentJob.min_amount || currentJob.max_amount) && (
                 <div className="flex items-center text-sm text-gray-500">
                   <DollarSign className="h-4 w-4 mr-1" />
-                  <span>
-                    {currentJob.salary.min_amount && currentJob.salary.max_amount
-                      ? `${currentJob.salary.min_amount.toLocaleString()} - ${currentJob.salary.max_amount.toLocaleString()} ${currentJob.salary.currency}/${currentJob.salary.interval}`
-                      : currentJob.salary.min_amount
-                        ? `${currentJob.salary.min_amount.toLocaleString()}+ ${currentJob.salary.currency}/${currentJob.salary.interval}`
-                        : `Up to ${currentJob.salary.max_amount.toLocaleString()} ${currentJob.salary.currency}/${currentJob.salary.interval}`}
-                  </span>
+                  <span>${currentJob.min_amount} - ${currentJob.max_amount}/hr</span>
                 </div>
               )}
 
               {currentJob.date_posted && (
                 <div className="flex items-center text-sm text-gray-500">
                   <Calendar className="h-4 w-4 mr-1" />
-                  <span>Posted {new Date(currentJob.date_posted).toLocaleDateString()}</span>
+                  <span>Posted {formatDate(currentJob.date_posted)}</span>
                 </div>
               )}
             </div>
@@ -212,14 +240,14 @@ function JobDetailsPage() {
         <h2 className="text-xl font-bold text-gray-900 mb-4">Job Description</h2>
         <div className="prose max-w-none">
           {currentJob.description ? (
-            <div dangerouslySetInnerHTML={{ __html: currentJob.description }} />
+            <div dangerouslySetInnerHTML={{ __html: currentJob.description.replace(/\n/g, '<br/>') }} />
           ) : (
             <p>No description provided.</p>
           )}
         </div>
       </div>
 
-      {/* Skills/Requirements */}
+      {/* Skills/Requirements (only if available) */}
       {currentJob.skills && currentJob.skills.length > 0 && (
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Skills & Requirements</h2>
@@ -242,16 +270,16 @@ function JobDetailsPage() {
 
         {currentJob.company_description ? (
           <div className="prose max-w-none mb-4">
-            <div dangerouslySetInnerHTML={{ __html: currentJob.company_description }} />
+            <p>{currentJob.company_description}</p>
           </div>
         ) : (
           <p className="text-gray-600 mb-4">No company description available.</p>
         )}
 
-        {currentJob.company_employees_count && (
+        {currentJob.company_num_employees && (
           <div className="flex items-center text-sm text-gray-600 mb-2">
             <Users className="h-4 w-4 mr-2" />
-            <span>{currentJob.company_employees_count} employees</span>
+            <span>{currentJob.company_num_employees} employees</span>
           </div>
         )}
 
@@ -262,9 +290,23 @@ function JobDetailsPage() {
           </div>
         )}
 
-        {currentJob.company_url && (
+        {currentJob.company_addresses && (
+          <div className="flex items-center text-sm text-gray-600 mb-2">
+            <MapPin className="h-4 w-4 mr-2" />
+            <span>Headquarters: {currentJob.company_addresses}</span>
+          </div>
+        )}
+
+        {currentJob.company_revenue && (
+          <div className="flex items-center text-sm text-gray-600 mb-2">
+            <DollarSign className="h-4 w-4 mr-2" />
+            <span>Revenue: {currentJob.company_revenue}</span>
+          </div>
+        )}
+
+        {currentJob.company_url_direct && (
           <a
-            href={currentJob.company_url}
+            href={currentJob.company_url_direct}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
@@ -275,11 +317,7 @@ function JobDetailsPage() {
         )}
       </div>
 
-      {/* Similar Jobs */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Similar Jobs</h2>
-        <p className="text-gray-600">Loading similar jobs...</p>
-      </div>
+      {/* Similar Jobs section removed since we don't have that data */}
     </div>
   )
 }
