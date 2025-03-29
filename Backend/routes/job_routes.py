@@ -217,6 +217,23 @@ def register_job_routes(app):
         finally:
             session.close()
 
+    @app.route('/api/users/<string:clerk_id>/saved-jobs', methods=['GET'])
+    def get_saved_jobs(clerk_id):
+        session = Session()
+        try:
+            user = session.query(User).filter(User.clerk_id == clerk_id).first()
+            if not user:
+                return jsonify({'saved_jobs': []}), 200
+            
+            saved_jobs = user.saved_jobs_ids if user.saved_jobs_ids else []
+            return jsonify({'saved_jobs': saved_jobs}), 200
+            
+        except Exception as e:
+            logging.error(f"Error fetching saved jobs for user {clerk_id}: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+        finally:
+            session.close()
+
     @app.route('/api/users/<string:clerk_id>/job-interest', methods=['POST'])
     def update_job_interest(clerk_id):
         session = Session()
