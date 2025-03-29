@@ -1,0 +1,111 @@
+Similarity Scores for User: user_2uyzr8DCD2f5CjGnHYZS0ong9t8
+Generated on: 2025-03-29 15:13:43
+Number of interested jobs: 5
+Number of recommended jobs analyzed: 20
+
+SUMMARY STATISTICS:
+Average similarity across all recommendations: 0.1324
+Highest similarity score: 0.2043
+Lowest similarity score: 0.0010
+
+DETAILED RESULTS:
+1. Recommended Job: Data Science Lead - Vice President - C13 - Pune (ID: go-J9wLXe7MRd_U82zzAAAAAA==)
+   Average Similarity: 0.2043
+   Most Similar Input Job: Deep Learning Data Science Manager - SFL Scientific (ID: gd-1009688345798)
+   Similarity Score: 0.2555
+
+2. Recommended Job: Director, Data Science (ID: go-8hfBBYtBvhvmTjDAAAAAAA==)
+   Average Similarity: 0.2025
+   Most Similar Input Job: Deep Learning Data Science Manager - SFL Scientific (ID: gd-1009688345798)
+   Similarity Score: 0.2909
+
+3. Recommended Job: Gen AI Data Scientist - Senior Associate (ID: go-k0U7hm-psZNQUdZcAAAAAA==)
+   Average Similarity: 0.1942
+   Most Similar Input Job: Data Scientist (ID: gd-1009656139619)
+   Similarity Score: 0.2529
+
+4. Recommended Job: Sr Data Science (ID: go-5myo_07X6RW2kliQAAAAAA==)
+   Average Similarity: 0.1936
+   Most Similar Input Job: Data Scientist (ID: gd-1009656139619)
+   Similarity Score: 0.2890
+
+5. Recommended Job: Senior Data Scientist (AI/ML) (ID: go-c43Lm1oTbB3UCmVJAAAAAA==)
+   Average Similarity: 0.1873
+   Most Similar Input Job: Senior Decision Scientist - Care Delivery Analytics (ID: gd-1009687232125)
+   Similarity Score: 0.2346
+
+6. Recommended Job: AI Product Owner (ID: go-M91lno-Bv2RUoDGGAAAAAA==)
+   Average Similarity: 0.1857
+   Most Similar Input Job: Deep Learning Data Science Manager - SFL Scientific (ID: gd-1009688345798)
+   Similarity Score: 0.2838
+
+7. Recommended Job: Data Science Specialist (ID: go-vhh9AG7rEiloqpVIAAAAAA==)
+   Average Similarity: 0.1810
+   Most Similar Input Job: Deep Learning Data Science Manager - SFL Scientific (ID: gd-1009688345798)
+   Similarity Score: 0.2463
+
+8. Recommended Job: Machine Learning (ID: go-0SgoFre8TTMK89A4AAAAAA==)
+   Average Similarity: 0.1769
+   Most Similar Input Job: Deep Learning Data Science Manager - SFL Scientific (ID: gd-1009688345798)
+   Similarity Score: 0.2409
+
+9. Recommended Job: Associate Data Scientist (ID: go-raCl49GO7Odp643MAAAAAA==)
+   Average Similarity: 0.1715
+   Most Similar Input Job: Deep Learning Data Science Manager - SFL Scientific (ID: gd-1009688345798)
+   Similarity Score: 0.2172
+
+10. Recommended Job: Data Specialist (Data Engineer | Data Analyst | Data Scientist) (ID: go-G2cAgyDZQ8esLI1BAAAAAA==)
+   Average Similarity: 0.1596
+   Most Similar Input Job: Data Scientist (ID: gd-1009656139619)
+   Similarity Score: 0.2483
+
+11. Recommended Job: Senior Data Scientist (ID: go-n8nISzBpOKJ32RhoAAAAAA==)
+   Average Similarity: 0.1539
+   Most Similar Input Job: Deep Learning Data Science Manager - SFL Scientific (ID: gd-1009688345798)
+   Similarity Score: 0.1763
+
+12. Recommended Job: Manager Data Scientist (ID: go-CVIdFl4Dq9el5bkdAAAAAA==)
+   Average Similarity: 0.1537
+   Most Similar Input Job: Deep Learning Data Science Manager - SFL Scientific (ID: gd-1009688345798)
+   Similarity Score: 0.2014
+
+13. Recommended Job: Data Science Intern (ID: go-6f48c5OomQ4suuO8AAAAAA==)
+   Average Similarity: 0.1461
+   Most Similar Input Job: Data Scientist (ID: gd-1009656139619)
+   Similarity Score: 0.2121
+
+14. Recommended Job: STEM & Data Science Trainer (ID: go-Cl_iozVwJNxSuwPBAAAAAA==)
+   Average Similarity: 0.0980
+   Most Similar Input Job: Deep Learning Data Science Manager - SFL Scientific (ID: gd-1009688345798)
+   Similarity Score: 0.1634
+
+15. Recommended Job: Statistician (R5-R6) (ID: gd-1009684111669)
+   Average Similarity: 0.0962
+   Most Similar Input Job: Senior Decision Scientist - Care Delivery Analytics (ID: gd-1009687232125)
+   Similarity Score: 0.1369
+
+16. Recommended Job: Data Scientist 1 (ID: li-4192710963)
+   Average Similarity: 0.0624
+   Most Similar Input Job: Data Scientist (ID: gd-1009656139619)
+   Similarity Score: 0.1623
+
+17. Recommended Job: AI/ML Engineer (ID: li-4192365415)
+   Average Similarity: 0.0563
+   Most Similar Input Job: Responsible AI Solution Engineer (ID: gd-1009680105068)
+   Similarity Score: 0.1224
+
+18. Recommended Job: Artificial intelligence and Machine learning (ID: li-4191523986)
+   Average Similarity: 0.0232
+   Most Similar Input Job: Data Scientist (ID: gd-1009656139619)
+   Similarity Score: 0.0487
+
+19. Recommended Job: Stanowisko ds. zarządzania obszarem BI i HD-specjalność analityki biznesowej (ID: li-4196306236)
+   Average Similarity: 0.0013
+   Most Similar Input Job: Data Scientist (ID: gd-1009656139619)
+   Similarity Score: 0.0066
+
+20. Recommended Job: Stanowisko ds. zarządzania obszarem BI i HD-specjalność inżynierii systemów Hurtowni Danych (ID: li-4195907466)
+   Average Similarity: 0.0010
+   Most Similar Input Job: Data Scientist (ID: gd-1009656139619)
+   Similarity Score: 0.0050
+
