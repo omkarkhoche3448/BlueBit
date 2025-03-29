@@ -11,35 +11,96 @@ class FormFieldExtractor {
    * @returns {Array} Array of form field objects with metadata
    */
   extractFields() {
-    // Target input types that are commonly used in forms
-    const inputSelectors = [
-      'input[type="text"]',
-      'input[type="email"]',
-      'input[type="tel"]',
-      'input[type="url"]',
-      'input[type="number"]',
-      'input[type="date"]',
-      'textarea',
-      'select'
-    ];
-
-    const allInputs = document.querySelectorAll(inputSelectors.join(', '));
-    this.formFields = [];
-
-    allInputs.forEach(input => {
-      // Skip hidden or disabled inputs
-      if (input.type === 'hidden' || input.disabled || !this.isVisible(input)) {
-        return;
-      }
-
-      // Get field metadata
-      const fieldInfo = this.getFieldInfo(input);
-      if (fieldInfo) {
-        this.formFields.push(fieldInfo);
-      }
+    console.log("Extracting form fields from page");
+    
+    // Find all form elements on the page
+    const forms = document.querySelectorAll('form');
+    console.log(`Found ${forms.length} forms on the page`);
+    
+    // Collect all input, select, and textarea elements from all forms
+    const formFields = [];
+    
+    forms.forEach((form, formIndex) => {
+      console.log(`Processing form ${formIndex}`);
+      
+      // Get all inputs, selects, and textareas from this form
+      const inputs = form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"])');
+      const selects = form.querySelectorAll('select');
+      const textareas = form.querySelectorAll('textarea');
+      
+      console.log(`Form ${formIndex} has ${inputs.length} inputs, ${selects.length} selects, ${textareas.length} textareas`);
+      
+      // Process inputs
+      inputs.forEach(input => {
+        const field = this.extractFieldInfo(input);
+        if (field) {
+          console.log(`Extracted input field: ${field.label}`);
+          formFields.push(field);
+        }
+      });
+      
+      // Process selects
+      selects.forEach(select => {
+        const field = this.extractFieldInfo(select);
+        if (field) {
+          console.log(`Extracted select field: ${field.label}`);
+          formFields.push(field);
+        }
+      });
+      
+      // Process textareas
+      textareas.forEach(textarea => {
+        const field = this.extractFieldInfo(textarea);
+        if (field) {
+          console.log(`Extracted textarea field: ${field.label}`);
+          formFields.push(field);
+        }
+      });
     });
-
-    return this.formFields;
+    
+    // If no form is found, try to get fields from the entire document
+    if (formFields.length === 0) {
+      console.log("No forms found, looking for form fields in the entire document");
+      
+      // Get all inputs, selects, and textareas from the document
+      const inputs = document.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"])');
+      const selects = document.querySelectorAll('select');
+      const textareas = document.querySelectorAll('textarea');
+      
+      console.log(`Document has ${inputs.length} inputs, ${selects.length} selects, ${textareas.length} textareas`);
+      
+      // Process inputs
+      inputs.forEach(input => {
+        const field = this.extractFieldInfo(input);
+        if (field) {
+          console.log(`Extracted input field: ${field.label}`);
+          formFields.push(field);
+        }
+      });
+      
+      // Process selects
+      selects.forEach(select => {
+        const field = this.extractFieldInfo(select);
+        if (field) {
+          console.log(`Extracted select field: ${field.label}`);
+          formFields.push(field);
+        }
+      });
+      
+      // Process textareas
+      textareas.forEach(textarea => {
+        const field = this.extractFieldInfo(textarea);
+        if (field) {
+          console.log(`Extracted textarea field: ${field.label}`);
+          formFields.push(field);
+        }
+      });
+    }
+    
+    console.log(`Extracted a total of ${formFields.length} form fields`);
+    console.log("Extracted fields:", formFields);
+    
+    return formFields;
   }
 
   /**
@@ -56,82 +117,68 @@ class FormFieldExtractor {
    * @param {Element} input - Form field element
    * @returns {Object|null} Field information or null if not relevant
    */
-  getFieldInfo(input) {
-    // Get label text
-    let labelText = '';
+  extractFieldInfo(element) {
+    if (!element) return null;
     
-    // Try to find label by for attribute
-    if (input.id) {
-      const label = document.querySelector(`label[for="${input.id}"]`);
-      if (label) {
-        labelText = label.textContent.trim();
+    // Make sure the element is properly stored
+    const field = {
+      element: element,
+      type: element.type || element.tagName.toLowerCase(),
+      name: element.name || '',
+      id: element.id || '',
+      label: '',
+      placeholder: element.placeholder || '',
+      required: element.required || false
+    };
+    
+    // Try to find a label for this field
+    let label = null;
+    
+    // First check if there's a label element associated with this field by its ID
+    if (element.id) {
+      label = document.querySelector(`label[for="${element.id}"]`);
+    }
+    
+    // If no label found by ID, check if the field is inside a label
+    if (!label) {
+      label = element.closest('label');
+    }
+    
+    // If we found a label, extract its text content
+    if (label) {
+      field.label = label.textContent.trim();
+    } else {
+      // Try to get the label from the element's attributes
+      if (element.title) {
+        field.label = element.title;
+      } else if (element.placeholder) {
+        field.label = element.placeholder;
+      } else if (element.name) {
+        // Convert name to a more readable format
+        field.label = element.name
+          .replace(/([A-Z])/g, ' $1') // Add spaces before capital letters
+          .replace(/_/g, ' ') // Replace underscores with spaces
+          .replace(/^\w/, c => c.toUpperCase()); // Capitalize first letter
+      } else if (element.id) {
+        // Convert id to a more readable format
+        field.label = element.id
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/_/g, ' ')
+          .replace(/^\w/, c => c.toUpperCase());
       }
     }
     
-    // If no label found, try parent label
-    if (!labelText && input.closest('label')) {
-      labelText = input.closest('label').textContent.trim();
-      // Remove the input's value from the label text if it's there
-      if (input.value) {
-        labelText = labelText.replace(input.value, '').trim();
-      }
-    }
-    
-    // If still no label, try placeholder or name attribute
-    if (!labelText) {
-      labelText = input.placeholder || input.name || '';
-    }
-    
-    // Try to find nearby text that might be a label
-    if (!labelText) {
-      labelText = this.findNearbyLabelText(input);
-    }
-
-    // Skip if we couldn't determine any label or identifier
-    if (!labelText) {
+    // Skip fields with no meaningful label
+    if (!field.label && !field.name && !field.placeholder) {
       return null;
     }
-
-    return {
-      element: input,
-      type: input.type || input.tagName.toLowerCase(),
-      id: input.id || '',
-      name: input.name || '',
-      label: labelText,
-      placeholder: input.placeholder || '',
-      value: input.value || '',
-      required: input.required || false
-    };
-  }
-
-  /**
-   * Find text near an input that might be its label
-   * @param {Element} input - Form field element
-   * @returns {string} Potential label text
-   */
-  findNearbyLabelText(input) {
-    // Look for nearby elements that might contain label text
-    const parent = input.parentElement;
-    const siblings = Array.from(parent.children);
-    const index = siblings.indexOf(input);
     
-    // Check previous sibling
-    if (index > 0) {
-      const prevSibling = siblings[index - 1];
-      if (prevSibling.tagName !== 'INPUT' && 
-          prevSibling.tagName !== 'SELECT' && 
-          prevSibling.tagName !== 'TEXTAREA') {
-        return prevSibling.textContent.trim();
-      }
+    // Set a fallback label if still empty
+    if (!field.label) {
+      field.label = field.name || field.placeholder || field.id || 'Unnamed Field';
     }
     
-    // Check parent text content if it's short enough to likely be a label
-    const parentText = parent.textContent.trim();
-    if (parentText.length < 50) {
-      return parentText;
-    }
-    
-    return '';
+    return field;
   }
 
   /**

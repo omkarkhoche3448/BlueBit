@@ -1,141 +1,140 @@
-// API key for Gemini (you'll need to replace this with your actual API key)
-const GEMINI_API_KEY = 'AIzaSyDCSbDt2Xdd3xvvIIwqqcc9EiZfQ_mTyHM';
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+// Track which tabs have the content script injected
+const injectedTabs = new Set();
+
+// When a tab is updated (page load completes), inject our content script
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url && tab.url.startsWith('http')) {
+    // Avoid re-injecting the script if it's already injected
+    if (!injectedTabs.has(tabId)) {
+      console.log('Injecting content script into tab:', tabId);
+      
+      // Inject FormFieldExtractor first
+      chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        files: ['utils/formFieldExtractor.js']
+      })
+      .then(() => {
+        // Then inject the content script
+        return chrome.scripting.executeScript({
+          target: { tabId: tabId },
+          files: ['scripts/content.js']
+        });
+      })
+      .then(() => {
+        console.log('Scripts injected successfully into tab:', tabId);
+        injectedTabs.add(tabId);
+      })
+      .catch(err => {
+        console.error('Error injecting scripts:', err);
+      });
+    }
+  }
+});
+
+// Remove tab from injected set when it's closed
+chrome.tabs.onRemoved.addListener((tabId) => {
+  injectedTabs.delete(tabId);
+});
 
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.action === 'processWithAI') {
-    processFieldsWithGemini(request.fields, request.resumeData)
+    processFieldsWithBackend(request.fields, request.clerkId)
       .then(responses => {
         sendResponse({ success: true, responses: responses });
       })
       .catch(error => {
-        console.error('Error processing with Gemini:', error);
+        console.error('Error processing with backend:', error);
         sendResponse({ success: false, error: error.message });
       });
     
     return true; // Required for async sendResponse
   }
-})
+  
+  // New message to check if content script is already injected
+  if (request.action === 'isContentScriptInjected') {
+    const tabId = request.tabId;
+    const isInjected = injectedTabs.has(tabId);
+    
+    sendResponse({ injected: isInjected });
+    
+    // If not injected, inject it now
+    if (!isInjected) {
+      // Inject FormFieldExtractor first
+      chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        files: ['utils/formFieldExtractor.js']
+      })
+      .then(() => {
+        // Then inject the content script
+        return chrome.scripting.executeScript({
+          target: { tabId: tabId },
+          files: ['scripts/content.js']
+        });
+      })
+      .then(() => {
+        console.log('Scripts injected successfully into tab:', tabId);
+        injectedTabs.add(tabId);
+      })
+      .catch(err => {
+        console.error('Error injecting scripts:', err);
+      });
+    }
+    
+    return true;
+  }
+});
 
 /**
- * Process form fields with Gemini AI
+ * Process form fields with backend API
  * @param {Array} fields - Array of form field objects
- * @param {string} resumeData - User's resume text
+ * @param {string} clerkId - Clerk user ID for authentication
  * @returns {Promise<Array>} Array of AI responses for each field
  */
-async function processFieldsWithGemini(fields, resumeData) {
-  // Prepare the prompt for Gemini
-  const prompt = createGeminiPrompt(fields, resumeData);
+async function processFieldsWithBackend(fields, clerkId) {
+  const BACKEND_URL = "https://85af-2401-4900-acba-ad65-e357-a4c6-54cc-28a9.ngrok-free.app/chrome-extension";
   
   try {
-    // Call Gemini API
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    console.log("Sending request to backend with clerk ID:", clerkId);
+    console.log("Fields being sent:", fields);
+    
+    // Call backend API
+    const response = await fetch(BACKEND_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${clerkId}`
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }]
-      })
+        fields: fields
+      }),
+      mode: 'cors'  // Explicitly set CORS mode
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Gemini API error: ${errorData.error?.message || 'Unknown error'}`);
+      const errorText = await response.text();
+      console.error("Backend response error:", response.status, errorText);
+      throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
     }
     
     const data = await response.json();
+    console.log("Backend response:", data);
     
-    // Parse the AI response
-    const aiText = data.candidates[0].content.parts[0].text;
-    return parseGeminiResponse(aiText, fields);
-  } catch (error) {
-    console.error('Error calling Gemini API:', error);
-    throw error;
-  }
-}
-
-/**
- * Create a prompt for Gemini based on form fields and resume
- * @param {Array} fields - Array of form field objects
- * @param {string} resumeData - User's resume text
- * @returns {string} Prompt for Gemini
- */
-function createGeminiPrompt(fields, resumeData) {
-  let prompt = `I'm filling out a job application form. Below is my resume information, followed by the form fields I need to fill. Please provide appropriate responses for each field based on my resume data.
-
-RESUME INFORMATION:
-${resumeData}
-
-FORM FIELDS TO FILL:
-`;
-
-  fields.forEach((field, index) => {
-    prompt += `${index + 1}. Field: "${field.label}"
-   Type: ${field.type}
-   ${field.required ? 'Required: Yes' : 'Required: No'}
-   ${field.placeholder ? `Placeholder: "${field.placeholder}"` : ''}
-`;
-  });
-
-  prompt += `
-Please respond with a JSON object where each key is the field number and each value is your suggested response. For example:
-{
-  "1": "John Doe",
-  "2": "johndoe@example.com",
-  ...
-}
-
-Only include the JSON in your response, no other text.`;
-
-  return prompt;
-}
-
-/**
- * Parse the response from Gemini
- * @param {string} aiText - Text response from Gemini
- * @param {Array} fields - Array of form field objects
- * @returns {Array} Array of responses for each field
- */
-function parseGeminiResponse(aiText, fields) {
-  try {
-    // Extract JSON from the response
-    const jsonMatch = aiText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Could not find JSON in AI response');
+    if (!data.success) {
+      throw new Error(data.error || 'Unknown error from backend');
     }
     
-    const jsonStr = jsonMatch[0];
-    const responses = JSON.parse(jsonStr);
-    
-    // Convert to array format
-    return fields.map((field, index) => {
-      const fieldNum = (index + 1).toString();
-      return {
-        fieldIndex: index,
-        label: field.label,
-        value: responses[fieldNum] || ''
-      };
-    });
+    return data.responses;
   } catch (error) {
-    console.error('Error parsing AI response:', error);
-    // Fallback: try to extract responses line by line
-    const lines = aiText.split('\n');
-    return fields.map((field, index) => {
-      const fieldNum = (index + 1).toString();
-      const responseLine = lines.find(line => line.includes(`${fieldNum}:`));
-      const value = responseLine ? responseLine.split(':').slice(1).join(':').trim() : '';
-      
-      return {
-        fieldIndex: index,
-        label: field.label,
-        value: value.replace(/^["']|["']$/g, '') // Remove quotes if present
-      };
-    });
+    console.error('Error calling backend API:', error);
+    // Try a simpler implementation if the backend fails
+    return fields.map((field, index) => ({
+      fieldIndex: index,
+      label: field.label,
+      value: "Error connecting to AI service. Please try again later."
+    }));
   }
 }
+
+// Removing the Gemini-specific functions since we're now using the backend
+// The backend will handle the AI processing with Gemini
