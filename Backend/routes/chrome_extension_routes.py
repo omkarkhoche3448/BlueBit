@@ -46,17 +46,17 @@ FORM FIELDS TO FILL:
         # Add each field to the prompt
         for i, field in enumerate(fields):
             prompt += f"""{i + 1}. Field: "{field.get('label', '')}"
-   Type: {field.get('type', '')}
-   {field.get('required', False) and 'Required: Yes' or 'Required: No'}
-   {field.get('placeholder') and f'Placeholder: "{field.get("placeholder")}"' or ''}
+Type: {field.get('type', '')}
+{field.get('required', False) and 'Required: Yes' or 'Required: No'}
+{field.get('placeholder') and f'Placeholder: "{field.get("placeholder")}"' or ''}
 """
 
         prompt += """
 Please respond with a JSON object where each key is the field number and each value is your suggested response. For example:
 {
-  "1": "John Doe",
-  "2": "johndoe@example.com",
-  ...
+"1": "John Doe",
+"2": "johndoe@example.com",
+...
 }
 
 Only include the JSON in your response, no other text. Do not wrap the JSON in markdown code blocks."""
