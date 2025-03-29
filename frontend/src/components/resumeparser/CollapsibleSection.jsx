@@ -1,18 +1,31 @@
-import { ChevronDown, ChevronUp } from "lucide-react";
-
-export const CollapsibleSection = ({ title, isExpanded, toggleExpanded, children }) => {
+function CollapsibleSection({ 
+  title, 
+  children, 
+  isExpanded, 
+  toggleExpanded, 
+  disabled,
+  className = '',
+  titleClassName = ''
+}) {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <button className="w-full flex items-center justify-between" onClick={toggleExpanded}>
-        <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-        {isExpanded ? (
-          <ChevronUp className="h-5 w-5 text-gray-500" />
-        ) : (
-          <ChevronDown className="h-5 w-5 text-gray-500" />
-        )}
+    <div className={`bg-white rounded-lg shadow-sm ${className}`}>
+      <button
+        onClick={toggleExpanded}
+        disabled={disabled}
+        className={`w-full px-6 py-4 text-left font-semibold flex items-center justify-between ${titleClassName}`}
+      >
+        <span>{title}</span>
+        <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+          ▼
+        </span>
       </button>
-
-      {isExpanded && <div className="mt-4">{children}</div>}
+      {isExpanded && (
+        <div className="px-6 py-4 border-t">
+          {children}
+        </div>
+      )}
     </div>
   );
-};
+}
+
+export default CollapsibleSection;
