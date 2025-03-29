@@ -287,6 +287,16 @@ def register_user_routes(app):
             if not user.resume_text:
                 return jsonify({'error': 'No resume found for this user'}), 404
             
+            # Debug: Write resume text to file
+            with open(f"resume_debug_{user_id}.txt", "w") as f:
+                f.write(f"Resume text for user {user_id}:\n")
+                f.write("-" * 50 + "\n")
+                f.write(user.resume_text)
+                f.write("\n" + "-" * 50)
+            
+            print(f"DEBUG - Resume text written to file: resume_debug_{user_id}.txt")
+            
+            
             # Simply return the resume text
             return jsonify({'resumeText': user.resume_text})
         except Exception as e:
