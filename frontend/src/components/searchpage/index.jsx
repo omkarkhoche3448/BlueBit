@@ -99,37 +99,58 @@ function SortDropdown({ sortBy, onSortChange }) {
 }
   
 function AppliedFilters({ filters, onClearFilters }) {
-    const filterLabels = {
-      searchTerm: "Search",
-      jobType: "Job Type",
-      location: "Location",
-      experienceLevel: "Experience",
-      salaryRange: "Salary",
-      datePosted: "Posted",
-    };
-  
-    return (
-      Object.values(filters).some((value) => value && value !== "relevance") && (
-        <div className="bg-white rounded-lg shadow-sm p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-700">Applied Filters</h3>
-            <button className="text-xs text-blue-600 hover:text-blue-800" onClick={onClearFilters}>
-              Clear all
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(filters).map(
-              ([key, value]) =>
-                value && key !== "sortBy" && (
-                  <FilterBadge key={key} label={`${filterLabels[key]}: ${value}`} />
-                )
-            )}
-          </div>
+  const filterLabels = {
+    searchTerm: "Search",
+    jobType: "Job Type",
+    location: "Location",
+    experienceLevel: "Experience",
+    salaryRange: "Salary",
+    datePosted: "Posted",
+    companyIndustry: "Company",
+    companySize: "Company Size",
+    jobLevel: "Job Level",
+    isRemote: "Remote",
+  };
+
+  // Check if any filter is applied (excluding sortBy and defaults)
+  const hasActiveFilters = Object.entries(filters).some(
+    ([key, value]) => 
+      value && 
+      key !== "sortBy" && 
+      value !== "relevance" && 
+      value !== ""
+  );
+
+  return (
+    hasActiveFilters && (
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-medium text-gray-700">Applied Filters</h3>
+          <button 
+            className="text-xs text-blue-600 hover:text-blue-800" 
+            onClick={onClearFilters}
+          >
+            Clear all
+          </button>
         </div>
-      )
-    );
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(filters).map(
+            ([key, value]) => 
+              value && 
+              key !== "sortBy" && 
+              value !== "relevance" && 
+              value !== "" && (
+                <FilterBadge 
+                  key={key} 
+                  label={`${filterLabels[key] || key}: ${value}`} 
+                />
+              )
+          )}
+        </div>
+      </div>
+    )
+  );
 }
-  
 function FilterBadge({ label }) {
     return (
       <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
