@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, User, Bell, MessageSquare, Menu, Search, X } from "lucide-react";
+import { Briefcase, User, Bell, MessageSquare, Menu, Search, X, Award } from "lucide-react";
 import Logo from "../../assets/PlatformLogo.webp";
+import { UserButton } from "@clerk/clerk-react";
 
 function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -9,7 +10,7 @@ function Header() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const isHomePage = location.pathname === "/";
+  const isHomePage = location.pathname === "/home";
   const isResumeParserPage = location.pathname === "/resume-parser";
   const isSearchPage = location.pathname === "/search";
   const isResumeCreater = location.pathname === "/create-resume";
@@ -28,10 +29,11 @@ function Header() {
   };
 
   const navLinks = [
-    { to: "/", label: "Jobs", icon: Briefcase, active: isHomePage },
+    { to: "/home", label: "Jobs", icon: Briefcase, active: isHomePage },
     { to: "/search", label: "Search Jobs", icon: Search, active: isSearchPage },
     { to: "/resume-parser", label: "Resume Analyzer", icon: MessageSquare },
     { to: "/create-resume", label: "Create Resume", icon: Bell },
+    { to: "/recommendations", label: "Recommend Jobs", icon: Award },
     // { to: "/profile", label: "Profile", icon: User },
   ];
 
@@ -48,7 +50,7 @@ function Header() {
         <div className="flex justify-between h-16 items-center">
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0">
-              <img src={Logo} className="w-42 h-28" alt="Logo" />
+              <img src={Logo} className="w-48 h-9" alt="Logo" />
             </Link>
 
             {/* Desktop Navigation */}
@@ -66,7 +68,7 @@ function Header() {
           </div>
 
           {!isSearchPage && !isHomePage && !isResumeParserPage && !isResumeCreater && (
-            <div className="hidden md:block flex-1 max-w-sm mx-auto">
+            <div className="hidden md:block flex-1 max-w-1/5 mx-auto">
               <form onSubmit={handleSearch} className="w-full">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -92,11 +94,7 @@ function Header() {
             <Link to="/notifications" className="text-gray-500 hover:text-gray-700" title="Notifications">
               <Bell className="h-6 w-6" />
             </Link>
-            <Link to="/profile" className="flex items-center">
-              <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
-                <User className="h-5 w-5 text-gray-600" />
-              </div>
-            </Link>
+            <UserButton />
           </div>
 
           {/* Mobile Menu Button */}

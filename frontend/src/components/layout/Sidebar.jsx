@@ -1,17 +1,17 @@
 import { Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { 
-  Bookmark, 
-  User, 
-  Briefcase, 
-  MapPin, 
-  Clock, 
-  DollarSign, 
-  Calendar, 
-  Building, 
-  Globe, 
+import {
+  Bookmark,
+  User,
+  Briefcase,
+  MapPin,
+  Clock,
+  DollarSign,
+  Calendar,
+  Building,
+  Globe,
   Award,
-  Home
+  Home,
 } from "lucide-react";
 import {
   setJobType,
@@ -20,11 +20,14 @@ import {
   setSalaryRange,
   setDatePosted,
   setIsRemote,
-  setCompanyIndustry,
+  setCompany,  // Changed from setCompanyIndustry
   setCompanySize,
   setJobLevel,
   clearFilters,
 } from "../../slices/filterSlice";
+
+import { useUser } from "@clerk/clerk-react";
+import { useClerk } from "@clerk/clerk-react";
 
 // Updated filter options based on job data structure
 const filterOptions = {
@@ -34,7 +37,7 @@ const filterOptions = {
     { value: "parttime", label: "Part Time" },
     { value: "contract", label: "Contract" },
     { value: "temporary", label: "Temporary" },
-    { value: "internship", label: "Internship" }
+    { value: "internship", label: "Internship" },
   ],
   location: [
     { value: "", label: "All Locations" },
@@ -42,7 +45,7 @@ const filterOptions = {
     { value: "CA, US", label: "California, US" },
     { value: "TX, US", label: "Texas, US" },
     { value: "NY, US", label: "New York, US" },
-    { value: "WA, US", label: "Washington, US" }
+    { value: "WA, US", label: "Washington, US" },
   ],
   jobLevel: [
     { value: "", label: "All Levels" },
@@ -50,7 +53,7 @@ const filterOptions = {
     { value: "mid", label: "Mid Level" },
     { value: "senior", label: "Senior Level" },
     { value: "director", label: "Director" },
-    { value: "executive", label: "Executive" }
+    { value: "executive", label: "Executive" },
   ],
   companyIndustry: [
     { value: "", label: "All Industries" },
@@ -58,7 +61,7 @@ const filterOptions = {
     { value: "healthcare", label: "Healthcare" },
     { value: "finance", label: "Finance" },
     { value: "education", label: "Education" },
-    { value: "manufacturing", label: "Manufacturing" }
+    { value: "manufacturing", label: "Manufacturing" },
   ],
   companySize: [
     { value: "", label: "All Company Sizes" },
@@ -69,7 +72,7 @@ const filterOptions = {
     { value: "501-1000", label: "501-1000 employees" },
     { value: "1001-5000", label: "1001-5000 employees" },
     { value: "5001-10000", label: "5001-10000 employees" },
-    { value: "10000+", label: "10,000+ employees" }
+    { value: "10000+", label: "10,000+ employees" },
   ],
   salaryRange: [
     { value: "", label: "All Salary Ranges" },
@@ -78,23 +81,24 @@ const filterOptions = {
     { value: "100000-150000", label: "$100,000 - $150,000" },
     { value: "150000-200000", label: "$150,000 - $200,000" },
     { value: "200000-300000", label: "$200,000 - $300,000" },
-    { value: "300000+", label: "$300,000+" }
+    { value: "300000+", label: "$300,000+" },
   ],
   datePosted: [
     { value: "", label: "Any Time" },
     { value: "1", label: "Last 24 hours" },
     { value: "7", label: "Last 7 days" },
     { value: "14", label: "Last 14 days" },
-    { value: "30", label: "Last 30 days" }
+    { value: "30", label: "Last 30 days" },
   ],
   isRemote: [
     { value: "", label: "All Work Types" },
     { value: "true", label: "Remote" },
-    { value: "false", label: "On-site" }
-  ]
+    { value: "false", label: "On-site" },
+  ],
 };
 
 function Sidebar() {
+  const { user } = useUser();
   const filters = useSelector((state) => state.filters);
   const savedJobs = useSelector((state) => state.jobs.savedJobs);
   const dispatch = useDispatch();
@@ -121,7 +125,7 @@ function Sidebar() {
         dispatch(setIsRemote(value));
         break;
       case "companyIndustry":
-        dispatch(setCompanyIndustry(value));
+        dispatch(setCompany(value));
         break;
       case "companySize":
         dispatch(setCompanySize(value));
@@ -134,12 +138,13 @@ function Sidebar() {
   // Clear all filters
   const handleClearFilters = () => {
     dispatch(clearFilters());
+    navigate("/search")
   };
 
   // Reusable filter component
   const FilterSelect = ({ label, icon: Icon, value, options, onChange }) => (
     <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
         <Icon className="h-4 w-4 mr-1" /> {label}
       </label>
       <select
@@ -166,22 +171,39 @@ function Sidebar() {
     );
   };
 
+  const { openUserProfile } = useClerk();
+
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden sticky top-20">
       {/* User Profile Section */}
       <div className="p-4 border-b border-gray-300">
         <div className="flex items-center space-x-3">
-          <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-            <User className="h-6 w-6 text-blue-600" />
+          <div className=" flex items-center justify-center">
+            {user?.imageUrl ? (
+              <img
+                src={user.imageUrl}
+                alt="Profile"
+                className="h-8 w-8 rounded-full"
+              />
+            ) : (
+              <User className="h-6 w-6 text-blue-600" />
+            )}
           </div>
           <div>
-            <h3 className="font-medium">Omkar Khoche</h3>
-            <p className="text-sm text-gray-500">Software Engineer</p>
+            <h3 className="font-medium">
+              {user?.fullName || user?.username || "User"}
+            </h3>
+            <p className="text-sm text-gray-500">
+              {user?.primaryEmailAddress?.emailAddress || ""}
+            </p>
           </div>
         </div>
-        <Link to="/profile" className="mt-3 block text-sm text-blue-600 hover:text-blue-800">
-          View profile
-        </Link>
+        <button
+          onClick={() => openUserProfile()}
+          className="mt-3 block text-sm text-blue-600 hover:text-blue-800"
+        >
+          View Profile
+        </button>
       </div>
 
       {/* Saved Jobs Section */}
@@ -191,9 +213,14 @@ function Sidebar() {
             <Bookmark className="h-4 w-4 mr-2" />
             Saved Jobs
           </h3>
-          <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">{savedJobs.length}</span>
+          <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">
+            {savedJobs.length}
+          </span>
         </div>
-        <Link to="/saved" className="mt-2 block text-sm text-blue-600 hover:text-blue-800">
+        <Link
+          to="/saved"
+          className="mt-2 block text-sm text-blue-600 hover:text-blue-800"
+        >
           View all saved jobs
         </Link>
       </div>
@@ -202,7 +229,10 @@ function Sidebar() {
       <div className="p-4 max-h-[calc(100vh-220px)] overflow-y-auto">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-medium">Filters</h3>
-          <button onClick={handleClearFilters} className="text-xs text-blue-600 hover:text-blue-800">
+          <button
+            onClick={handleClearFilters}
+            className="text-xs text-blue-600 hover:text-blue-800"
+          >
             Clear all
           </button>
         </div>
@@ -284,11 +314,9 @@ function Sidebar() {
           />
         </FilterAccordion> */}
 
-        <button
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none "
-        >
+        {/* <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none ">
           Apply Filters
-        </button>
+        </button> */}
       </div>
     </div>
   );

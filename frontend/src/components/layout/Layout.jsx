@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react"
-import { useLocation } from "react-router-dom"
+import { useLocation, Outlet } from "react-router-dom"
 import Header from "./Header"
 import Sidebar from "./Sidebar"
 import RightSidebar from "./RightSidebar"
 
-function Layout({ children }) {
+function Layout() {
   const [isMobile, setIsMobile] = useState(false)
   const location = useLocation()
-  const isHomePage = location.pathname === "/"
+  const isHomePage = location.pathname === "/home"
 
   useEffect(() => {
     const handleResize = () => {
@@ -29,7 +29,9 @@ function Layout({ children }) {
               <Sidebar />
             </div>
           )}
-          <main className="flex-1">{children}</main>
+          <main className="flex-1">
+            <Outlet />
+          </main>
           {isHomePage && !isMobile && (
             <div className="w-full md:w-80 flex-shrink-0">
               <RightSidebar />

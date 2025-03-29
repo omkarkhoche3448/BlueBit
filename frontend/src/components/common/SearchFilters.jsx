@@ -1,22 +1,25 @@
-import { useSelector, useDispatch } from "react-redux"
-import { useNavigate, useLocation } from "react-router-dom"
-import { ChevronUp, ChevronDown } from "lucide-react"
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate, useLocation } from "react-router-dom";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import {
   setJobType,
   setLocation,
   setExperienceLevel,
   setSalaryRange,
   setDatePosted,
+  setCompany,
   clearFilters,
-} from "../../slices/filterSlice"
-import { useState, useEffect } from "react"
+} from "../../slices/filterSlice";
+import { useState, useEffect } from "react";
 
 function SearchFilters() {
-  const filters = useSelector((state) => state.filters)
-  const jobs = useSelector((state) => state.jobs.jobs)
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
-  const location = useLocation()
+  const filters = useSelector((state) => state.filters);
+  const jobs = useSelector((state) => state.jobs.jobs);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [showAllLocations, setShowAllLocations] = useState(false);
+  const [showAllCompanies, setShowAllCompanies] = useState(false);
 
   // State for filter counts
   const [filterCounts, setFilterCounts] = useState({
@@ -40,7 +43,7 @@ function SearchFilters() {
       "100000-150000": 0,
       "150000+": 0,
     },
-  })
+  });
 
   // State for collapsible sections
   const [expandedSections, setExpandedSections] = useState({
@@ -49,51 +52,71 @@ function SearchFilters() {
     experience: true,
     company: true,
     salary: false,
-  })
+  });
 
   // Calculate filter counts based on available jobs
   useEffect(() => {
     if (jobs && jobs.length > 0) {
       // Job Type counts
       const jobTypeCounts = {
-        fulltime: jobs.filter(job => job.job_type === "fulltime").length,
-        parttime: jobs.filter(job => job.job_type === "parttime").length,
-        contract: jobs.filter(job => job.job_type === "contract").length,
-        internship: jobs.filter(job => job.job_type === "internship").length,
-      }
-      
+        fulltime: jobs.filter((job) => job.job_type === "fulltime").length,
+        parttime: jobs.filter((job) => job.job_type === "parttime").length,
+        contract: jobs.filter((job) => job.job_type === "contract").length,
+        internship: jobs.filter((job) => job.job_type === "internship").length,
+      };
+
       // Location counts (dynamic)
-      const locationCounts = {}
-      jobs.forEach(job => {
+      const locationCounts = {};
+      jobs.forEach((job) => {
         if (job.location) {
-          const city = job.location.split(',')[0].trim()
-          locationCounts[city] = (locationCounts[city] || 0) + 1
+          const city = job.location.split(",")[0].trim();
+          locationCounts[city] = (locationCounts[city] || 0) + 1;
         }
-      })
+      });
 
       // Experience Level counts
       const experienceLevelCounts = {
-        entry: jobs.filter(job => job.experience_range && job.experience_range.toLowerCase().includes("entry")).length,
-        mid: jobs.filter(job => job.experience_range && job.experience_range.toLowerCase().includes("mid")).length,
-        senior: jobs.filter(job => job.experience_range && job.experience_range.toLowerCase().includes("senior")).length,
-        executive: jobs.filter(job => job.experience_range && job.experience_range.toLowerCase().includes("executive")).length,
-      }
+        entry: jobs.filter(
+          (job) =>
+            job.experience_range &&
+            job.experience_range.toLowerCase().includes("entry")
+        ).length,
+        mid: jobs.filter(
+          (job) =>
+            job.experience_range &&
+            job.experience_range.toLowerCase().includes("mid")
+        ).length,
+        senior: jobs.filter(
+          (job) =>
+            job.experience_range &&
+            job.experience_range.toLowerCase().includes("senior")
+        ).length,
+        executive: jobs.filter(
+          (job) =>
+            job.experience_range &&
+            job.experience_range.toLowerCase().includes("executive")
+        ).length,
+      };
 
       // Company counts (dynamic)
-      const companyCounts = {}
-      jobs.forEach(job => {
+      const companyCounts = {};
+      jobs.forEach((job) => {
         if (job.company) {
-          companyCounts[job.company] = (companyCounts[job.company] || 0) + 1
+          companyCounts[job.company] = (companyCounts[job.company] || 0) + 1;
         }
-      })
+      });
 
       // Salary Range counts
       const salaryRangeCounts = {
-        "0-50000": jobs.filter(job => job.min_amount <= 50000).length,
-        "50000-100000": jobs.filter(job => job.min_amount > 50000 && job.max_amount <= 100000).length,
-        "100000-150000": jobs.filter(job => job.min_amount > 100000 && job.max_amount <= 150000).length,
-        "150000+": jobs.filter(job => job.min_amount > 150000).length,
-      }
+        "0-50000": jobs.filter((job) => job.min_amount <= 50000).length,
+        "50000-100000": jobs.filter(
+          (job) => job.min_amount > 50000 && job.max_amount <= 100000
+        ).length,
+        "100000-150000": jobs.filter(
+          (job) => job.min_amount > 100000 && job.max_amount <= 150000
+        ).length,
+        "150000+": jobs.filter((job) => job.min_amount > 150000).length,
+      };
 
       setFilterCounts({
         jobType: jobTypeCounts,
@@ -101,62 +124,69 @@ function SearchFilters() {
         experienceLevel: experienceLevelCounts,
         company: companyCounts,
         salaryRange: salaryRangeCounts,
-      })
+      });
     }
-  }, [jobs])
+  }, [jobs]);
 
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
       ...prev,
       [section]: !prev[section],
-    }))
-  }
+    }));
+  };
 
   const handleFilterChange = (filterType, value) => {
     // Update URL with filter
-    const searchParams = new URLSearchParams(location.search)
+    const searchParams = new URLSearchParams(location.search);
     if (value) {
-      searchParams.set(filterType, value)
+      searchParams.set(filterType, value);
     } else {
-      searchParams.delete(filterType)
+      searchParams.delete(filterType);
     }
 
     navigate({
       pathname: "/search",
       search: searchParams.toString(),
-    })
+    });
 
     // Update Redux state
     switch (filterType) {
       case "jobType":
-        dispatch(setJobType(value))
-        break
+        dispatch(setJobType(value));
+        break;
       case "location":
-        dispatch(setLocation(value))
-        break
+        dispatch(setLocation(value));
+        break;
       case "experienceLevel":
-        dispatch(setExperienceLevel(value))
-        break
+        dispatch(setExperienceLevel(value));
+        break;
       case "salaryRange":
-        dispatch(setSalaryRange(value))
-        break
+        dispatch(setSalaryRange(value));
+        break;
       case "datePosted":
-        dispatch(setDatePosted(value))
-        break
+        dispatch(setDatePosted(value));
+        break;
+      case "company":
+        if (value === "") {
+          // When unselecting company, reset to show all companies
+          setShowAllCompanies(false);
+        }
+        dispatch(setCompany(value));
+        break;
       default:
-        break
+        break;
     }
-  }
+  };
 
   const handleClearFilters = () => {
-    dispatch(clearFilters())
-    navigate("/search")
-  }
+    dispatch(clearFilters());
+    navigate("/search");
+  };
 
   const handleApplyFilters = () => {
     // Refresh the page to apply all filters
-    window.location.reload()
-  }
+    window.location.reload();
+  };
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden sticky top-20">
@@ -190,9 +220,17 @@ function SearchFilters() {
                 type="checkbox"
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 checked={filters.jobType === "fulltime"}
-                onChange={(e) => handleFilterChange("jobType", e.target.checked ? "fulltime" : "")}
+                onChange={(e) =>
+                  handleFilterChange(
+                    "jobType",
+                    e.target.checked ? "fulltime" : ""
+                  )
+                }
               />
-              <label htmlFor="fulltime" className="ml-2 block text-sm text-gray-700">
+              <label
+                htmlFor="fulltime"
+                className="ml-2 block text-sm text-gray-700"
+              >
                 Full Time ({filterCounts.jobType.fulltime})
               </label>
             </div>
@@ -202,9 +240,17 @@ function SearchFilters() {
                 type="checkbox"
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 checked={filters.jobType === "parttime"}
-                onChange={(e) => handleFilterChange("jobType", e.target.checked ? "parttime" : "")}
+                onChange={(e) =>
+                  handleFilterChange(
+                    "jobType",
+                    e.target.checked ? "parttime" : ""
+                  )
+                }
               />
-              <label htmlFor="parttime" className="ml-2 block text-sm text-gray-700">
+              <label
+                htmlFor="parttime"
+                className="ml-2 block text-sm text-gray-700"
+              >
                 Part Time ({filterCounts.jobType.parttime})
               </label>
             </div>
@@ -214,9 +260,17 @@ function SearchFilters() {
                 type="checkbox"
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 checked={filters.jobType === "contract"}
-                onChange={(e) => handleFilterChange("jobType", e.target.checked ? "contract" : "")}
+                onChange={(e) =>
+                  handleFilterChange(
+                    "jobType",
+                    e.target.checked ? "contract" : ""
+                  )
+                }
               />
-              <label htmlFor="contract" className="ml-2 block text-sm text-gray-700">
+              <label
+                htmlFor="contract"
+                className="ml-2 block text-sm text-gray-700"
+              >
                 Contract ({filterCounts.jobType.contract})
               </label>
             </div>
@@ -226,9 +280,17 @@ function SearchFilters() {
                 type="checkbox"
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 checked={filters.jobType === "internship"}
-                onChange={(e) => handleFilterChange("jobType", e.target.checked ? "internship" : "")}
+                onChange={(e) =>
+                  handleFilterChange(
+                    "jobType",
+                    e.target.checked ? "internship" : ""
+                  )
+                }
               />
-              <label htmlFor="internship" className="ml-2 block text-sm text-gray-700">
+              <label
+                htmlFor="internship"
+                className="ml-2 block text-sm text-gray-700"
+              >
                 Internship ({filterCounts.jobType.internship})
               </label>
             </div>
@@ -249,28 +311,95 @@ function SearchFilters() {
             <ChevronDown className="h-4 w-4 text-gray-500" />
           )}
         </button>
-
         {expandedSections.location && (
           <div className="px-4 pb-4 space-y-2 max-h-48 overflow-y-auto">
             {Object.entries(filterCounts.location)
-              .sort((a, b) => b[1] - a[1]) // Sort by count (highest first)
-              .slice(0, 5) // Show top 5 locations
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, showAllLocations ? undefined : 5)
               .map(([cityName, count]) => (
                 <div key={cityName} className="flex items-center">
                   <input
                     id={`location-${cityName}`}
                     type="checkbox"
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    checked={filters.location === cityName}
-                    onChange={(e) => handleFilterChange("location", e.target.checked ? cityName : "")}
+                    checked={filters.location.includes(cityName)}
+                    onChange={(e) =>
+                      handleFilterChange(
+                        "location",
+                        e.target.checked
+                          ? [...filters.location, cityName]
+                          : filters.location.filter((loc) => loc !== cityName)
+                      )
+                    }
                   />
-                  <label htmlFor={`location-${cityName}`} className="ml-2 block text-sm text-gray-700">
+                  <label
+                    htmlFor={`location-${cityName}`}
+                    className="ml-2 block text-sm text-gray-700"
+                  >
                     {cityName} ({count})
                   </label>
                 </div>
               ))}
             {Object.keys(filterCounts.location).length > 5 && (
-              <button className="text-blue-600 text-sm mt-2">View More</button>
+              <button
+                className="text-blue-600 text-sm mt-2"
+                onClick={() => setShowAllLocations(!showAllLocations)}
+              >
+                {showAllLocations ? "Show Less" : "View More"}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Company Filter */}
+      <div className="border-b border-gray-300">
+        <button
+          className="w-full p-4 flex justify-between items-center text-left"
+          onClick={() => toggleSection("company")}
+        >
+          <h3 className="font-medium">Company</h3>
+          {expandedSections.company ? (
+            <ChevronUp className="h-4 w-4 text-gray-500" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-gray-500" />
+          )}
+        </button>
+
+        {expandedSections.company && (
+          <div className="px-4 space-y-2 max-h-48 overflow-y-auto pb-4">
+            {Object.entries(filterCounts.company)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, showAllCompanies ? undefined : 5)
+              .map(([companyName, count]) => (
+                <div key={companyName} className="flex items-center">
+                  <input
+                    id={`company-${companyName}`}
+                    type="checkbox"
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    checked={filters.company === companyName}
+                    onChange={(e) =>
+                      handleFilterChange(
+                        "company",
+                        e.target.checked ? companyName : ""
+                      )
+                    }
+                  />
+                  <label
+                    htmlFor={`company-${companyName}`}
+                    className="ml-2 block text-sm text-gray-700 truncate"
+                  >
+                    {companyName} ({count})
+                  </label>
+                </div>
+              ))}
+            {Object.keys(filterCounts.company).length > 5 && (
+              <button
+                className="text-blue-600 text-sm mt-2"
+                onClick={() => setShowAllCompanies(!showAllCompanies)}
+              >
+                {showAllCompanies ? "Show Less" : "View More"}
+              </button>
             )}
           </div>
         )}
@@ -344,46 +473,6 @@ function SearchFilters() {
         )}
       </div> */}
 
-      {/* Company Filter */}
-      <div className="border-b border-gray-300">
-        <button
-          className="w-full p-4 flex justify-between items-center text-left"
-          onClick={() => toggleSection("company")}
-        >
-          <h3 className="font-medium">Company</h3>
-          {expandedSections.company ? (
-            <ChevronUp className="h-4 w-4 text-gray-500" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-gray-500" />
-          )}
-        </button>
-
-        {expandedSections.company && (
-          <div className="px-4 pb-4 space-y-2 max-h-48 overflow-y-auto">
-            {Object.entries(filterCounts.company)
-              .sort((a, b) => b[1] - a[1]) // Sort by count (highest first)
-              .slice(0, 5) // Show top 5 companies
-              .map(([companyName, count]) => (
-                <div key={companyName} className="flex items-center">
-                  <input
-                    id={`company-${companyName}`}
-                    type="checkbox"
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    checked={filters.company === companyName}
-                    onChange={(e) => handleFilterChange("company", e.target.checked ? companyName : "")}
-                  />
-                  <label htmlFor={`company-${companyName}`} className="ml-2 block text-sm text-gray-700 truncate">
-                    {companyName} ({count})
-                  </label>
-                </div>
-              ))}
-            {Object.keys(filterCounts.company).length > 5 && (
-              <button className="text-blue-600 text-sm mt-2">View More</button>
-            )}
-          </div>
-        )}
-      </div>
-
       {/* Salary Filter - commented out but can be enabled if needed */}
       {/* <div className="border-b border-gray-300">
         <button
@@ -453,7 +542,7 @@ function SearchFilters() {
       </div> */}
 
       {/* Action Buttons */}
-      <div className="p-4 flex gap-2">
+      {/* <div className="p-4 flex gap-2">
         <button
           onClick={handleClearFilters}
           className="flex-1 py-2 px-4 border border-gray-300 rounded-md text-gray-700 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -466,9 +555,9 @@ function SearchFilters() {
         >
           Apply
         </button>
-      </div>
+      </div> */}
     </div>
-  )
+  );
 }
 
-export default SearchFilters
+export default SearchFilters;
