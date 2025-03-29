@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createPaymentOrder, verifyPayment } from '../services/paymentService';
+import toast from 'react-hot-toast';
 
 const PaymentHandler = ({ clerkId }) => {
   const [loading, setLoading] = useState(false);
@@ -25,9 +26,17 @@ const PaymentHandler = ({ clerkId }) => {
           try {
             // Verify payment
             await verifyPayment(clerkId, response.razorpay_payment_id);
-            alert('Payment successful! Pro features activated.');
+            toast.success('Payment successful! Pro features activated.', {
+              duration: 4000,
+              position: 'top-center',
+              icon: '🎉'
+            });
             // You might want to refresh user data or redirect
           } catch (error) {
+            toast.error('Payment verification failed', {
+              duration: 4000,
+              position: 'top-center'
+            });
             setError('Payment verification failed');
           }
         },
@@ -43,6 +52,10 @@ const PaymentHandler = ({ clerkId }) => {
       rzp.open();
       
     } catch (error) {
+      toast.error('Failed to initiate payment', {
+        duration: 4000,
+        position: 'top-center'
+      });
       setError('Failed to initiate payment');
     } finally {
       setLoading(false);

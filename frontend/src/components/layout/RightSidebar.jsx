@@ -1,6 +1,7 @@
 import { ExternalLink, TrendingUp } from "lucide-react"
 import { useUser } from '@clerk/clerk-react';
 import { useProStatusContext } from '../../contexts/ProStatusContext';
+import { toast } from 'react-toastify'; // Import toast
 
 const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 
@@ -55,10 +56,10 @@ function RightSidebar() {
             }
             
             const result = await verificationResponse.json();
-            alert('Payment successful! Pro features activated.');
+            toast.success('Payment successful! Pro features activated.'); 
           } catch (error) {
             console.error('Payment verification error:', error);
-            alert('Payment verification failed: ' + error.message);
+            toast.error('Payment verification failed: ' + error.message); 
           }
         },
         prefill: {
@@ -75,7 +76,7 @@ function RightSidebar() {
       
     } catch (error) {
       console.error('Payment error:', error);
-      alert('Payment failed: ' + error.message);
+      toast.error('Payment failed: ' + error.message); 
     }
   };
 
@@ -190,4 +191,3 @@ function RightSidebar() {
 }
 
 export default RightSidebar;
-

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/clerk-react';
+import { toast } from 'react-toastify';
 
 const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 
@@ -73,7 +74,7 @@ const useProStatus = () => {
     return (...args) => {
       if (!isPro) {
         // Show upgrade modal or notification
-        alert("This feature is only available for Pro users. Please upgrade to Pro!");
+        toast.error("This feature is only available for Pro users. Please upgrade to Pro!"); 
         return;
       }
       return callback(...args);
