@@ -9,8 +9,8 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 load_dotenv(dotenv_path="./.env")
 
 # Set up SQLAlchemy with Neon PostgreSQL
-NEON_DB_URL = os.getenv('NEON_CONNECTION_STRING')
-engine = create_engine(os.getenv('DATABASE_URL', NEON_DB_URL))
+# Update this line to use NEON_CONNECTION_STRING from .env
+engine = create_engine(os.getenv('NEON_CONNECTION_STRING'))
 session_factory = sessionmaker(bind=engine)
 Session = scoped_session(session_factory)
 

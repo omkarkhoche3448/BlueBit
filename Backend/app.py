@@ -51,9 +51,9 @@ register_chrome_extension_routes(app)  # Add this line
 
 if __name__ == '__main__':
     # # Initialize database and load initial jobs in a separate thread
-    # db_thread = threading.Thread(target=init_db_and_load_jobs)
-    # db_thread.daemon = True
-    # db_thread.start()
+    db_thread = threading.Thread(target=init_db_and_load_jobs)
+    db_thread.daemon = True
+    db_thread.start()
     
     # Initialize recommendation engine in a separate thread
     # rec_thread = threading.Thread(target=init_recommendation_engine)

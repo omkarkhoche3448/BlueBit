@@ -5,8 +5,13 @@ from datetime import datetime
 from models import Job
 import json
 
-RESULTS_WANTED = 10000
+RESULTS_WANTED = 50
 HOURS_OLD = 720
+
+# Import necessary modules at the top of the file
+import sqlalchemy
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import inspect
 
 def scrape_and_store_jobs(session, params=None):
     if params is None:
@@ -80,12 +85,50 @@ def scrape_and_store_jobs(session, params=None):
             if job_data.get('id') not in existing_job_ids:
                 new_jobs_to_add.append(job_data)
         
+        # Find the part where jobs are being added to the database
         logging.info(f"Adding {len(new_jobs_to_add)} new unique jobs to database")
         
-        # Add only new jobs to the database
-        for job_data in new_jobs_to_add:
-            job = Job(**job_data)
-            session.add(job)
+        # Method 1: For PostgreSQL - using ON CONFLICT DO NOTHING
+        if 'postgresql' in session.bind.dialect.name:
+            try:
+                # Get table object
+                table = inspect(Job).mapped_table
+                
+                # Create values to insert
+                values = [
+                    {c.name: job_data.get(c.name) for c in table.c}
+                    for job_data in new_jobs_to_add
+                ]
+                
+                # Create insert statement with ON CONFLICT DO NOTHING
+                stmt = insert(table).values(values)
+                stmt = stmt.on_conflict_do_nothing(index_elements=['id'])
+                
+                # Execute statement
+                result = session.execute(stmt)
+                session.commit()
+                logging.info(f"Successfully inserted {result.rowcount} jobs")
+            except Exception as e:
+                session.rollback()
+                logging.error(f"Error during bulk insert: {str(e)}")
+        
+        # Method 2: For other databases - insert one by one
+        else:
+            successful_inserts = 0
+            for job_data in new_jobs_to_add:
+                try:
+                    job = Job(**job_data)
+                    session.add(job)
+                    session.commit()
+                    successful_inserts += 1
+                except sqlalchemy.exc.IntegrityError:
+                    session.rollback()
+                    logging.warning(f"Skipping duplicate job ID: {job_data.get('id')}")
+                except Exception as e:
+                    session.rollback()
+                    logging.error(f"Error inserting job {job_data.get('id')}: {str(e)}")
+            
+            logging.info(f"Successfully inserted {successful_inserts} out of {len(new_jobs_to_add)} jobs")
         
         session.commit()
         logging.info(f"Successfully stored jobs in database. Total jobs: {len(existing_job_ids) + len(new_jobs_to_add)}")
