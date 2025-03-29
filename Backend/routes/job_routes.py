@@ -163,17 +163,59 @@ def register_job_routes(app):
 
     @app.route('/api/save-job/<string:job_id>', methods=['POST', 'DELETE'])
     def manage_saved_job(job_id):
+        session = Session()
         try:
+            # Get clerk_id from request data
+            data = request.json
+            clerk_id = data.get('clerkId')
+            
+            if not clerk_id:
+                return jsonify({'error': 'User ID (clerkId) is required'}), 400
+                
+            # Find the user in the database
+            user = session.query(User).filter(User.clerk_id == clerk_id).first()
+            
+            if not user:
+                # Create new user if doesn't exist
+                user = User(
+                    clerk_id=clerk_id,
+                    saved_jobs_ids=[]
+                )
+                session.add(user)
+            
+            # Initialize saved_jobs_ids if it doesn't exist
+            if user.saved_jobs_ids is None:
+                user.saved_jobs_ids = []
+                
+            # Get current saved jobs list
+            saved_jobs = list(user.saved_jobs_ids) if user.saved_jobs_ids else []
+            
             if request.method == 'POST':
-                job_data = request.json
-                # saved_jobs[job_id] = job_data
-                return jsonify({'message': f'Job {job_id} saved successfully'})
-            else:
-                # if job_id in saved_jobs:
-                    # del saved_jobs[job_id]
-                return jsonify({'message': f'Job {job_id} removed from saved jobs'})
+                # Add job to saved list if not already there
+                if job_id not in saved_jobs:
+                    saved_jobs.append(job_id)
+                    user.saved_jobs_ids = saved_jobs
+                    session.commit()
+                return jsonify({
+                    'message': f'Job {job_id} saved successfully',
+                    'saved_jobs': saved_jobs
+                })
+            else:  # DELETE method
+                # Remove job from saved list if present
+                if job_id in saved_jobs:
+                    saved_jobs.remove(job_id)
+                    user.saved_jobs_ids = saved_jobs
+                    session.commit()
+                return jsonify({
+                    'message': f'Job {job_id} removed from saved jobs',
+                    'saved_jobs': saved_jobs
+                })
         except Exception as e:
+            session.rollback()
+            logging.error(f"Error managing saved job: {str(e)}")
             return jsonify({'error': str(e)}), 500
+        finally:
+            session.close()
 
     @app.route('/api/users/<string:clerk_id>/job-interest', methods=['POST'])
     def update_job_interest(clerk_id):

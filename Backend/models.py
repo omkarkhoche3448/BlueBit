@@ -14,7 +14,7 @@ class User(Base):
     recommended_job_ids = Column(JSON, nullable=True)  # Stores list of job IDs
     interested_job_ids = Column(JSON, nullable=True)  # Stores jobs user liked
     not_interested_job_ids = Column(JSON, nullable=True)  # Stores jobs user disliked
-    # saved_jobs_ids = Column(JSON, nullable=True)  # Stores jobs user saved
+    saved_jobs_ids = Column(JSON, nullable=True)  # Stores jobs user saved
     is_pro = Column(Boolean, default=False)
     resume_text = Column(Text, nullable=True)  # Stores extracted text from resume
     resume_path = Column(String(500), nullable=True)  # Stores path to resume file
