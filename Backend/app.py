@@ -20,6 +20,7 @@ logging.basicConfig(
 from routes.payment_routes import register_payment_routes
 from routes.job_routes import register_job_routes
 from routes.user_routes import register_user_routes
+from routes.chrome_extension_routes import register_chrome_extension_routes  # Add this line
 
 # Import utility functions
 from utils.db_utils import init_db_and_load_jobs
@@ -46,17 +47,18 @@ CORS(app)  # Enable CORS for all routes
 register_payment_routes(app)
 register_job_routes(app)
 register_user_routes(app)
+register_chrome_extension_routes(app)  # Add this line
 
 if __name__ == '__main__':
     # # Initialize database and load initial jobs in a separate thread
-    db_thread = threading.Thread(target=init_db_and_load_jobs)
-    db_thread.daemon = True
-    db_thread.start()
+    # db_thread = threading.Thread(target=init_db_and_load_jobs)
+    # db_thread.daemon = True
+    # db_thread.start()
     
     # Initialize recommendation engine in a separate thread
-    rec_thread = threading.Thread(target=init_recommendation_engine)
-    rec_thread.daemon = True
-    rec_thread.start()
+    # rec_thread = threading.Thread(target=init_recommendation_engine)
+    # rec_thread.daemon = True
+    # rec_thread.start()
     
     # Start the recommendation scheduler in a separate thread
     def start_scheduler():

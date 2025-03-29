@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Job Application Autofill</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>AI Job Application Autofill</h1>
+    
+    <div class="resume-section">
+      <h2>Your Resume</h2>
+      <textarea id="resumeData" placeholder="Paste your resume text here..."></textarea>
+      <button id="saveResume">Save Resume</button>
+    </div>
+    
+    <div class="actions">
+      <button id="extractFields">Extract Form Fields</button>
+      <button id="autofillForm">Autofill Form</button>
+    </div>
+    
+    <div class="status">
+      <p id="statusMessage"></p>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
