@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Upload, FileText } from "lucide-react";
+import { toast } from 'react-toastify'; // Import toast
 
 export const FileUploader = ({ file, setFile, error }) => {
   const handleFileChange = (e) => {
@@ -14,7 +15,7 @@ export const FileUploader = ({ file, setFile, error }) => {
         setFile(null);
         // Instead of throwing an error, we should use the setError function from parent
         // This would be passed through props in a complete implementation
-        alert("Please upload a PDF or DOCX file");
+        toast.error("Please upload a PDF or DOCX file"); 
       }
     }
   };

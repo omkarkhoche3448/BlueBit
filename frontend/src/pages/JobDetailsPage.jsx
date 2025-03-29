@@ -2,6 +2,7 @@ import { useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { useSelector, useDispatch } from "react-redux"
 import { fetchJobById, toggleSaveJob, applyToJob } from "../slices/jobsSlice"
+import { toast } from 'react-toastify'; 
 import {
   MapPin,
   Briefcase,
@@ -54,7 +55,7 @@ function JobDetailsPage() {
     } else {
       // Fallback for browsers that don't support navigator.share
       navigator.clipboard.writeText(window.location.href)
-      alert("Share link copied to clipboard!")
+      toast.success("Share link copied to clipboard!"); 
     }
   }
 
@@ -110,6 +111,7 @@ function JobDetailsPage() {
   }
 
   if (error) {
+    toast.error(`Error loading job details: ${error}`); 
     return (
       <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
         <p>Error loading job details: {error}</p>
