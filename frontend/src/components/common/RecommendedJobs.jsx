@@ -85,7 +85,7 @@ function RecommendedJobs() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-blue-800 text-sm font-semibold mb-2">🚀 Not Enough Data for Recommendations</p>
             <p className="text-gray-600 text-xs">
-              Our machine learning algorithm needs at least 5 job interactions to generate personalized recommendations.
+              Do some Interactions or Engage in more job interactions to unlock personalized recommendations tailored just for you.
             </p>
             <div className="mt-4">
               <p className="text-gray-700 text-xs">Start by:</p>
