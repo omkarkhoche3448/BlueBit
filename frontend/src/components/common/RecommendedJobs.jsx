@@ -1,11 +1,11 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { ChevronLeft, ChevronRight, Star, MapPin, Clock, Building, Briefcase } from "lucide-react"
 import { useUser } from "@clerk/clerk-react"
 import axios from "axios"
 import { useProStatusContext } from "../../contexts/ProStatusContext"
+
+const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 
 function RecommendedJobs() {
   const [recommendations, setRecommendations] = useState([])
@@ -21,7 +21,7 @@ function RecommendedJobs() {
 
       try {
         setIsLoading(true)
-        const response = await axios.get(`http://localhost:8000/api/users/${user.id}/recommendations`)
+        const response = await axios.get(`${API_URL_BACKEND}/users/${user.id}/recommendations`)
         // Fix: Access the recommendations array from the response data
         setRecommendations(response.data.recommendations || [])
       } catch (error) {

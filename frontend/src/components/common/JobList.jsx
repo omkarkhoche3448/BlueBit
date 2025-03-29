@@ -5,6 +5,8 @@ import JobCard from "./JobCard";
 import { useLocation } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 
+const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
+
 function JobList() {
   const dispatch = useDispatch();
   const { jobs, loading, error } = useSelector((state) => state.jobs);
@@ -39,7 +41,7 @@ function JobList() {
       
       // If user is signed in, make the API call to update interest
       if (isSignedIn && user?.id) {
-        fetch(`http://localhost:8000/api/users/${user.id}/job-interest`, {
+        fetch(`${API_URL_BACKEND}/users/${user.id}/job-interest`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

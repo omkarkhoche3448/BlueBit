@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 
-const API_BASE_URL = "http://localhost:8000/api"
+const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
+
 
 // Load savedJobs from localStorage on initial load
 const loadSavedJobsFromStorage = () => {
@@ -25,7 +26,7 @@ const saveJobsToStorage = (jobs) => {
 export const fetchJobs = createAsyncThunk("jobs/fetchJobs", async (filters, { rejectWithValue }) => {
   try {
     // Construct the API URL
-    const url = `${API_BASE_URL}/search-jobs`
+    const url = `${API_URL_BACKEND}/search-jobs`
     
     // Get the user's Clerk ID
     const clerkId = window.Clerk?.user?.id || null;
@@ -57,7 +58,7 @@ export const fetchJobs = createAsyncThunk("jobs/fetchJobs", async (filters, { re
 // Rest of the code remains the same as in the original file
 export const fetchJobById = createAsyncThunk("jobs/fetchJobById", async (id, { rejectWithValue }) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/job/${id}`)
+    const response = await fetch(`${API_URL_BACKEND}/job/${id}`)
     
     if (!response.ok) {
       const errorData = await response.json()
@@ -73,7 +74,7 @@ export const fetchJobById = createAsyncThunk("jobs/fetchJobById", async (id, { r
 
 export const applyToJob = createAsyncThunk("jobs/applyToJob", async (id, { rejectWithValue }) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/apply-job/${id}`, {
+    const response = await fetch(`${API_URL_BACKEND}/apply-job/${id}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

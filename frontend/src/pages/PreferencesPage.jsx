@@ -40,6 +40,7 @@ function PreferencesPageSkeleton() {
     </div>
   );
 }
+const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 
 function PreferencesPage() {
   const { user, isSignedIn } = useUser();
@@ -178,7 +179,7 @@ function PreferencesPage() {
 
     try {
       const response = await fetch(
-        `http://localhost:8000/api/users/${user.id}/preferences`,
+        `${API_URL_BACKEND}/users/${user.id}/preferences`,
         {
           method: "POST",
           headers: {

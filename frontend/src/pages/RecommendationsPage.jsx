@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useUser } from "@clerk/clerk-react";
 import JobCard from "../components/common/JobCard";
 
+const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
+
 function RecommendationsPage() {
   const { user, isSignedIn } = useUser();
   const [recommendations, setRecommendations] = useState([]);
@@ -18,7 +20,7 @@ function RecommendationsPage() {
     try {
       setLoading(true);
       const response = await fetch(
-        `http://localhost:8000/api/users/${user.id}/recommendations`
+        `${API_URL_BACKEND}/users/${user.id}/recommendations`
       );
 
       if (!response.ok) {
