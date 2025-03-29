@@ -1,10 +1,11 @@
 import { useState } from "react";
+import useProStatus from "../hooks/useProStatus";
 import { analyzeResume } from "../services/resumeService";
 import { FileUploader } from "../components/resumeparser/FileUploader";
 import { ErrorDisplay } from "../components/resumeparser/ErrorDisplay";
 import { SubmitButton } from "../components/resumeparser/SubmitButton";
 import { ScoreDisplay } from "../components/resumeparser/ScoreDisplay";
-import { CollapsibleSection } from "../components/resumeparser/CollapsibleSection";
+import CollapsibleSection from "../components/resumeparser/CollapsibleSection";
 import { SubScores } from "../components/resumeparser/SubScores";
 import { ImprovementTips } from "../components/resumeparser/ImprovementTips";
 import { LineByLineFeedback } from "../components/resumeparser/LineByLineFeedback";
@@ -12,6 +13,7 @@ import { KeywordSuggestions } from "../components/resumeparser/KeywordSuggestion
 import { ActionVerbAlternatives } from "../components/resumeparser/ActionVerbAlternatives";
 
 function ResumeParserPage() {
+  const { isPro, isLoading } = useProStatus();
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -99,27 +101,87 @@ function ResumeParserPage() {
           </CollapsibleSection>
           
           <CollapsibleSection 
-            title="Line-by-Line Feedback" 
-            isExpanded={expandedSections.lineByLine}
-            toggleExpanded={() => toggleSection("lineByLine")}
+            title="Line-by-Line Feedback"
+            isExpanded={expandedSections.lineByLine && isPro}
+            toggleExpanded={() => isPro && toggleSection("lineByLine")}
+            disabled={!isPro}
+            className={!isPro ? 'opacity-50 cursor-not-allowed group' : ''}
+            titleClassName={!isPro ? 'group-hover:after:content-["Pro_Only"] group-hover:after:ml-2 group-hover:after:text-sm group-hover:after:text-blue-500 group-hover:after:font-normal' : ''}
           >
-            <LineByLineFeedback feedback={result.line_by_line_feedback} />
+            {isLoading ? (
+              <div className="text-sm text-gray-500 p-4">Loading...</div>
+            ) : !isPro ? (
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-gray-700 font-medium mb-2">Pro Feature</p>
+                <p className="text-gray-600 mb-3">
+                  Get detailed line-by-line feedback to perfect every part of your resume.
+                </p>
+                <a 
+                  href="/pricing" 
+                  className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  Upgrade to Pro
+                </a>
+              </div>
+            ) : (
+              <LineByLineFeedback feedback={result.line_by_line_feedback} />
+            )}
           </CollapsibleSection>
           
           <CollapsibleSection 
-            title="Keyword Suggestions" 
-            isExpanded={expandedSections.keywords}
-            toggleExpanded={() => toggleSection("keywords")}
+            title="Keyword Suggestions"
+            isExpanded={expandedSections.keywords && isPro}
+            toggleExpanded={() => isPro && toggleSection("keywords")}
+            disabled={!isPro}
+            className={!isPro ? 'opacity-50 cursor-not-allowed group' : ''}
+            titleClassName={!isPro ? 'group-hover:after:content-["Pro_Only"] group-hover:after:ml-2 group-hover:after:text-sm group-hover:after:text-blue-500 group-hover:after:font-normal' : ''}
           >
-            <KeywordSuggestions suggestions={result.keyword_suggestions} />
+            {isLoading ? (
+              <div className="text-sm text-gray-500 p-4">Loading...</div>
+            ) : !isPro ? (
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-gray-700 font-medium mb-2">Pro Feature</p>
+                <p className="text-gray-600 mb-3">
+                  Access industry-specific keyword suggestions to boost your resume's ATS score.
+                </p>
+                <a 
+                  href="/pricing" 
+                  className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  Upgrade to Pro
+                </a>
+              </div>
+            ) : (
+              <KeywordSuggestions suggestions={result.keyword_suggestions} />
+            )}
           </CollapsibleSection>
           
           <CollapsibleSection 
-            title="Action Verb Alternatives" 
-            isExpanded={expandedSections.actionVerbs}
-            toggleExpanded={() => toggleSection("actionVerbs")}
+            title="Action Verb Alternatives"
+            isExpanded={expandedSections.actionVerbs && isPro}
+            toggleExpanded={() => isPro && toggleSection("actionVerbs")}
+            disabled={!isPro}
+            className={!isPro ? 'opacity-50 cursor-not-allowed group' : ''}
+            titleClassName={!isPro ? 'group-hover:after:content-["Pro_Only"] group-hover:after:ml-2 group-hover:after:text-sm group-hover:after:text-blue-500 group-hover:after:font-normal' : ''}
           >
-            <ActionVerbAlternatives alternatives={result.action_verb_alternatives} />
+            {isLoading ? (
+              <div className="text-sm text-gray-500 p-4">Loading...</div>
+            ) : !isPro ? (
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-gray-700 font-medium mb-2">Pro Feature</p>
+                <p className="text-gray-600 mb-3">
+                  Get access to powerful Action Verb suggestions to make your resume stand out.
+                </p>
+                <a 
+                  href="/pricing" 
+                  className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  Upgrade to Pro
+                </a>
+              </div>
+            ) : (
+              <ActionVerbAlternatives alternatives={result.action_verb_alternatives} />
+            )}
           </CollapsibleSection>
         </div>
       )}
