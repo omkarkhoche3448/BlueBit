@@ -5,26 +5,51 @@ let extractedFields = [];
 // Log that the content script is loading
 console.log("AI Job Application Autofill content script loading...");
 
-// Function to extract clerkUserId from the page's localStorage
+// Function to extract clerkUserId from Chrome storage or page's localStorage
 function getClerkIdFromPage() {
-  try {
-    // Try to get the clerkUserId from page's localStorage
-    const clerkUserId = localStorage.getItem('clerkUserId');
-    console.log("Found clerkUserId in localStorage:", clerkUserId);
-    
-    // If clerkUserId is not found in localStorage, use the hardcoded value
-    if (!clerkUserId) {
-      console.log("Using hardcoded clerk ID as fallback");
-      return "user_2uydT0IPROqcXfd7wdKhixOeUMy";
+  // First try to get the clerkUserId from Chrome storage
+  return new Promise((resolve) => {
+    // Check if Chrome storage API is available
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.local.get(['clerkUserId'], function(result) {
+        if (result.clerkUserId) {
+          console.log("Found clerkUserId in Chrome storage:", result.clerkUserId);
+          resolve(result.clerkUserId);
+        } else {
+          // Fallback to localStorage if not in Chrome storage
+          try {
+            const clerkUserId = localStorage.getItem('clerkUserId');
+            if (clerkUserId) {
+              console.log("Found clerkUserId in localStorage:", clerkUserId);
+              
+              // Also save it to Chrome storage for future use
+              chrome.storage.local.set({ clerkUserId: clerkUserId }, function() {
+                console.log("Saved clerkUserId from localStorage to Chrome storage");
+              });
+              
+              resolve(clerkUserId);
+            } else {
+              console.warn("No clerk ID found in Chrome storage or localStorage");
+              resolve(null);
+            }
+          } catch (error) {
+            console.error('Error accessing page localStorage:', error);
+            resolve(null);
+          }
+        }
+      });
+    } else {
+      // If Chrome API is not available, just try localStorage
+      try {
+        const clerkUserId = localStorage.getItem('clerkUserId');
+        console.log("Chrome storage API not available, using localStorage:", clerkUserId);
+        resolve(clerkUserId || null);
+      } catch (error) {
+        console.error('Error accessing page localStorage:', error);
+        resolve(null);
+      }
     }
-    
-    return clerkUserId;
-  } catch (error) {
-    console.error('Error accessing page localStorage:', error);
-    // Return hardcoded ID in case of error
-    console.log("Using hardcoded clerk ID due to error");
-    return "user_2uydT0IPROqcXfd7wdKhixOeUMy";
-  }
+  });
 }
 
 // Function to initialize the FormFieldExtractor
@@ -61,11 +86,17 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   console.log("Message received in content script:", request.action);
   
   if (request.action === 'getClerkId') {
-    // Get the clerk ID from the page
-    const clerkId = getClerkIdFromPage();
-    console.log("Sending clerkId back to popup:", clerkId);
-    sendResponse({ success: true, clerkId: clerkId });
-    return true;
+    // Get the clerk ID from Chrome storage or localStorage
+    getClerkIdFromPage().then(clerkId => {
+      if (clerkId) {
+        console.log("Sending clerkId back to popup:", clerkId);
+        sendResponse({ success: true, clerkId: clerkId });
+      } else {
+        console.error("No clerk ID found");
+        sendResponse({ success: false, error: "User not logged in. Please log in first." });
+      }
+    });
+    return true; // Keep the message channel open for async response
   }
   
   if (request.action === 'extractFields') {
@@ -124,26 +155,28 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         return true;
       }
       
-      const clerkId = request.clerkId || getClerkIdFromPage();
-      console.log("Using clerk ID for autofill:", clerkId);
-      
-      if (!clerkId) {
-        console.error("No clerk ID found");
-        sendResponse({ success: false, error: 'Could not find user ID. Please log in first.' });
-        return true;
-      }
-      
-      // Process fields with backend API and autofill
-      console.log("Calling processFieldsWithBackend");
-      processFieldsWithBackend(extractedFields, clerkId)
-        .then(filledCount => {
-          console.log("Form filled successfully:", filledCount);
-          sendResponse({ success: true, filledCount: filledCount });
-        })
-        .catch(error => {
-          console.error('Error autofilling form:', error);
-          sendResponse({ success: false, error: error.message });
-        });
+      getClerkIdFromPage().then(clerkId => {
+        const userClerkId = request.clerkId || clerkId;
+        console.log("Using clerk ID for autofill:", userClerkId);
+        
+        if (!userClerkId) {
+          console.error("No clerk ID found");
+          sendResponse({ success: false, error: 'Could not find user ID. Please log in first.' });
+          return;
+        }
+        
+        // Process fields with backend API and autofill
+        console.log("Calling processFieldsWithBackend");
+        processFieldsWithBackend(extractedFields, userClerkId)
+          .then(filledCount => {
+            console.log("Form filled successfully:", filledCount);
+            sendResponse({ success: true, filledCount: filledCount });
+          })
+          .catch(error => {
+            console.error('Error autofilling form:', error);
+            sendResponse({ success: false, error: error.message });
+          });
+      });
       
       return true;
     } catch (error) {
