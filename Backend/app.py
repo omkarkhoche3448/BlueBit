@@ -31,7 +31,7 @@ from routes.payment_routes import register_payment_routes
 from routes.job_routes import register_job_routes
 from routes.user_routes import register_user_routes
 from routes.chrome_extension_routes import register_chrome_extension_routes  # Add this line
-
+from routes.job_interactions import register_job_interaction_routes
 # Import utility functions
 from utils.db_utils import init_db_and_load_jobs
 from recommendation_engine import init_recommendation_engine
@@ -61,6 +61,7 @@ CORS(app)
 register_job_routes(app)
 register_user_routes(app)
 register_chrome_extension_routes(app)
+register_job_interaction_routes(app)
 
 def extract_text_from_pdf(file):
     try:

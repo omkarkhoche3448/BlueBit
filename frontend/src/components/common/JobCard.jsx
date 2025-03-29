@@ -26,7 +26,7 @@ import {
 import { toggleSaveJob } from "../../slices/jobsSlice";
 import { useUser } from "@clerk/clerk-react";
 import { useProStatusContext } from "../../contexts/ProStatusContext"; // We'll create this context
-
+import React, { useRef } from "react";
 const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 
 function JobCard({ job, onNotInterested, isRecommended }) {
@@ -38,10 +38,24 @@ function JobCard({ job, onNotInterested, isRecommended }) {
   const isSaved = savedJobs.some((savedJob) => savedJob.id === job.id);
   const { isPro } = useProStatusContext(); // Use the context instead of the hook directly
   
+  // Add refs to track interaction timers
+  const likeTimerRef = useRef(null);
+  const dislikeTimerRef = useRef(null);
+  const bookmarkTimerRef = useRef(null);
+  
   // State for tracking user's interest in this job
   const [isInterested, setIsInterested] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
+
+  // Add cleanup for timers when component unmounts
+  useEffect(() => {
+    return () => {
+      if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
+      if (dislikeTimerRef.current) clearTimeout(dislikeTimerRef.current);
+      if (bookmarkTimerRef.current) clearTimeout(bookmarkTimerRef.current);
+    };
+  }, []);
 
   // Fetch the user's interest status for this job on component mount
   useEffect(() => {
@@ -62,6 +76,23 @@ function JobCard({ job, onNotInterested, isRecommended }) {
     }
   };
 
+  // Add the missing handleJobClick function
+  const handleJobClick = (e) => {
+    // Update interaction time when user clicks on the job card
+    if (isPro && isSignedIn) {
+      // Optional: Add interaction time tracking
+      fetch(`${API_URL_BACKEND}/api/job/${job.id}/update-interaction-time`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      .then(response => response.json())
+      .catch(error => console.error("Error updating interaction time:", error));
+    }
+    window.open(job.job_url_direct || job.job_url, '_blank', 'noopener,noreferrer');
+  };
+
   // Wrap actions with Pro check
   const handleSaveJob = (e) => {
     e.preventDefault();
@@ -73,6 +104,27 @@ function JobCard({ job, onNotInterested, isRecommended }) {
     }
     
     dispatch(toggleSaveJob(job));
+    
+    // Clear any existing timer
+    if (bookmarkTimerRef.current) {
+      clearTimeout(bookmarkTimerRef.current);
+    }
+    
+    // Set a new timer for the API call
+    bookmarkTimerRef.current = setTimeout(() => {
+      // Only make the API call if the job is still saved after the delay
+      const isCurrentlySaved = savedJobs.some((savedJob) => savedJob.id === job.id);
+      if (isCurrentlySaved) {
+        fetch(`${API_URL_BACKEND}/api/job/${job.id}/bookmark`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+        .then(response => response.json())
+        .catch(error => console.error("Error updating bookmark stats:", error));
+      }
+    }, 3500); // 3.5 second delay
   };
 
   // Add a check for onNotInterested before calling it
@@ -118,6 +170,45 @@ function JobCard({ job, onNotInterested, isRecommended }) {
         setIsInterested(previousInterest);
         const errorData = await response.json();
         console.error("Failed to update job interest:", errorData);
+      } else {
+        // Clear any existing timers
+        if (interested) {
+          if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
+          if (dislikeTimerRef.current) clearTimeout(dislikeTimerRef.current);
+          
+          // Set a new timer for the like API call
+          likeTimerRef.current = setTimeout(() => {
+            // Only make the API call if the interest is still the same after the delay
+            if (isInterested === true) {
+              fetch(`${API_URL_BACKEND}/api/job/${job.id}/like`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                }
+              })
+              .then(response => response.json())
+              .catch(error => console.error("Error updating like stats:", error));
+            }
+          }, 3500); // 3.5 second delay
+        } else {
+          if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
+          if (dislikeTimerRef.current) clearTimeout(dislikeTimerRef.current);
+          
+          // Set a new timer for the dislike API call
+          dislikeTimerRef.current = setTimeout(() => {
+            // Only make the API call if the interest is still the same after the delay
+            if (isInterested === false) {
+              fetch(`${API_URL_BACKEND}/api/job/${job.id}/dislike`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                }
+              })
+              .then(response => response.json())
+              .catch(error => console.error("Error updating dislike stats:", error));
+            }
+          }, 3500); // 3.5 second delay
+        }
       }
     } catch (err) {
       // Revert to previous state if request fails
@@ -299,9 +390,7 @@ function JobCard({ job, onNotInterested, isRecommended }) {
       className={`block cursor-pointer ${isRecommended ? "animate-fadeIn" : ""}`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
-      onClick={(e) => {
-        window.open(job.job_url_direct || job.job_url, '_blank', 'noopener,noreferrer');
-      }}
+      onClick={handleJobClick}
     >
       <div className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden border ${
         isRecommended 
