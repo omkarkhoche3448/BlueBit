@@ -27,7 +27,7 @@ def setup_gemini_api():
             
             # Test a simple call
             try:
-                model = genai.GenerativeModel('gemini-1.5-pro')
+                model = genai.GenerativeModel('gemini-2.0-flash')
                 response = model.generate_content("Hello, respond with a short greeting.")
                 print(f"✅ Test call successful. Response: {response.text[:50]}...")
                 return True

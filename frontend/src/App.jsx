@@ -19,6 +19,7 @@ import SearchPage from "./pages/SearchPage";
 import LandingPage from "./pages/LandingPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import { ProStatusProvider } from './contexts/ProStatusContext';
+import LikedJobsPage from "./pages/LikedJobsPage";
 
 const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND
 
@@ -128,6 +129,7 @@ function App() {
           <Route path="/resume-parser" element={<ResumeParserPage />} />
           <Route path="/create-resume" element={<ResumeCreater />} />
           <Route path="/saved" element={<SavedJobsPage />} />
+          <Route path="/liked" element={<LikedJobsPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/recommendations" element={<RecommendationsPage />} />
         </Route>

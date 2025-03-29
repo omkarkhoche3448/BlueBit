@@ -1,8 +1,8 @@
-from sqlalchemy import Column, String, Boolean, Float, Date, Text, Integer
+from sqlalchemy import Column, String, Boolean, Float, Date, Text, Integer, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import JSON
 from datetime import datetime
-from sqlalchemy import create_engine
 
 Base = declarative_base()
 
@@ -41,10 +41,11 @@ class Job(Base):
     description = Column(Text, nullable=True)
     last_updated = Column(Date, default=datetime.now().date())
     company_logo = Column(String(500), nullable=True)
+    # Add relationship with JobInteractionStats
+    stats = relationship("JobInteractionStats", back_populates="job", uselist=False)
     
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
-            # Skip complex nested objects or fields not in our model
             if key not in ['company_industry', 'company_url',
                           'company_url_direct', 'company_addresses', 'company_num_employees',
                           'company_revenue', 'company_description', 'skills', 'experience_range',
@@ -52,3 +53,15 @@ class Job(Base):
                           'work_from_home_type', 'job_level', 'job_function', 'listing_type', 
                           'emails']:
                 setattr(self, key, value)
+
+class JobInteractionStats(Base):
+    __tablename__ = 'job_interaction_stats'
+    
+    job_id = Column(String(100), ForeignKey('jobs.id'), primary_key=True)
+    like_count = Column(Integer, default=0)
+    dislike_count = Column(Integer, default=0)
+    bookmark_count = Column(Integer, default=0)
+    last_updated = Column(Date, default=datetime.now().date())
+    
+    # Define relationship with Job model
+    job = relationship("Job", back_populates="stats")
