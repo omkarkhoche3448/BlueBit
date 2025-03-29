@@ -80,21 +80,13 @@ function RecommendedJobs() {
   if (!isLoading && recommendations.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <div className="text-center py-6">
+        <div className="text-center">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Personalized Job Recommendations</h2>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-blue-800 text-sm font-semibold mb-2">🚀 Not Enough Data for Recommendations</p>
             <p className="text-gray-600 text-xs">
-              Do some Interactions or Engage in more job interactions to unlock personalized recommendations tailored just for you.
+              Engage in more job interactions, such as liking jobs, applying to positions, and saving interesting job listings, to unlock personalized recommendations tailored just for you.
             </p>
-            <div className="mt-4">
-              <p className="text-gray-700 text-xs">Start by:</p>
-              <ul className="text-gray-600 text-xs list-disc list-inside mt-1">
-                <li>Liking jobs</li>
-                <li>Applying to positions</li>
-                <li>Saving interesting job listings</li>
-              </ul>
-            </div>
             <Link
               to="/search"
               className="mt-4 inline-block bg-blue-500 text-white text-xs px-4 py-2 rounded hover:bg-blue-600 transition"
