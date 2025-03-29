@@ -68,6 +68,15 @@ function Sidebar() {
             <h3 className="font-medium text-lg">
               {user?.fullName || user?.username || "User"}
             </h3>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(user?.id || '');
+                alert('Clerk ID copied to clipboard!');
+              }}
+              className="mt-3 inline-flex items-center justify-center px-2 py-1 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors"
+            >
+              Copy ID
+            </button>
             <p className="text-sm text-gray-500 mt-1">
               {user?.primaryEmailAddress?.emailAddress || ""}
             </p>
