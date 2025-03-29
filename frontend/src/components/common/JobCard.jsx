@@ -109,49 +109,6 @@ function JobCard({ job, onNotInterested, isRecommended }) {
   };
 
   // Wrap actions with Pro check
-  const handleSaveJob = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!isPro) {
-      setShowProModal(true);
-      return;
-    }
-    
-    dispatch(toggleSaveJob(job));
-    
-    // Clear any existing timer
-    if (bookmarkTimerRef.current) {
-      clearTimeout(bookmarkTimerRef.current);
-    }
-    
-    // Set a new timer for the API call
-    bookmarkTimerRef.current = setTimeout(() => {
-      // Only make the API call if the job is still saved after the delay
-      const isCurrentlySaved = savedJobs.some((savedJob) => savedJob.id === job.id);
-      if (isCurrentlySaved) {
-        const url = `${API_URL_BACKEND}/api/job/${job.id}/bookmark`;
-        console.log("Bookmarking job at:", url);
-        
-        fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          // Remove credentials if CORS is an issue
-          // credentials: 'include',
-          body: JSON.stringify({ userId: user?.id }) // Add user ID for tracking
-        })
-        .then(response => {
-          if (!response.ok) throw new Error(`Failed to bookmark job: ${response.status}`);
-          return response.json();
-        })
-        .then(data => console.log("Bookmark updated:", data))
-        .catch(error => console.error("Error updating bookmark stats:", error));
-      }
-    }, 3500); // 3.5 second delay
-  };
-
   const handleJobInteraction = async (interactionType, value, e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -163,9 +120,22 @@ function JobCard({ job, onNotInterested, isRecommended }) {
       return;
     }
     
+    // Update UI state immediately for better UX
+    if (interactionType === 'like') {
+      setIsInterested(value ? true : null);
+    } else if (interactionType === 'dislike') {
+      setIsInterested(value ? false : null);
+    } else if (interactionType === 'bookmark') {
+      dispatch(toggleSaveJob(job));
+    }
+    
     try {
       const url = `${API_URL_BACKEND}/users/${user.id}/job-interaction`;
-      console.log(`Updating job interaction at: ${url}`);
+      console.log(`Sending job interaction to: ${url}`, {
+        jobId: job.id,
+        interactionType,
+        value
+      });
       
       const response = await fetch(url, {
         method: 'POST',
@@ -186,15 +156,6 @@ function JobCard({ job, onNotInterested, isRecommended }) {
       const data = await response.json();
       console.log('Interaction updated:', data);
       
-      // Update local state based on response
-      if (interactionType === 'like') {
-        setIsInterested(value ? true : null);
-      } else if (interactionType === 'dislike') {
-        setIsInterested(value ? false : null);
-      } else if (interactionType === 'bookmark') {
-        dispatch(toggleSaveJob(job));
-      }
-      
       // If marking as not interested and onNotInterested prop exists
       if (interactionType === 'dislike' && value && onNotInterested) {
         onNotInterested(job.id);
@@ -202,19 +163,71 @@ function JobCard({ job, onNotInterested, isRecommended }) {
       
     } catch (error) {
       console.error('Error updating job interaction:', error);
+      // Revert UI state on error
+      if (interactionType === 'like') {
+        setIsInterested(null);
+      } else if (interactionType === 'dislike') {
+        setIsInterested(null);
+      } else if (interactionType === 'bookmark') {
+        dispatch(toggleSaveJob(job)); // Toggle back
+      }
     }
   };
 
-  
-  // Add the handleLike function to call the job interaction API
-  const handleLike = (e) => {
-    handleJobInteraction('like', isInterested !== true, e);
+  // Update handleSaveJob to use handleJobInteraction
+  const handleSaveJob = (e) => {
+    handleJobInteraction('bookmark', !isSaved, e);
   };
   
-  const handleDislike = (e) => {
-    handleJobInteraction('dislike', isInterested !== false, e);
-  };
-
+  // Update handleLike to use handleJobInteraction
+  const handleLike = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (!isSignedIn || !isPro) {
+        if (!isPro) setShowProModal(true);
+        return;
+      }
+      
+      setIsLoading(true);
+      try {
+        // Call both endpoints
+        await Promise.all([
+          handleJobInteraction('like', isInterested !== true, e),
+          handleJobInterest(true, e)
+        ]);
+      } catch (error) {
+        console.error('Error in handleLike:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    const handleDislike = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (!isSignedIn || !isPro) {
+        if (!isPro) setShowProModal(true);
+        return;
+      }
+      
+      setIsLoading(true);
+      try {
+        // Call both endpoints
+        await Promise.all([
+          handleJobInteraction('dislike', isInterested !== false, e),
+          handleJobInterest(false, e)
+        ]);
+      } catch (error) {
+        console.error('Error in handleDislike:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
+  // Remove duplicate handleLike and handleDislike declarations here
+  
   // Add a check for onNotInterested before calling it
   const handleJobInterest = async (interested, e) => {
     e.preventDefault();
@@ -272,7 +285,6 @@ function JobCard({ job, onNotInterested, isRecommended }) {
         if (interested) {
           if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
           if (dislikeTimerRef.current) clearTimeout(dislikeTimerRef.current);
-          
           // Set a new timer for the like API call
           likeTimerRef.current = setTimeout(() => {
             // Only make the API call if the interest is still the same after the delay
@@ -775,7 +787,7 @@ function JobCard({ job, onNotInterested, isRecommended }) {
             </button>
 
             <button
-              onClick={(e) => handleJobInterest(true, e)}
+              onClick={handleLike}
               disabled={isLoading || !isPro}
               className={`p-1.5 rounded-full ${
                 isInterested === true
@@ -792,7 +804,7 @@ function JobCard({ job, onNotInterested, isRecommended }) {
             </button>
 
             <button
-              onClick={(e) => handleJobInterest(false, e)}
+              onClick={handleDislike}
               disabled={isLoading || !isPro}
               className={`p-1.5 rounded-full ${
                 isInterested === false

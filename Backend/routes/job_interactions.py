@@ -2,10 +2,15 @@ from flask import request, jsonify
 from datetime import datetime
 from config import Session
 from models import User, Job, JobInteractionStats
+from flask_cors import cross_origin
 
 def register_user_job_interaction_routes(app):
-    @app.route('/users/<string:user_id>/job-interaction', methods=['POST'])
+    @app.route('/api/users/<string:user_id>/job-interaction', methods=['POST', 'OPTIONS'])
+    @cross_origin(methods=['POST', 'OPTIONS'], allow_headers=['Content-Type'])
     def update_job_interaction(user_id):
+        if request.method == 'OPTIONS':
+            return '', 204  # Return empty response for OPTIONS request
+            
         session = Session()
         try:
             data = request.get_json()
@@ -104,7 +109,7 @@ def register_user_job_interaction_routes(app):
         finally:
             session.close()
     
-    @app.route('/users/<string:user_id>/job-bookmark', methods=['POST'])
+    @app.route('/api/users/<string:user_id>/job-bookmark', methods=['POST'])
     def update_job_bookmark(user_id):
         session = Session()
         try:
@@ -159,6 +164,68 @@ def register_user_job_interaction_routes(app):
             })
         except Exception as e:
             session.rollback()
+            return jsonify({'error': str(e)}), 500
+        finally:
+            session.close()
+
+    @app.route('/api/jobs/trending', methods=['GET', 'OPTIONS'])
+    @cross_origin(methods=['GET', 'OPTIONS'], allow_headers=['Content-Type'])
+    def get_trending_jobs():
+        if request.method == 'OPTIONS':
+            return '', 204  # Return empty response for OPTIONS request
+            
+        session = Session()
+        try:
+            # Get all job stats
+            job_stats = session.query(JobInteractionStats).join(Job).all()
+            
+            # Calculate total interaction score and create tuples (job, total_score)
+            uptrend_jobs = []
+            downtrend_jobs = []
+            
+            for stat in job_stats:
+                total_interactions = stat.like_count + stat.bookmark_count
+                
+                job_data = {
+                    'job': stat.job,
+                    'total_interactions': total_interactions,
+                    'dislike_count': stat.dislike_count
+                }
+                
+                if total_interactions > 0:
+                    uptrend_jobs.append(job_data)
+                if stat.dislike_count > 0:
+                    downtrend_jobs.append(job_data)
+            
+            # Sort uptrend jobs by total interactions (descending)
+            uptrend_jobs.sort(key=lambda x: x['total_interactions'], reverse=True)
+            
+            # Sort downtrend jobs by dislike count (descending)
+            downtrend_jobs.sort(key=lambda x: x['dislike_count'], reverse=True)
+            
+            # Convert jobs to dictionary format
+            uptrend_result = [{
+                'id': job['job'].id,
+                'title': job['job'].title,
+                'company': job['job'].company,
+                'location': job['job'].location,
+                'total_interactions': job['total_interactions']
+            } for job in uptrend_jobs[:10]]  # Limit to top 10
+            
+            downtrend_result = [{
+                'id': job['job'].id,
+                'title': job['job'].title,
+                'company': job['job'].company,
+                'location': job['job'].location,
+                'dislike_count': job['dislike_count']
+            } for job in downtrend_jobs[:10]]  # Limit to top 10
+            
+            return jsonify({
+                'uptrend_jobs': uptrend_result,
+                'downtrend_jobs': downtrend_result
+            })
+            
+        except Exception as e:
             return jsonify({'error': str(e)}), 500
         finally:
             session.close()
