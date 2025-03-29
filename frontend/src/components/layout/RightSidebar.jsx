@@ -1,6 +1,82 @@
 import { ExternalLink, TrendingUp } from "lucide-react"
+import { useUser } from '@clerk/clerk-react';
+import { useProStatusContext } from '../../contexts/ProStatusContext';
 
 function RightSidebar() {
+
+  const { user } = useUser();
+  const { isPro } = useProStatusContext();
+
+  const handlePayment = async () => {
+    try {
+      console.log('Fetching from:', `http://localhost:8000/api/payment`);
+      const response = await fetch(`http://localhost:8000/api/payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ clerkId: user.id })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      const order = await response.json();
+      
+      const options = {
+        key: order.key,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'ProFind Pro Subscription',
+        description: '1 Month Pro Subscription',
+        order_id: order.order_id,
+        handler: async (response) => {
+          try {
+            const verificationResponse = await fetch(`http://localhost:8000/api/payment/success`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                clerkId: user.id,
+                paymentId: response.razorpay_payment_id,
+                orderId: order.order_id,
+                signature: response.razorpay_signature  // Added signature
+              })
+            });
+            
+            if (!verificationResponse.ok) {
+              const errorData = await verificationResponse.json().catch(() => ({}));
+              throw new Error(errorData.error || `HTTP error! status: ${verificationResponse.status}`);
+            }
+            
+            const result = await verificationResponse.json();
+            alert('Payment successful! Pro features activated.');
+          } catch (error) {
+            console.error('Payment verification error:', error);
+            alert('Payment verification failed: ' + error.message);
+          }
+        },
+        prefill: {
+          email: user.primaryEmailAddress.emailAddress,
+          name: user.fullName
+        },
+        theme: {
+          color: '#2563eb',
+        }
+      };
+      
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+      
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Payment failed: ' + error.message);
+    }
+  };
+
   const trendingJobs = [
     {
       title: "Software Engineer",
@@ -29,10 +105,10 @@ function RightSidebar() {
   ]
 
   const resources = [
-    { title: "Resume Builder", link: "/resources/resume" },
-    { title: "Interview Preparation", link: "/resources/interview" },
-    { title: "Salary Insights", link: "/resources/salary" },
-    { title: "Career Advice", link: "/resources/career" },
+    { title: "Resume Builder", link: "/create-resume" },
+    { title: "Interview Preparation", link: "https://www.indeed.com/career-advice/interviewing/how-to-prepare-for-an-interview" },
+    { title: "Salary Insights", link: "https://www.glassdoor.co.in/Salaries/index.htm?countryRedirect=true" },
+    { title: "Career Advice", link: "https://www.themuse.com/advice/45-pieces-of-career-advice-that-will-get-you-to-the-top" },
   ]
 
   return (
@@ -81,18 +157,35 @@ function RightSidebar() {
         </div>
       </div>
 
-      {/* Ad Section */}
-      <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-        <p className="text-xs text-gray-500 mb-2">Sponsored</p>
-        <h4 className="font-medium text-sm mb-2">Upgrade to Premium</h4>
-        <p className="text-sm text-gray-600 mb-3">Get access to exclusive job listings and advanced search features.</p>
-        <button className="w-full bg-blue-600 text-white text-sm py-1.5 px-3 rounded-md hover:bg-blue-700">
-          Try Free for 1 Month
-        </button>
+      {/* Ad Section or Pro Benefits Section */}
+      <div className={`rounded-lg p-4 border ${
+        isPro 
+          ? 'bg-amber-50 border-amber-300' 
+          : 'bg-blue-50 border-blue-100'
+      }`}>
+        <p className="text-xs text-gray-500 mb-2">
+          {isPro ? 'Pro Membership' : 'Sponsored'}
+        </p>
+        <h4 className="font-medium text-sm mb-2">
+          {isPro ? 'Pro Benefits' : 'Upgrade to Premium'}
+        </h4>
+        <p className="text-sm text-gray-600 mb-3">
+          {isPro 
+            ? 'Enjoy your current benefits like resume builder, personalized recommendations, and chrome extension.'
+            : 'Get access to exclusive job listings and advanced search features.'}
+        </p>
+        {!isPro && (
+          <button 
+            onClick={handlePayment} 
+            className="w-full bg-blue-600 text-white text-sm py-1.5 px-3 rounded-md hover:bg-blue-700"
+          >
+            Try for 1 Month
+          </button>
+        )}
       </div>
     </div>
-  )
+  );
 }
 
-export default RightSidebar
+export default RightSidebar;
 
