@@ -1,77 +1,162 @@
 from flask import request, jsonify
 from datetime import datetime
 from config import Session
-from models import JobInteractionStats
+from models import User, Job, JobInteractionStats
 
-def register_job_interaction_routes(app):
-    @app.route('/api/job/<string:job_id>/like', methods=['POST'])
-    def like_job(job_id):
+def register_user_job_interaction_routes(app):
+    @app.route('/users/<string:user_id>/job-interaction', methods=['POST'])
+    def update_job_interaction(user_id):
         session = Session()
         try:
-            stats = session.query(JobInteractionStats).filter(JobInteractionStats.job_id == job_id).first()
+            data = request.get_json()
+            job_id = data.get('jobId')
+            interaction_type = data.get('interactionType')  # 'like', 'dislike', or 'bookmark'
+            value = data.get('value')  # True/False for toggle
+            
+            if not all([job_id, interaction_type, value is not None]):
+                return jsonify({'error': 'Job ID, interaction type and value are required'}), 400
+                
+            # Get user
+            user = session.query(User).filter(User.clerk_id == user_id).first()
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+                
+            # Initialize arrays if None
+            if user.interested_job_ids is None:
+                user.interested_job_ids = []
+            if user.not_interested_job_ids is None:
+                user.not_interested_job_ids = []
+            if user.saved_jobs_ids is None:
+                user.saved_jobs_ids = []
+                
+            # Get or create job stats
+            stats = session.query(JobInteractionStats).filter(
+                JobInteractionStats.job_id == job_id
+            ).first()
+            
             if not stats:
-                stats = JobInteractionStats(job_id=job_id, like_count=0, dislike_count=0, bookmark_count=0)
+                stats = JobInteractionStats(
+                    job_id=job_id,
+                    like_count=0,
+                    dislike_count=0,
+                    bookmark_count=0,
+                    last_updated=datetime.now().date()
+                )
                 session.add(stats)
             
-            stats.like_count += 1
+            # Handle each interaction type
+            if interaction_type == 'like':
+                # Update user's liked jobs
+                if value and job_id not in user.interested_job_ids:
+                    user.interested_job_ids.append(job_id)
+                    stats.like_count += 1
+                elif not value and job_id in user.interested_job_ids:
+                    user.interested_job_ids.remove(job_id)
+                    stats.like_count = max(0, stats.like_count - 1)
+                    
+                # Remove from disliked if now liked
+                if value and job_id in user.not_interested_job_ids:
+                    user.not_interested_job_ids.remove(job_id)
+                    stats.dislike_count = max(0, stats.dislike_count - 1)
+                    
+            elif interaction_type == 'dislike':
+                # Update user's disliked jobs
+                if value and job_id not in user.not_interested_job_ids:
+                    user.not_interested_job_ids.append(job_id)
+                    stats.dislike_count += 1
+                elif not value and job_id in user.not_interested_job_ids:
+                    user.not_interested_job_ids.remove(job_id)
+                    stats.dislike_count = max(0, stats.dislike_count - 1)
+                    
+                # Remove from liked if now disliked
+                if value and job_id in user.interested_job_ids:
+                    user.interested_job_ids.remove(job_id)
+                    stats.like_count = max(0, stats.like_count - 1)
+                    
+            elif interaction_type == 'bookmark':
+                # Update user's bookmarked jobs
+                if value and job_id not in user.saved_jobs_ids:
+                    user.saved_jobs_ids.append(job_id)
+                    stats.bookmark_count += 1
+                elif not value and job_id in user.saved_jobs_ids:
+                    user.saved_jobs_ids.remove(job_id)
+                    stats.bookmark_count = max(0, stats.bookmark_count - 1)
+                    
             stats.last_updated = datetime.now().date()
             session.commit()
-            return jsonify({'message': f'Job {job_id} liked successfully', 'like_count': stats.like_count})
+            
+            return jsonify({
+                'message': 'Job interaction updated successfully',
+                'interaction': {
+                    'liked': job_id in user.interested_job_ids,
+                    'disliked': job_id in user.not_interested_job_ids,
+                    'bookmarked': job_id in user.saved_jobs_ids
+                },
+                'stats': {
+                    'like_count': stats.like_count,
+                    'dislike_count': stats.dislike_count,
+                    'bookmark_count': stats.bookmark_count
+                }
+            })
         except Exception as e:
             session.rollback()
             return jsonify({'error': str(e)}), 500
         finally:
             session.close()
-
-    @app.route('/api/job/<string:job_id>/dislike', methods=['POST'])
-    def dislike_job(job_id):
+    
+    @app.route('/users/<string:user_id>/job-bookmark', methods=['POST'])
+    def update_job_bookmark(user_id):
         session = Session()
         try:
-            stats = session.query(JobInteractionStats).filter(JobInteractionStats.job_id == job_id).first()
+            data = request.get_json()
+            job_id = data.get('jobId')
+            bookmarked = data.get('bookmarked')
+            
+            if job_id is None or bookmarked is None:
+                return jsonify({'error': 'Job ID and bookmark value are required'}), 400
+            
+            # Get user
+            user = session.query(User).filter(User.clerk_id == user_id).first()
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+            
+            # Initialize saved jobs list if None
+            if user.saved_jobs_ids is None:
+                user.saved_jobs_ids = []
+            
+            # Get or create job stats
+            stats = session.query(JobInteractionStats).filter(
+                JobInteractionStats.job_id == job_id
+            ).first()
+            
             if not stats:
-                stats = JobInteractionStats(job_id=job_id, like_count=0, dislike_count=0, bookmark_count=0)
+                stats = JobInteractionStats(
+                    job_id=job_id,
+                    like_count=0,
+                    dislike_count=0,
+                    bookmark_count=0,
+                    last_updated=datetime.now().date()
+                )
                 session.add(stats)
             
-            stats.dislike_count += 1
-            stats.last_updated = datetime.now().date()
-            session.commit()
-            return jsonify({'message': f'Job {job_id} disliked successfully', 'dislike_count': stats.dislike_count})
-        except Exception as e:
-            session.rollback()
-            return jsonify({'error': str(e)}), 500
-        finally:
-            session.close()
-
-    @app.route('/api/job/<string:job_id>/bookmark', methods=['POST'])
-    def bookmark_job(job_id):
-        session = Session()
-        try:
-            stats = session.query(JobInteractionStats).filter(JobInteractionStats.job_id == job_id).first()
-            if not stats:
-                stats = JobInteractionStats(job_id=job_id, like_count=0, dislike_count=0, bookmark_count=0)
-                session.add(stats)
+            # Update bookmark status
+            was_bookmarked = job_id in user.saved_jobs_ids
             
-            stats.bookmark_count += 1
-            stats.last_updated = datetime.now().date()
-            session.commit()
-            return jsonify({'message': f'Job {job_id} bookmarked successfully', 'bookmark_count': stats.bookmark_count})
-        except Exception as e:
-            session.rollback()
-            return jsonify({'error': str(e)}), 500
-        finally:
-            session.close()
-
-    @app.route('/api/job/<string:job_id>/update-interaction-time', methods=['POST'])
-    def update_interaction_time(job_id):
-        session = Session()
-        try:
-            stats = session.query(JobInteractionStats).filter(JobInteractionStats.job_id == job_id).first()
-            if not stats:
-                return jsonify({'error': 'Job interaction stats not found'}), 404
+            if bookmarked and not was_bookmarked:
+                user.saved_jobs_ids.append(job_id)
+                stats.bookmark_count += 1
+            elif not bookmarked and was_bookmarked:
+                user.saved_jobs_ids.remove(job_id)
+                stats.bookmark_count = max(0, stats.bookmark_count - 1)
             
             stats.last_updated = datetime.now().date()
             session.commit()
-            return jsonify({'message': f'Interaction time for job {job_id} updated successfully', 'last_updated': stats.last_updated})
+            
+            return jsonify({
+                'message': 'Bookmark updated successfully',
+                'bookmarked': job_id in user.saved_jobs_ids,
+                'bookmark_count': stats.bookmark_count
+            })
         except Exception as e:
             session.rollback()
             return jsonify({'error': str(e)}), 500

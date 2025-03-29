@@ -56,8 +56,8 @@ def scrape_and_store_jobs(session, params=None):
                     all_jobs.extend(jobs_dict)
                     
                     # If we've collected enough jobs, stop scraping
-                    if len(all_jobs) >= 1000:
-                        logging.info(f"Reached target of 1000 jobs. Stopping scraping.")
+                    if len(all_jobs) >= 10:
+                        logging.info(f"Reached target of 10 jobs. Stopping scraping.")
                         break
                         
                 except Exception as e:
@@ -65,11 +65,11 @@ def scrape_and_store_jobs(session, params=None):
                     continue
             
             # Check if we've collected enough jobs
-            if len(all_jobs) >= 1000:
+            if len(all_jobs) >= 10:
                 break
                 
         # Check if we've collected enough jobs
-        if len(all_jobs) >= 1000:
+        if len(all_jobs) >= 10:
             break
     
     # Store in database - MODIFIED TO MERGE WITH EXISTING JOBS

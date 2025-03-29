@@ -5,24 +5,54 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Job Application Autofill</title>
   <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
   <div class="container">
-    <h1>AI Job Application Autofill</h1>
+    <div class="header">
+      <div class="logo">
+        <i class="fas fa-robot"></i>
+      </div>
+      <h1>AI Job Autofill</h1>
+    </div>
     
-    <div class="clerk-id-container">
-      <label for="clerk-id-input">Enter your Clerk ID:</label>
-      <input type="text" id="clerk-id-input" placeholder="Your Clerk ID">
+    <div class="card clerk-id-container">
+      <div class="card-header">
+        <i class="fas fa-id-card"></i>
+        <h2>Authentication</h2>
+      </div>
+      <div class="card-content">
+        <div class="input-group">
+          <input type="text" id="clerk-id-input" placeholder=" ">
+          <label for="clerk-id-input">Your Clerk ID</label>
+        </div>
+      </div>
     </div>
     
     <div class="actions">
-      <button id="autofillForm">Fill Form</button>
+      <button id="autofillForm" class="primary-btn">
+        <span class="btn-content">
+          <i class="fas fa-magic"></i>
+          <span>Fill Form</span>
+        </span>
+      </button>
     </div>
     
     <div class="status">
-      <p id="statusMessage">Enter your Clerk ID and click "Fill Form" to automatically fill the job application.</p>
+      <i class="fas fa-info-circle"></i>
+      <p id="statusMessage">Enter your ID and click "Fill Form" to autofill the application.</p>
+    </div>
+    
+    <div class="footer">
+      <button id="settings-btn" class="icon-btn" title="Settings">
+        <i class="fas fa-cog"></i>
+      </button>
+      <button id="help-btn" class="icon-btn" title="Help">
+        <i class="fas fa-question-circle"></i>
+      </button>
     </div>
   </div>
   <script src="popup.js"></script>
 </body>
 </html>
+

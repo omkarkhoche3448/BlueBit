@@ -64,12 +64,18 @@ function JobCard({ job, onNotInterested, isRecommended }) {
     }
   }, [isSignedIn, user, job.id]);
 
-  const fetchJobInterest = async () => {
-    try {
-      const response = await fetch(`${API_URL_BACKEND}/users/${user.id}/job-interest/${job.id}`);
+    const fetchJobInterest = async () => {
+      try {
+      // Log the URL being fetched for debugging
+      const url = `${API_URL_BACKEND}/users/${user.id}/job-interest/${job.id}`;
+      console.log("Fetching job interest from:", url);
+      
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         setIsInterested(data.interest);
+      } else {
+        console.warn("Failed to fetch job interest, status:", response.status);
       }
     } catch (err) {
       console.error("Error fetching job interest:", err);
@@ -81,13 +87,22 @@ function JobCard({ job, onNotInterested, isRecommended }) {
     // Update interaction time when user clicks on the job card
     if (isPro && isSignedIn) {
       // Optional: Add interaction time tracking
-      fetch(`${API_URL_BACKEND}/api/job/${job.id}/update-interaction-time`, {
+      const url = `${API_URL_BACKEND}/api/job/${job.id}/update-interaction-time`;
+      console.log("Updating interaction time at:", url);
+      
+      fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        // Remove credentials if CORS is an issue
+        // credentials: 'include',
       })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) throw new Error(`Failed to update interaction time: ${response.status}`);
+        return response.json();
+      })
+      .then(data => console.log("Interaction time updated:", data))
       .catch(error => console.error("Error updating interaction time:", error));
     }
     window.open(job.job_url_direct || job.job_url, '_blank', 'noopener,noreferrer');
@@ -115,16 +130,89 @@ function JobCard({ job, onNotInterested, isRecommended }) {
       // Only make the API call if the job is still saved after the delay
       const isCurrentlySaved = savedJobs.some((savedJob) => savedJob.id === job.id);
       if (isCurrentlySaved) {
-        fetch(`${API_URL_BACKEND}/api/job/${job.id}/bookmark`, {
+        const url = `${API_URL_BACKEND}/api/job/${job.id}/bookmark`;
+        console.log("Bookmarking job at:", url);
+        
+        fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-          }
+          },
+          // Remove credentials if CORS is an issue
+          // credentials: 'include',
+          body: JSON.stringify({ userId: user?.id }) // Add user ID for tracking
         })
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) throw new Error(`Failed to bookmark job: ${response.status}`);
+          return response.json();
+        })
+        .then(data => console.log("Bookmark updated:", data))
         .catch(error => console.error("Error updating bookmark stats:", error));
       }
     }, 3500); // 3.5 second delay
+  };
+
+  const handleJobInteraction = async (interactionType, value, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!isSignedIn) return;
+    
+    if (!isPro) {
+      setShowProModal(true);
+      return;
+    }
+    
+    try {
+      const url = `${API_URL_BACKEND}/users/${user.id}/job-interaction`;
+      console.log(`Updating job interaction at: ${url}`);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jobId: job.id,
+          interactionType,
+          value
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Interaction updated:', data);
+      
+      // Update local state based on response
+      if (interactionType === 'like') {
+        setIsInterested(value ? true : null);
+      } else if (interactionType === 'dislike') {
+        setIsInterested(value ? false : null);
+      } else if (interactionType === 'bookmark') {
+        dispatch(toggleSaveJob(job));
+      }
+      
+      // If marking as not interested and onNotInterested prop exists
+      if (interactionType === 'dislike' && value && onNotInterested) {
+        onNotInterested(job.id);
+      }
+      
+    } catch (error) {
+      console.error('Error updating job interaction:', error);
+    }
+  };
+
+  
+  // Add the handleLike function to call the job interaction API
+  const handleLike = (e) => {
+    handleJobInteraction('like', isInterested !== true, e);
+  };
+  
+  const handleDislike = (e) => {
+    handleJobInteraction('dislike', isInterested !== false, e);
   };
 
   // Add a check for onNotInterested before calling it
@@ -154,11 +242,17 @@ function JobCard({ job, onNotInterested, isRecommended }) {
     try {
       console.log(`Setting interest for job ${job.id} to ${newInterestValue}`);
       
-      const response = await fetch(`${API_URL_BACKEND}/users/${user.id}/job-interest`, {
+      // Construct and log the URL for debugging
+      const url = `${API_URL_BACKEND}/users/${user.id}/job-interest`;
+      console.log("Posting job interest to:", url);
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        // Remove credentials if CORS is an issue
+        // credentials: 'include',
         body: JSON.stringify({
           jobId: job.id,
           interest: newInterestValue,
@@ -168,9 +262,12 @@ function JobCard({ job, onNotInterested, isRecommended }) {
       if (!response.ok) {
         // Revert to previous state if request fails
         setIsInterested(previousInterest);
-        const errorData = await response.json();
-        console.error("Failed to update job interest:", errorData);
+        const errorText = await response.text();
+        console.error("Failed to update job interest:", response.status, errorText);
       } else {
+        const responseData = await response.json();
+        console.log("Job interest updated successfully:", responseData);
+        
         // Clear any existing timers
         if (interested) {
           if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
@@ -180,13 +277,23 @@ function JobCard({ job, onNotInterested, isRecommended }) {
           likeTimerRef.current = setTimeout(() => {
             // Only make the API call if the interest is still the same after the delay
             if (isInterested === true) {
-              fetch(`${API_URL_BACKEND}/api/job/${job.id}/like`, {
+              const likeUrl = `${API_URL_BACKEND}/api/job/${job.id}/like`;
+              console.log("Liking job at:", likeUrl);
+              
+              fetch(likeUrl, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                }
+                },
+                // Remove credentials if CORS is an issue
+                // credentials: 'include',
+                body: JSON.stringify({ userId: user?.id }) // Add user ID for tracking
               })
-              .then(response => response.json())
+              .then(response => {
+                if (!response.ok) throw new Error(`Failed to like job: ${response.status}`);
+                return response.json();
+              })
+              .then(data => console.log("Like updated:", data))
               .catch(error => console.error("Error updating like stats:", error));
             }
           }, 3500); // 3.5 second delay
@@ -198,13 +305,23 @@ function JobCard({ job, onNotInterested, isRecommended }) {
           dislikeTimerRef.current = setTimeout(() => {
             // Only make the API call if the interest is still the same after the delay
             if (isInterested === false) {
-              fetch(`${API_URL_BACKEND}/api/job/${job.id}/dislike`, {
+              const dislikeUrl = `${API_URL_BACKEND}/api/job/${job.id}/dislike`;
+              console.log("Disliking job at:", dislikeUrl);
+              
+              fetch(dislikeUrl, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                }
+                },
+                // Remove credentials if CORS is an issue
+                // credentials: 'include',
+                body: JSON.stringify({ userId: user?.id }) // Add user ID for tracking
               })
-              .then(response => response.json())
+              .then(response => {
+                if (!response.ok) throw new Error(`Failed to dislike job: ${response.status}`);
+                return response.json();
+              })
+              .then(data => console.log("Dislike updated:", data))
               .catch(error => console.error("Error updating dislike stats:", error));
             }
           }, 3500); // 3.5 second delay
