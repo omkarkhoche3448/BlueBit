@@ -27,6 +27,8 @@ import { toggleSaveJob } from "../../slices/jobsSlice";
 import { useUser } from "@clerk/clerk-react";
 import { useProStatusContext } from "../../contexts/ProStatusContext"; // We'll create this context
 
+const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
+
 function JobCard({ job, onNotInterested, isRecommended }) {
   const [showActions, setShowActions] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -50,7 +52,7 @@ function JobCard({ job, onNotInterested, isRecommended }) {
 
   const fetchJobInterest = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/users/${user.id}/job-interest/${job.id}`);
+      const response = await fetch(`${API_URL_BACKEND}/users/${user.id}/job-interest/${job.id}`);
       if (response.ok) {
         const data = await response.json();
         setIsInterested(data.interest);
@@ -100,7 +102,7 @@ function JobCard({ job, onNotInterested, isRecommended }) {
     try {
       console.log(`Setting interest for job ${job.id} to ${newInterestValue}`);
       
-      const response = await fetch(`http://localhost:8000/api/users/${user.id}/job-interest`, {
+      const response = await fetch(`${API_URL_BACKEND}/users/${user.id}/job-interest`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

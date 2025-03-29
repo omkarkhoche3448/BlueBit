@@ -2,6 +2,8 @@ import { ExternalLink, TrendingUp } from "lucide-react"
 import { useUser } from '@clerk/clerk-react';
 import { useProStatusContext } from '../../contexts/ProStatusContext';
 
+const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
+
 function RightSidebar() {
 
   const { user } = useUser();
@@ -9,8 +11,8 @@ function RightSidebar() {
 
   const handlePayment = async () => {
     try {
-      console.log('Fetching from:', `http://localhost:8000/api/payment`);
-      const response = await fetch(`http://localhost:8000/api/payment`, {
+      console.log('Fetching from:', `${API_URL_BACKEND}/payment`);
+      const response = await fetch(`${API_URL_BACKEND}/payment`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -34,7 +36,7 @@ function RightSidebar() {
         order_id: order.order_id,
         handler: async (response) => {
           try {
-            const verificationResponse = await fetch(`http://localhost:8000/api/payment/success`, {
+            const verificationResponse = await fetch(`${API_URL_BACKEND}/payment/success`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

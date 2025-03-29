@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/clerk-react';
 
+const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
+
 const useProStatus = () => {
   const { user, isSignedIn } = useUser();
   const [isPro, setIsPro] = useState(false);
@@ -28,7 +30,7 @@ const useProStatus = () => {
 
       try {
         // Replace with your actual API endpoint to check pro status
-        const response = await fetch(`http://localhost:8000/api/users/${user.id}/pro-status`);
+        const response = await fetch(`${API_URL_BACKEND}/users/${user.id}/pro-status`);
         if (response.ok) {
           const data = await response.json();
           setIsPro(data.isPro || false);
