@@ -11,7 +11,7 @@ const filterSlice = createSlice({
     datePosted: "",
     sortBy: "relevance",
     isRemote: "",
-    companyIndustry: "",
+    company: "",  // Changed from companyIndustry
     companySize: "",
     jobLevel: "",
   },
@@ -46,6 +46,9 @@ const filterSlice = createSlice({
     setCompanySize: (state, action) => {
       state.companySize = action.payload;
     },
+    setCompany: (state, action) => {  // Changed from setCompanyIndustry
+      state.company = action.payload;
+    },
     setJobLevel: (state, action) => {
       state.jobLevel = action.payload;
     },
@@ -74,7 +77,7 @@ export const {
   setDatePosted,
   setSortBy,
   setIsRemote,
-  setCompanyIndustry,
+  setCompany,
   setCompanySize,
   setJobLevel,
   clearFilters,

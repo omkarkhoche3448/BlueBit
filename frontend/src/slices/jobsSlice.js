@@ -27,13 +27,19 @@ export const fetchJobs = createAsyncThunk("jobs/fetchJobs", async (filters, { re
     // Construct the API URL
     const url = `${API_BASE_URL}/search-jobs`
     
-    // Send the filters in the request body
+    // Get the user's Clerk ID
+    const clerkId = window.Clerk?.user?.id || null;
+    
+    // Send the filters and Clerk ID in the request body
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ filters }),
+      body: JSON.stringify({ 
+        filters,
+        clerkId  // Include Clerk ID in the request payload
+      }),
     })
 
     if (!response.ok) {
@@ -48,6 +54,7 @@ export const fetchJobs = createAsyncThunk("jobs/fetchJobs", async (filters, { re
   }
 })
 
+// Rest of the code remains the same as in the original file
 export const fetchJobById = createAsyncThunk("jobs/fetchJobById", async (id, { rejectWithValue }) => {
   try {
     const response = await fetch(`${API_BASE_URL}/job/${id}`)
