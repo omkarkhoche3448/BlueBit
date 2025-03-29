@@ -741,6 +741,9 @@ def get_recommendations_for_user(user_id, count=20):
             # Convert to list of dictionaries
             job_list = [{c.name: getattr(job, c.name) for c in job.__table__.columns} for job in jobs]
             
+            # Calculate matching score for each job
+            job_list = calculate_matching_scores(job_list, user)
+            
             # Sort according to the order in recommended_job_ids
             job_dict = {job['id']: job for job in job_list}
             sorted_jobs = [job_dict[job_id] for job_id in recommended_job_ids if job_id in job_dict]
@@ -758,6 +761,9 @@ def get_recommendations_for_user(user_id, count=20):
             # Convert to list of dictionaries
             job_list = [{c.name: getattr(job, c.name) for c in job.__table__.columns} for job in jobs]
             
+            # Calculate matching score for each job
+            job_list = calculate_matching_scores(job_list, user)
+            
             # Sort according to the order in recommendation_ids
             job_dict = {job['id']: job for job in job_list}
             sorted_jobs = [job_dict[job_id] for job_id in recommendation_ids if job_id in job_dict]
@@ -769,3 +775,80 @@ def get_recommendations_for_user(user_id, count=20):
         return []
     finally:
         session.close()
+
+def calculate_matching_scores(job_list, user):
+    """Calculate matching score for each job based on user profile and preferences"""
+    try:
+        # Get user preferences
+        preferences = user.preferences or {}
+        
+        # Get resume keywords
+        resume_keywords = user.resume_keywords
+        if resume_keywords is None:
+            resume_keywords = []
+        elif isinstance(resume_keywords, str):
+            try:
+                resume_keywords = json.loads(resume_keywords)
+            except:
+                resume_keywords = []
+        
+        # Process each job
+        for job in job_list:
+            score = 35  # Lower base score as requested (was 50)
+            score_factors = {}  # Track individual factors for debugging
+            
+            # Match job type
+            if preferences.get('jobType') and job.get('job_type'):
+                if preferences['jobType'].lower() in job['job_type'].lower():
+                    score += 15
+                    score_factors['job_type'] = 15
+            
+            # Match location
+            if preferences.get('location') and job.get('location'):
+                if preferences['location'].lower() in job['location'].lower():
+                    score += 15
+                    score_factors['location'] = 15
+            
+            # Match remote preference
+            if preferences.get('isRemote') == True and job.get('is_remote') == True:
+                score += 10
+                score_factors['remote'] = 10
+            
+            # Match salary
+            if preferences.get('minSalary') and (job.get('min_amount') or job.get('max_amount')):
+                min_salary = float(preferences['minSalary'])
+                job_min = job.get('min_amount', 0)
+                job_max = job.get('max_amount', 0)
+                
+                if (job_min and job_min >= min_salary) or (job_max and job_max >= min_salary):
+                    salary_score = 10
+                    if job_min and job_min >= min_salary * 1.2:  # 20% above minimum
+                        salary_score += 5
+                    score += salary_score
+                    score_factors['salary'] = salary_score
+            
+            # Match resume keywords
+            if resume_keywords and (job.get('description') or job.get('title')):
+                description = str(job.get('description', '')).lower()
+                title = str(job.get('title', '')).lower()
+                
+                keyword_matches = sum(1 for keyword in resume_keywords 
+                                    if keyword.lower() in description or keyword.lower() in title)
+                
+                keyword_score = min(25, keyword_matches * 2.5)  # Up to 25 points for keywords
+                score += keyword_score
+                score_factors['keywords'] = keyword_score
+            
+            # Cap score at 100
+            score = min(100, score)
+            
+            # Add score to job dictionary
+            job['matching_score'] = score
+            job['score_factors'] = score_factors
+        
+        return job_list
+        
+    except Exception as e:
+        logging.error(f"Error calculating matching scores: {str(e)}")
+        # Return original job list if scoring fails
+        return job_list
