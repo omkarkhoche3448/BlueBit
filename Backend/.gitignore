@@ -15,7 +15,6 @@ instance/
 # Environment variables & configs
 .env
 *.env
-config.py
 
 # Database files
 *.sqlite3
