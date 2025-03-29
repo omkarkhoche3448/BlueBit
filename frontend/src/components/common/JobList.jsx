@@ -3,16 +3,22 @@ import { useSelector, useDispatch } from "react-redux";
 import { fetchJobs } from "../../slices/jobsSlice";
 import JobCard from "./JobCard";
 import { useLocation } from "react-router-dom";
+import { useUser } from "@clerk/clerk-react";
 
 function JobList() {
   const dispatch = useDispatch();
   const { jobs, loading, error } = useSelector((state) => state.jobs);
   const filters = useSelector((state) => state.filters);
   const location = useLocation();
+  const { user, isSignedIn } = useUser();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const jobsPerPage = 10;
+
+  // Not interested jobs state
+  const [notInterestedJobs, setNotInterestedJobs] = useState({});
+  const [jobsToHide, setJobsToHide] = useState(new Set());
 
   useEffect(() => {
     dispatch(fetchJobs(filters));
@@ -20,11 +26,69 @@ function JobList() {
     setCurrentPage(1);
   }, [dispatch, filters]);
 
-  // Get current jobs for pagination
+  // Handle marking a job as not interested
+  const handleNotInterested = (jobId) => {
+    // Create a timer to hide the job after 5 seconds
+    const timer = setTimeout(() => {
+      // Add job to the set of jobs to hide
+      setJobsToHide(prev => {
+        const newSet = new Set(prev);
+        newSet.add(jobId);
+        return newSet;
+      });
+      
+      // If user is signed in, make the API call to update interest
+      if (isSignedIn && user?.id) {
+        fetch(`http://localhost:8000/api/users/${user.id}/job-interest`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            jobId: jobId,
+            interest: false,
+          }),
+        }).catch(err => {
+          console.error("Error updating job interest:", err);
+        });
+      }
+      
+      // Remove the timer reference
+      setNotInterestedJobs(prev => {
+        const newState = { ...prev };
+        delete newState[jobId];
+        return newState;
+      });
+    }, 5000);
+    
+    // Store the timer reference
+    setNotInterestedJobs(prev => ({
+      ...prev,
+      [jobId]: timer
+    }));
+  };
+
+  // Handle undoing the not interested action
+  const handleUndoNotInterested = (jobId) => {
+    // Clear the timer
+    if (notInterestedJobs[jobId]) {
+      clearTimeout(notInterestedJobs[jobId]);
+    }
+    
+    // Remove from not interested state
+    setNotInterestedJobs(prev => {
+      const newState = { ...prev };
+      delete newState[jobId];
+      return newState;
+    });
+  };
+
+  // Get current jobs for pagination, filtering out jobs marked to hide
+  const filteredJobs = jobs.filter(job => !jobsToHide.has(job.id));
   const indexOfLastJob = currentPage * jobsPerPage;
   const indexOfFirstJob = indexOfLastJob - jobsPerPage;
-  const currentJobs = jobs.slice(indexOfFirstJob, indexOfLastJob);
-  const totalPages = Math.ceil(jobs.length / jobsPerPage);
+  const currentJobs = filteredJobs.slice(indexOfFirstJob, indexOfLastJob);
+  const totalPages = Math.ceil(filteredJobs.length / jobsPerPage);
 
   // Change page
   const handlePageChange = (pageNumber) => {
@@ -87,7 +151,10 @@ function JobList() {
           Try adjusting your search filters or try again later.
         </p>
         <button
-          onClick={() => dispatch(fetchJobs({}))}
+          onClick={() => {
+            dispatch(fetchJobs({}));
+            window.location.reload();
+          }}
           className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           Clear filters
@@ -101,11 +168,29 @@ function JobList() {
     <div className={`space-y-6 ${isHomePage ? "max-w-xl ml-2" : ""}`}>
       <div className="space-y-4">
         {currentJobs.map((job) => (
-          <JobCard key={job.id} job={job} />
+          <div key={job.id} className="relative">
+            <JobCard 
+              job={job} 
+              onNotInterested={handleNotInterested} 
+            />
+            
+            {/* Undo notification */}
+            {notInterestedJobs[job.id] && (
+              <div className="absolute bottom-0 left-0 right-0 bg-red-50 p-2 border-t border-red-100 flex justify-between items-center">
+                <span className="text-sm text-red-600">Marked as not interested</span>
+                <button 
+                  onClick={() => handleUndoNotInterested(job.id)}
+                  className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                >
+                  Undo
+                </button>
+              </div>
+            )}
+          </div>
         ))}
       </div>
 
-      {/* Pagination Controls */}
+      {/* Pagination Controls - unchanged */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
           <div className="flex flex-1 justify-between sm:hidden">
