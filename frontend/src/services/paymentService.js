@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000';
+const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
+
 
 export const createPaymentOrder = async (clerkId) => {
   try {
@@ -16,7 +17,7 @@ export const createPaymentOrder = async (clerkId) => {
 
 export const verifyPayment = async (clerkId, paymentId, orderId) => {
   try {
-    const response = await axios.post(`${API_URL}/api/payment/success`, {
+    const response = await axios.post(`${API_URL_BACKEND}/payment/success`, {
       clerkId,
       paymentId,
       orderId  // Added orderId parameter

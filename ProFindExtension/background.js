@@ -63,35 +63,43 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   
   if (request.action === 'fetchResumeData') {
-    const userId = request.userId;
-    console.log('Fetching resume data for user:', userId);
-    
-    try {
-      // Directly fetch from backend - no need for complex checks now
-      const response = await fetch(`http://localhost:8000/api/users/${userId}/resume-text`);
+    // Create an async function and execute it immediately
+    (async () => {
+      const userId = request.userId;
+      console.log('Fetching resume data for user:', userId);
       
-      if (!response.ok) {
-        console.error('Error fetching resume text:', response.status);
-        throw new Error(`Failed to fetch resume: ${response.statusText}`);
+      try {
+        // Directly fetch from backend - no need for complex checks now
+        const response = await fetch(`http://localhost:8000/api/users/${userId}/resume-text`);
+        
+        if (!response.ok) {
+          console.error('Error fetching resume text:', response.status);
+          throw new Error(`Failed to fetch resume: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Resume text fetched successfully');
+        
+        // // Debug: Log the resume text
+        // console.log('DEBUG - Resume text length:', data.resumeText?.length || 0);
+        // console.log('DEBUG - Resume text preview (first 200 chars):', 
+        //            data.resumeText?.substring(0, 200) + '...');
+        
+        // Parse with Gemini API
+        const parsedData = await parseResumeWithGemini(data.resumeText);
+        
+        // Store in extension
+        chrome.storage.local.set({
+          parsedResumeData: parsedData,
+          lastUpdated: Date.now()
+        });
+        
+        sendResponse({ success: true, data: parsedData });
+      } catch (error) {
+        console.error('Error in fetchResumeData:', error);
+        sendResponse({ success: false, error: error.message });
       }
-      
-      const data = await response.json();
-      console.log('Resume text fetched successfully');
-      
-      // Parse with Gemini API
-      const parsedData = await parseResumeWithGemini(data.resumeText);
-      
-      // Store in extension
-      chrome.storage.local.set({
-        parsedResumeData: parsedData,
-        lastUpdated: Date.now()
-      });
-      
-      sendResponse({ success: true, data: parsedData });
-    } catch (error) {
-      console.error('Error in fetchResumeData:', error);
-      sendResponse({ success: false, error: error.message });
-    }
+    })();
     
     return true; // Required for async response
   }

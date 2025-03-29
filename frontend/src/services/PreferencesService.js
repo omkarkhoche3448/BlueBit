@@ -1,8 +1,10 @@
+const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
+
 const PreferencesService = {
   async fetchUserPreferences(userId) {
     try {
       const response = await fetch(
-        `http://localhost:8000/api/users/${userId}/preferences`
+        `${API_URL_BACKEND}/users/${userId}/preferences`
       );
       if (response.ok) {
         const data = await response.json();
@@ -18,7 +20,7 @@ const PreferencesService = {
   async saveUserPreferences(userId, preferences) {
     try {
       const response = await fetch(
-        `http://localhost:8000/api/users/${userId}/preferences`,
+        `${API_URL_BACKEND}/users/${userId}/preferences`,
         {
           method: "POST",
           headers: {
@@ -38,7 +40,7 @@ const PreferencesService = {
   async updateUserPreferences(userId, preferences) {
     try {
       const response = await fetch(
-        `http://localhost:8000/api/users/${userId}/preferences`,
+        `${API_URL_BACKEND}/users/${userId}/preferences`,
         {
           method: "PUT",
           headers: {

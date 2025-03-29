@@ -5,6 +5,9 @@ import { FileUploader } from "../components/resumeparser/FileUploader";
 import { ErrorDisplay } from "../components/resumeparser/ErrorDisplay";
 import { SubmitButton } from "../components/resumeparser/SubmitButton";
 
+const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
+
+
 function ResumeUploadPage() {
   const { user, isSignedIn } = useUser();
   const navigate = useNavigate();
@@ -23,7 +26,7 @@ function ResumeUploadPage() {
 
   const checkExistingResume = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/users/${user.id}/resume`);
+      const response = await fetch(`${API_URL_BACKEND}/users/${user.id}/resume`);
       if (response.ok) {
         const data = await response.json();
         setHasExistingResume(data.hasResume);
@@ -49,7 +52,7 @@ function ResumeUploadPage() {
     formData.append('file', file);
     
     try {
-      const response = await fetch(`http://localhost:8000/api/users/${user.id}/resume`, {
+      const response = await fetch(`${API_URL_BACKEND}/users/${user.id}/resume`, {
         method: 'POST',
         body: formData,
       });

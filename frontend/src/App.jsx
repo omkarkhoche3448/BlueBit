@@ -20,6 +20,8 @@ import LandingPage from "./pages/LandingPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import { ProStatusProvider } from './contexts/ProStatusContext';
 
+const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND
+
 // Auth wrapper component to handle preferences check
 function AuthenticatedRoute({ children }) {
   const { user, isSignedIn, isLoaded } = useUser();
@@ -39,7 +41,7 @@ function AuthenticatedRoute({ children }) {
   const checkUserPreferences = async () => {
     try {
       const response = await fetch(
-        `http://localhost:8000/api/users/${user.id}/preferences`
+        `${API_URL_BACKEND}/users/${user.id}/preferences`
       );
 
       if (response.ok) {
