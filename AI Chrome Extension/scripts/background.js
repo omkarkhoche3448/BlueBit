@@ -92,7 +92,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
  * @returns {Promise<Array>} Array of AI responses for each field
  */
 async function processFieldsWithBackend(fields, clerkId) {
-  const BACKEND_URL = "https://85af-2401-4900-acba-ad65-e357-a4c6-54cc-28a9.ngrok-free.app/chrome-extension";
+  const BACKEND_URL = "http://localhost:8000/chrome-extension";
   
   try {
     console.log("Sending request to backend with clerk ID:", clerkId);
@@ -136,5 +136,4 @@ async function processFieldsWithBackend(fields, clerkId) {
   }
 }
 
-// Removing the Gemini-specific functions since we're now using the backend
 // The backend will handle the AI processing with Gemini

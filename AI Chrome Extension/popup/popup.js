@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
   const autofillFormButton = document.getElementById('autofillForm');
   const statusMessage = document.getElementById('statusMessage');
+  const clerkIdInput = document.getElementById('clerk-id-input');
+  let manualClerkId = null;
 
   if (!autofillFormButton) {
     console.error('Fill Form button not found in the document');
@@ -10,8 +12,20 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
+  // Update manualClerkId when input changes
+  clerkIdInput.addEventListener('input', function() {
+    manualClerkId = clerkIdInput.value.trim();
+  });
+
   // Autofill the form using the backend API
   autofillFormButton.addEventListener('click', function() {
+    // Check if Clerk ID is entered
+    if (!manualClerkId) {
+      statusMessage.textContent = 'Please enter your Clerk ID first.';
+      clerkIdInput.focus();
+      return;
+    }
+    
     statusMessage.textContent = 'Processing form fields...';
     
     // First, get the active tab
@@ -40,13 +54,10 @@ document.addEventListener('DOMContentLoaded', function() {
       })
       .then(() => {
         console.log('Scripts injected successfully');
-        statusMessage.textContent = 'Scripts injected, getting clerk ID...';
+        statusMessage.textContent = 'Scripts injected, processing form...';
         
-        // Add a small delay to ensure the content script is fully initialized
-        setTimeout(() => {
-          // Now try to get the clerk ID
-          getClerkId(currentTab.id);
-        }, 1000);
+        // Use the manually entered Clerk ID
+        processFormWithClerkId(currentTab.id, manualClerkId);
       })
       .catch(err => {
         console.error('Error injecting scripts:', err);
@@ -54,37 +65,6 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
   });
-  
-  // Function to get clerk ID from the page
-  function getClerkId(tabId) {
-    try {
-      statusMessage.textContent = 'Getting user ID...';
-      
-      chrome.tabs.sendMessage(
-        tabId, 
-        { action: 'getClerkId' }, 
-        function(response) {
-          if (chrome.runtime.lastError) {
-            console.error("Error sending getClerkId message:", chrome.runtime.lastError.message);
-            statusMessage.textContent = 'Error: Cannot communicate with the page. Try refreshing and make sure you have allowed this extension to run on this site.';
-            return;
-          }
-          
-          if (response && response.success && response.clerkId) {
-            // Got the clerkId, now proceed with form filling
-            console.log("Received clerk ID:", response.clerkId);
-            statusMessage.textContent = 'User ID found, extracting form fields...';
-            processFormWithClerkId(tabId, response.clerkId);
-          } else {
-            statusMessage.textContent = 'Error: Could not find user ID. Please log in first.';
-          }
-        }
-      );
-    } catch (error) {
-      console.error("Error in getClerkId:", error);
-      statusMessage.textContent = 'Error: Failed to communicate with the page.';
-    }
-  }
   
   // Function to process the form with a valid clerkId
   function processFormWithClerkId(tabId, clerkId) {
