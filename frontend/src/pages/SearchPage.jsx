@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { setSearchTerm, setSortBy } from "../slices/filterSlice";
+import { 
+  setSearchTerm, 
+  setSortBy, 
+  setCompany,  // Changed from setCompanyIndustry
+  clearFilters 
+} from "../slices/filterSlice";
 import JobList from "../components/common/JobList";
 import SearchFilters from "../components/common/SearchFilters";
 import {
@@ -9,7 +14,6 @@ import {
   MobileFiltersToggle,
   SearchHeader,
 } from "../components/searchpage";
-import { clearFilters } from "../slices/filterSlice";
 
 function SearchPage() {
   const location = useLocation();
@@ -24,14 +28,20 @@ function SearchPage() {
   // Parse search params from URL
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
+    
+    // Handle search term
     const query = searchParams.get("q") || "";
-
     if (query && query !== filters.searchTerm) {
       dispatch(setSearchTerm(query));
     }
-
     setSearchInput(query);
-  }, [location.search, dispatch, filters.searchTerm]);
+
+    // Handle company filter
+    const company = searchParams.get("company") || "";
+    if (company && company !== filters.company) {  // Changed from companyIndustry
+      dispatch(setCompany(company));  // Changed from setCompanyIndustry
+    }
+  }, [location.search, dispatch, filters.searchTerm, filters.company]);  // Changed dependency
 
   // Handle search form submission
   const handleSearch = (e) => {
