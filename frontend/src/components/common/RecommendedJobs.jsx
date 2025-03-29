@@ -96,7 +96,7 @@ function RecommendedJobs() {
               </ul>
             </div>
             <Link
-              to="/jobs"
+              to="/search"
               className="mt-4 inline-block bg-blue-500 text-white text-xs px-4 py-2 rounded hover:bg-blue-600 transition"
             >
               Explore Jobs

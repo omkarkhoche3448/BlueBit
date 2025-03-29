@@ -130,7 +130,7 @@ function Sidebar() {
           }`}
         >
           <Briefcase className={`h-4 w-4 mr-2 ${isPro ? "text-green-700" : "text-blue-700"}`} />
-          {isPro ? "Pro Membership Active" : "Upgrade to Premium for ₹100"}
+          <span className="text-xs">{isPro ? "Pro Membership Active" : "Upgrade to Premium for ₹100"}</span>
         </Link>
       </div>
 
