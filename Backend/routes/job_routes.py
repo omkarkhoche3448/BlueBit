@@ -1,4 +1,5 @@
 from flask import request, jsonify
+from flask_cors import cross_origin
 import logging
 import pandas as pd
 from datetime import datetime
@@ -8,6 +9,7 @@ from models import Job, User
 
 def register_job_routes(app):
     @app.route('/api/search-jobs', methods=['GET', 'POST'])
+    @cross_origin()
     def search_jobs():
         try:
             if request.method == 'POST':
@@ -138,6 +140,7 @@ def register_job_routes(app):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/api/job/<string:job_id>', methods=['GET'])
+    @cross_origin()
     def get_job_by_id(job_id):
         session = Session()
         try:

@@ -1,10 +1,15 @@
 from flask import request, jsonify
+from flask_cors import CORS  # Import flask_cors
 import logging
 from datetime import datetime
 from config import Session, razorpay_client, RAZORPAY_KEY_ID
 from models import User
 
+
 def register_payment_routes(app):
+    
+    CORS(app, resources={r"*": {"origins": "*"}})
+    
     @app.route('/api/payment', methods=['POST'])
     def create_payment():
         try:

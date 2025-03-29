@@ -50,21 +50,28 @@ except Exception as e:
     print(f"❌ Error configuring Gemini API: {str(e)}")
 
 # Create Flask app
+from flask import Flask
+from flask_cors import CORS
+from routes.job_routes import register_job_routes
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
 
-# Function to extract text from PDF files
+CORS(app)
+
+# Register routes
+register_job_routes(app)
+register_user_routes(app)
+register_chrome_extension_routes(app)
+
 def extract_text_from_pdf(file):
     try:
         reader = PdfReader(file)
         text = ''
         for page in reader.pages:
-            text += page.extract_text() or ''
+            text += page.extract_text() or ''  # Handle cases where extract_text() returns None
         return text, None
     except Exception as e:
         return None, str(e)
-
-# Function to extract text from DOCX files
+    
 def extract_text_from_docx(file):
     try:
         doc = Document(file)
@@ -75,7 +82,6 @@ def extract_text_from_docx(file):
     except Exception as e:
         return None, str(e)
 
-# Function to analyze the resume
 def analyze_resume(text):
     prompt = f"""
     Analyze this resume and provide an ATS score out of 100, along with detailed feedback. Consider the following criteria, each with the specified weight:
@@ -146,7 +152,7 @@ def analyze_resume(text):
     Resume text:
     {text}
     """
-    
+
     try:
         response = model.generate_content(prompt)
         response_text = response.text
@@ -177,12 +183,6 @@ def analyze_resume(text):
         return {"error": f"Failed to parse analysis result as JSON: {str(e)}"}
     except Exception as e:
         return {"error": f"Analysis failed: {str(e)}"}
-
-# Register routes
-register_payment_routes(app)
-register_job_routes(app)
-register_user_routes(app)
-register_chrome_extension_routes(app)
 
 # Add the resume analysis endpoint
 @app.route('/api/analyze', methods=['POST'])
@@ -219,13 +219,23 @@ def analyze():
         return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
 
 if __name__ == '__main__':
-    # Initialize recommendation engine in a separate thread
-    rec_thread = threading.Thread(target=init_recommendation_engine)
-    rec_thread.daemon = True
-    rec_thread.start()
+    # # Initialize database and load initial jobs in a separate thread
+    # db_thread = threading.Thread(target=init_db_and_load_jobs)
+    # db_thread.daemon = True
+    # db_thread.start()
     
+    # Initialize recommendation engine in a separate thread
+    # rec_thread = threading.Thread(target=init_recommendation_engine)
+    # rec_thread.daemon = True
+    # rec_thread.start()
+    
+    # Start the recommendation scheduler in a separate thread
     def start_scheduler():
         session = Session()
         start_recommendation_scheduler(session)
+    
+    # scheduler_thread = threading.Thread(target=start_scheduler)
+    # scheduler_thread.daemon = True
+    # scheduler_thread.start()
     
     app.run(debug=True, port=8000)
