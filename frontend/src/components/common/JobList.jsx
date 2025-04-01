@@ -4,6 +4,7 @@ import { fetchJobs } from "../../slices/jobsSlice";
 import JobCard from "./JobCard";
 import { useLocation } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
+import { useProStatusContext } from "../../contexts/ProStatusContext";
 
 const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 
@@ -13,10 +14,11 @@ function JobList() {
   const filters = useSelector((state) => state.filters);
   const location = useLocation();
   const { user, isSignedIn } = useUser();
+  const { isPro } = useProStatusContext();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const jobsPerPage = 10;
+  const jobsPerPage = isPro ? 10 : 5; // Show 10 for pro users, 5 for non-pro
 
   // Not interested jobs state
   const [notInterestedJobs, setNotInterestedJobs] = useState({});
@@ -100,31 +102,29 @@ function JobList() {
   };
 
   if (loading) {
+    // Number of loading skeletons based on pro status
+    const skeletonCount = isPro ? 10 : 5;
+    
     return (
       <div className="space-y-4">
-        {" "}
-        {[...Array(5)].map((_, index) => (
+        {[...Array(skeletonCount)].map((_, index) => (
           <div
             key={index}
             className="bg-white rounded-lg shadow-sm p-4 animate-pulse"
           >
-            {" "}
             <div className="flex items-start">
-              {" "}
-              <div className="h-12 w-12 bg-gray-200 rounded mr-4"></div>{" "}
+              <div className="h-12 w-12 bg-gray-200 rounded mr-4"></div>
               <div className="flex-1">
-                {" "}
-                <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>{" "}
-                <div className="h-4 bg-gray-200 rounded w-1/2 mb-3"></div>{" "}
+                <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 mb-3"></div>
                 <div className="flex space-x-2">
-                  {" "}
-                  <div className="h-3 bg-gray-200 rounded w-20"></div>{" "}
-                  <div className="h-3 bg-gray-200 rounded w-20"></div>{" "}
-                </div>{" "}
-              </div>{" "}
-            </div>{" "}
+                  <div className="h-3 bg-gray-200 rounded w-20"></div>
+                  <div className="h-3 bg-gray-200 rounded w-20"></div>
+                </div>
+              </div>
+            </div>
           </div>
-        ))}{" "}
+        ))}
       </div>
     );
   }
@@ -192,7 +192,7 @@ function JobList() {
         ))}
       </div>
 
-      {/* Pagination Controls - unchanged */}
+      {/* Pagination Controls - modified for pro/non-pro users */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
           <div className="flex flex-1 justify-between sm:hidden">
@@ -225,9 +225,14 @@ function JobList() {
                 Showing{" "}
                 <span className="font-medium">{indexOfFirstJob + 1}</span> to{" "}
                 <span className="font-medium">
-                  {Math.min(indexOfLastJob, jobs.length)}
+                  {Math.min(indexOfLastJob, filteredJobs.length)}
                 </span>{" "}
-                of <span className="font-medium">{jobs.length}</span> results
+                of <span className="font-medium">{filteredJobs.length}</span> results
+                {!isPro && (
+                  <span className="ml-2 text-xs text-gray-500">
+                    (Upgrade to Pro for 10 results per page)
+                  </span>
+                )}
               </p>
             </div>
             <div>
@@ -255,39 +260,48 @@ function JobList() {
                   </svg>
                 </button>
 
-                {/* Page numbers */}
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  // For simplicity, show max 5 page numbers
-                  let pageNum;
+                {/* Page numbers - modified for pro/non-pro users */}
+                {isPro ? (
+                  // Pro users can see and jump between pages
+                  Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
 
-                  if (totalPages <= 5) {
-                    // If 5 or fewer pages, show all
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    // Near start, show first 5 pages
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    // Near end, show last 5 pages
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    // In middle, show current page and 2 pages on each side
-                    pageNum = currentPage - 2 + i;
-                  }
+                    if (totalPages <= 5) {
+                      // If 5 or fewer pages, show all
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      // Near start, show first 5 pages
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      // Near end, show last 5 pages
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      // In middle, show current page and 2 pages on each side
+                      pageNum = currentPage - 2 + i;
+                    }
 
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
-                        currentPage === pageNum
-                          ? "bg-blue-600 text-white focus:z-20 focus-visible:outline  focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                          : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                          currentPage === pageNum
+                            ? "bg-blue-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                            : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })
+                ) : (
+                  // Non-pro users only see current page number
+                  <button
+                    className="relative inline-flex items-center px-4 py-2 text-sm font-semibold bg-blue-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+                  >
+                    {currentPage}
+                  </button>
+                )}
 
                 <button
                   onClick={() =>

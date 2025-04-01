@@ -153,14 +153,6 @@ def register_job_routes(app):
         finally:
             session.close()
 
-    @app.route('/api/apply-job/<string:job_id>', methods=['POST'])
-    def apply_to_job(job_id):
-        try:
-            # applied_jobs.add(job_id)
-            return jsonify({'message': f'Successfully applied to job {job_id}'})
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
-
     @app.route('/api/save-job/<string:job_id>', methods=['POST', 'DELETE'])
     def manage_saved_job(job_id):
         session = Session()
@@ -233,6 +225,14 @@ def register_job_routes(app):
             return jsonify({'error': str(e)}), 500
         finally:
             session.close()
+
+    @app.route('/api/apply-job/<string:job_id>', methods=['POST'])
+    def apply_to_job(job_id):
+        try:
+            # applied_jobs.add(job_id)
+            return jsonify({'message': f'Successfully applied to job {job_id}'})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
 
     @app.route('/api/users/<string:clerk_id>/job-interest', methods=['POST'])
     def update_job_interest(clerk_id):

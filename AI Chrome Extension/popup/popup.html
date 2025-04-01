@@ -1,28 +1,91 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Job Application Autofill</title>
-  <link rel="stylesheet" href="popup.css">
+  <style>
+    body {
+      width: 300px;
+      padding: 15px;
+      font-family: Arial, sans-serif;
+    }
+    
+    h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    
+    .input-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      width: 100%;
+    }
+    
+    button:hover {
+      background-color: #45a049;
+    }
+    
+    #statusMessage {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 4px;
+      background-color: #f5f5f5;
+      min-height: 20px;
+    }
+    
+    .login-message {
+      background-color: #fff3cd;
+      border: 1px solid #ffeeba;
+      color: #856404;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>AI Job Application Autofill</h1>
-    
-    <div class="clerk-id-container">
-      <label for="clerk-id-input">Enter your Clerk ID:</label>
-      <input type="text" id="clerk-id-input" placeholder="Your Clerk ID">
-    </div>
-    
-    <div class="actions">
-      <button id="autofillForm">Fill Form</button>
-    </div>
-    
-    <div class="status">
-      <p id="statusMessage">Enter your Clerk ID and click "Fill Form" to automatically fill the job application.</p>
-    </div>
+  <h2>AI Job Application Autofill</h2>
+  
+  <div id="login-message" class="login-message">
+    Please log in to your account on <strong>yourdomain.com</strong> first to automatically detect your login credentials.
   </div>
+  
+  <div class="input-group">
+    <label for="clerk-id-input">Your Clerk ID:</label>
+    <input type="text" id="clerk-id-input" placeholder="Enter your Clerk ID here" />
+  </div>
+  
+  <button id="autofillForm">Fill Form with AI</button>
+  
+  <div id="statusMessage"></div>
+  
   <script src="popup.js"></script>
 </body>
 </html>

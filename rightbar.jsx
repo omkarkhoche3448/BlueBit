@@ -1,13 +1,38 @@
 import { useEffect, useState } from 'react';
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, TrendingUp, TrendingDown } from "lucide-react"
 import { useUser } from '@clerk/clerk-react';
 import { useProStatusContext } from '../../contexts/ProStatusContext';
 
 const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 
 function RightSidebar() {
+  const [trendingJobsData, setTrendingJobsData] = useState({ uptrend: [], downtrend: [] });
+  const [isLoading, setIsLoading] = useState(true);
   const { user } = useUser();
   const { isPro } = useProStatusContext();
+
+  useEffect(() => {
+    const fetchTrendingJobs = async () => {
+      try {
+        setIsLoading(true);
+        // Fetch trending jobs overview
+        const response = await fetch(`${API_URL_BACKEND}/jobs/trending`);
+        const data = await response.json();
+
+        // No need for additional fetches, use the data directly
+        setTrendingJobsData({
+          uptrend: data.uptrend_jobs.slice(0, 3),
+          downtrend: data.downtrend_jobs.slice(0, 3)
+        });
+      } catch (error) {
+        console.error('Error fetching trending jobs:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTrendingJobs();
+  }, []);
 
   const handlePayment = async () => {
     try {
@@ -45,7 +70,7 @@ function RightSidebar() {
                 clerkId: user.id,
                 paymentId: response.razorpay_payment_id,
                 orderId: order.order_id,
-                signature: response.razorpay_signature
+                signature: response.razorpay_signature  // Added signature
               })
             });
             
@@ -79,16 +104,106 @@ function RightSidebar() {
     }
   };
 
+  const trendingJobs = [
+    {
+      title: "Software Engineer",
+      company: "Tech Giants",
+      location: "Remote",
+      growth: "+15% YoY",
+    },
+    {
+      title: "Data Scientist",
+      company: "Analytics Co",
+      location: "New York",
+      growth: "+24% YoY",
+    },
+    {
+      title: "Product Manager",
+      company: "Product Innovators",
+      location: "San Francisco",
+      growth: "+18% YoY",
+    },
+    {
+      title: "UX Designer",
+      company: "Design Studio",
+      location: "Remote",
+      growth: "+12% YoY",
+    },
+  ]
+
   const resources = [
     { title: "Resume Builder", link: "/create-resume" },
     { title: "Interview Preparation", link: "https://www.indeed.com/career-advice/interviewing/how-to-prepare-for-an-interview" },
     { title: "Salary Insights", link: "https://www.glassdoor.co.in/Salaries/index.htm?countryRedirect=true" },
     { title: "Career Advice", link: "https://www.themuse.com/advice/45-pieces-of-career-advice-that-will-get-you-to-the-top" },
-  ];
+  ]
 
   return (
     <div className="space-y-4">
-      {/* Resources Section */}
+      {/* Trending Jobs Section - Independent of isPro */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="p-4 border-b border-gray-300">
+          <h3 className="font-medium flex items-center">
+            <TrendingUp className="h-4 w-4 mr-2 text-blue-600" />
+            Trending
+          </h3>
+        </div>
+        <div className="p-4">
+          {/* Uptrend Jobs */}
+          <div className="mb-4">
+            <h4 className="text-sm font-medium flex items-center text-green-600 mb-2">
+              <TrendingUp className="h-3 w-3 mr-1" />
+              Rising Demand
+            </h4>
+            <ul className="space-y-3">
+              {isLoading ? (
+                <li className="text-sm text-gray-500">Loading trending jobs...</li>
+              ) : trendingJobsData.uptrend.length > 0 ? (
+                trendingJobsData.uptrend.map((job, index) => (
+                  <li key={job.id} className="text-sm">
+                    <a href="#" className="block hover:bg-gray-50 -m-2 p-2 rounded-md">
+                      <p className="font-medium text-gray-900">{job.title}</p>
+                      <p className="text-gray-500">
+                        {job.company} • {job.location || 'Remote'}
+                      </p>
+                    </a>
+                  </li>
+                ))
+              ) : (
+                <li className="text-sm text-gray-500">No trending jobs available</li>
+              )}
+            </ul>
+          </div>
+
+          {/* Downtrend Jobs */}
+          <div>
+            <h4 className="text-sm font-medium flex items-center text-red-600 mb-2">
+              <TrendingDown className="h-3 w-3 mr-1" />
+              Decreasing Demand
+            </h4>
+            <ul className="space-y-3">
+              {isLoading ? (
+                <li className="text-sm text-gray-500">Loading trending jobs...</li>
+              ) : trendingJobsData.downtrend.length > 0 ? (
+                trendingJobsData.downtrend.map((job, index) => (
+                  <li key={job.id} className="text-sm">
+                    <a href="#" className="block hover:bg-gray-50 -m-2 p-2 rounded-md">
+                      <p className="font-medium text-gray-900">{job.title}</p>
+                      <p className="text-gray-500">
+                        {job.company} • {job.location || 'Remote'}
+                      </p>
+                    </a>
+                  </li>
+                ))
+              ) : (
+                <li className="text-sm text-gray-500">No trending jobs available</li>
+              )}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Resources Section - Independent of isPro */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="p-4 border-b border-gray-300">
           <h3 className="font-medium">Resources</h3>
@@ -107,7 +222,7 @@ function RightSidebar() {
         </div>
       </div>
 
-      {/* Pro Benefits Section */}
+      {/* Pro Benefits Section - Depends on isPro */}
       <div className={`rounded-lg p-4 border ${
         isPro 
           ? 'bg-amber-50 border-amber-300' 
