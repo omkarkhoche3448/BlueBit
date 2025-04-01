@@ -195,7 +195,7 @@ export default function LandingPage() {
       role: "Software Engineer",
       company: "Recently hired at Google",
       quote:
-        "ProFind saved me countless hours of searching across different platforms. I found my dream job at Google in just two weeks!",
+        "Handjobs saved me countless hours of searching across different platforms. I found my dream job at Google in just two weeks!",
       avatar: "https://i.pravatar.cc/80?img=1", // Updated avatar URL
     },
     {
@@ -344,7 +344,7 @@ export default function LandingPage() {
                   <Briefcase className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-                  ProFind
+                  Handjobs
                 </span>
               </motion.div>
               <div className="hidden md:ml-8 md:flex md:space-x-8">
@@ -375,7 +375,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="hidden md:flex items-center space-x-4">
-              <button
+              {/* <button
                 onClick={() => clerk.openSignIn()}
                 className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
               >
@@ -388,7 +388,7 @@ export default function LandingPage() {
                 whileTap={{ scale: 0.95 }}
               >
                 Sign up free
-              </motion.button>
+              </motion.button> */}
             </div>
             <div className="flex md:hidden">
               <button
@@ -444,7 +444,7 @@ export default function LandingPage() {
                 >
                   Pricing
                 </a>
-                <a
+                {/* <a
                   href="#"
                   className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600"
                 >
@@ -455,7 +455,7 @@ export default function LandingPage() {
                   className="block px-3 py-2 rounded-md text-base font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600"
                 >
                   Sign up free
-                </a>
+                </a> */}
               </div>
             </motion.div>
           )}
@@ -477,7 +477,7 @@ export default function LandingPage() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
               >
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-base font-medium bg-blue-100 text-blue-800">
                   <Star className="h-4 w-4 mr-1" />
                   Launching Soon
                 </span>
@@ -499,7 +499,7 @@ export default function LandingPage() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6, duration: 0.8 }}
               >
-                Stop jumping between job sites. ProFind aggregates opportunities
+                Stop jumping between job sites. Handjobs aggregates opportunities
                 from LinkedIn, Indeed, Ziprecruiter, and more — all in one powerful
                 search platform.
               </motion.p>
@@ -556,7 +556,7 @@ export default function LandingPage() {
                             <div className="h-8 w-8 rounded-md bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
                               <Briefcase className="h-5 w-5 text-white" />
                             </div>
-                            <span className="font-bold text-lg">ProFind</span>
+                            <span className="font-bold text-lg">Handjobs</span>
                           </div>
                           <div className="flex items-center space-x-3">
                             <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
@@ -608,7 +608,7 @@ export default function LandingPage() {
                               company: "Airbnb",
                               location: "Remote",
                               posted: "2h ago",
-                              logo: "https://imgs.search.brave.com/oBliE7TXIHe3I5t7Ifr_5bcQlQIf7rR5I6dx9mHcBMQ/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9taXJv/Lm1lZGl1bS5jb20v/djIvMSpNbE5RS2ct/c2llQkdXNXByV29l/OUhRLmpwZWc",
+                              logo: "https://imgs.search.brave.com/oBliE7TXIHe3I5t7Ifr_5bcQlQIf7rR5I6dx9mHcBMQ/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9taXJv/Lm1lZWRpdW0uY29t/vjIvMSpNbE5RS2ct/c2llQkdXNXByV29l/OUhRLmpwZWc",
                               source: platformTabs[activeTab].name,
                               sourceColor: platformTabs[activeTab].color,
                             },
@@ -770,7 +770,7 @@ export default function LandingPage() {
               Everything you need to find your dream job
             </p>
             <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-              ProFind brings all job opportunities to one place, saving you time
+              Handjobs brings all job opportunities to one place, saving you time
               and helping you find the perfect match.
             </p>
           </motion.div>
@@ -890,7 +890,7 @@ export default function LandingPage() {
             </p>
             <p className="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
               Hear from job seekers who found their dream positions using
-              ProFind.
+              Handjobs.
             </p>
           </motion.div>
 
@@ -1031,19 +1031,19 @@ export default function LandingPage() {
               Frequently asked questions
             </p>
             <p className="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
-              Everything you need to know about ProFind Job Aggregator.
+              Everything you need to know about Handjobs Job Aggregator.
             </p>
           </div>
 
           <div className="max-w-3xl mx-auto divide-y divide-gray-200">
             {[
               {
-                question: "How does ProFind aggregate job listings?",
+                question: "How does Handjobs aggregate job listings?",
                 answer:
-                  "ProFind uses advanced web crawling techniques to fetch job postings from multiple platforms like LinkedIn, Indeed, Ziprecruiter, and more. Our algorithms process and categorize these listings to ensure you get relevant, high-quality results.",
+                  "Handjobs uses advanced web crawling techniques to fetch job postings from multiple platforms like LinkedIn, Indeed, Ziprecruiter, and more. Our algorithms process and categorize these listings to ensure you get relevant, high-quality results.",
               },
               {
-                question: "Is ProFind completely free to use?",
+                question: "Is Handjobs completely free to use?",
                 answer:
                   "We offer a free tier that gives you access to basic search functionality across platforms. For advanced features like unlimited saved jobs, real-time notifications, and application tracking, we offer affordable premium plans.",
               },
@@ -1053,15 +1053,15 @@ export default function LandingPage() {
                   "Our crawlers run continuously, ensuring that new job postings are added to our database as soon as they appear on the source platforms. Premium users receive real-time notifications for new jobs matching their criteria.",
               },
               {
-                question: "Can I apply to jobs directly through ProFind?",
+                question: "Can I apply to jobs directly through Handjobs?",
                 answer:
                   "Yes, for many job listings you can apply directly through our platform. For others, we provide a direct link to the original posting where you can complete your application.",
               },
               {
                 question:
-                  "How is ProFind different from other job search platforms?",
+                  "How is Handjobs different from other job search platforms?",
                 answer:
-                  "Unlike traditional job boards, ProFind doesn't host job listings directly. Instead, we aggregate opportunities from multiple sources, saving you the time and effort of searching across different platforms. Our advanced filtering and search capabilities help you find exactly what you're looking for.",
+                  "Unlike traditional job boards, Handjobs doesn't host job listings directly. Instead, we aggregate opportunities from multiple sources, saving you the time and effort of searching across different platforms. Our advanced filtering and search capabilities help you find exactly what you're looking for.",
               },
             ].map((faq, index) => (
               <motion.div
@@ -1156,7 +1156,7 @@ export default function LandingPage() {
                   <Briefcase className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-2xl font-bold text-gray-800">
-                  ProFind
+                  Handjobs
                 </span>
               </div>
               <p className="text-gray-600 text-base">
@@ -1213,7 +1213,7 @@ export default function LandingPage() {
           {/* Copyright Section */}
           <div className="mt-12 border-t border-gray-200 pt-8 text-center">
             <p className="text-base text-gray-500">
-              &copy; {new Date().getFullYear()} ProFind Job Aggregator. All
+              &copy; {new Date().getFullYear()} Handjobs Job Aggregator. All
               rights reserved.
             </p>
           </div>
