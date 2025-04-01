@@ -69,6 +69,7 @@ register_job_routes(app)
 register_user_routes(app)
 register_chrome_extension_routes(app)
 register_user_job_interaction_routes(app)
+register_payment_routes(app)
 
 def extract_text_from_pdf(file):
     try:
