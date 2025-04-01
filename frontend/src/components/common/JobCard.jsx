@@ -23,11 +23,9 @@ import {
   ThumbsDown,
   Lock,
 } from "lucide-react";
-import { toggleSaveJob } from "../../slices/jobsSlice";
 import { useUser } from "@clerk/clerk-react";
-import { useProStatusContext } from "../../contexts/ProStatusContext"; // We'll create this context
-import React, { useRef } from "react";
-const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
+import { useProStatusContext } from "../../contexts/ProStatusContext";
+import React from "react";
 
 function JobCard({ job, onNotInterested, isRecommended }) {
   const [showActions, setShowActions] = useState(false);
@@ -36,315 +34,59 @@ function JobCard({ job, onNotInterested, isRecommended }) {
   const dispatch = useDispatch();
   const savedJobs = useSelector((state) => state.jobs.savedJobs);
   const isSaved = savedJobs.some((savedJob) => savedJob.id === job.id);
-  const { isPro } = useProStatusContext(); // Use the context instead of the hook directly
+  const { isPro } = useProStatusContext();
   
-  // Add refs to track interaction timers
-  const likeTimerRef = useRef(null);
-  const dislikeTimerRef = useRef(null);
-  const bookmarkTimerRef = useRef(null);
-  
-  // State for tracking user's interest in this job
+  // Simplified state without interaction tracking
   const [isInterested, setIsInterested] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
 
-  // Add cleanup for timers when component unmounts
-  useEffect(() => {
-    return () => {
-      if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
-      if (dislikeTimerRef.current) clearTimeout(dislikeTimerRef.current);
-      if (bookmarkTimerRef.current) clearTimeout(bookmarkTimerRef.current);
-    };
-  }, []);
-
-  // Fetch the user's interest status for this job on component mount
-  useEffect(() => {
-    if (isSignedIn && user?.id) {
-      fetchJobInterest();
-    }
-  }, [isSignedIn, user, job.id]);
-
-    const fetchJobInterest = async () => {
-      try {
-      // Log the URL being fetched for debugging
-      const url = `${API_URL_BACKEND}/users/${user.id}/job-interest/${job.id}`;
-      console.log("Fetching job interest from:", url);
-      
-      const response = await fetch(url);
-      if (response.ok) {
-        const data = await response.json();
-        setIsInterested(data.interest);
-      } else {
-        console.warn("Failed to fetch job interest, status:", response.status);
-      }
-    } catch (err) {
-      console.error("Error fetching job interest:", err);
-    }
-  };
-
-  // Add the missing handleJobClick function
-  const handleJobClick = (e) => {
-    // Update interaction time when user clicks on the job card
-    if (isPro && isSignedIn) {
-      // Optional: Add interaction time tracking
-      const url = `${API_URL_BACKEND}/api/job/${job.id}/update-interaction-time`;
-      console.log("Updating interaction time at:", url);
-      
-      fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // Remove credentials if CORS is an issue
-        // credentials: 'include',
-      })
-      .then(response => {
-        if (!response.ok) throw new Error(`Failed to update interaction time: ${response.status}`);
-        return response.json();
-      })
-      .then(data => console.log("Interaction time updated:", data))
-      .catch(error => console.error("Error updating interaction time:", error));
-    }
+  // Simple job click handler without tracking
+  const handleJobClick = () => {
     window.open(job.job_url_direct || job.job_url, '_blank', 'noopener,noreferrer');
   };
 
-  // Wrap actions with Pro check
-  const handleJobInteraction = async (interactionType, value, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!isSignedIn) return;
-    
-    if (!isPro) {
-      setShowProModal(true);
-      return;
-    }
-    
-    // Update UI state immediately for better UX
-    if (interactionType === 'like') {
-      setIsInterested(value ? true : null);
-    } else if (interactionType === 'dislike') {
-      setIsInterested(value ? false : null);
-    } else if (interactionType === 'bookmark') {
-      dispatch(toggleSaveJob(job));
-    }
-    
-    try {
-      const url = `${API_URL_BACKEND}/users/${user.id}/job-interaction`;
-      console.log(`Sending job interaction to: ${url}`, {
-        jobId: job.id,
-        interactionType,
-        value
-      });
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jobId: job.id,
-          interactionType,
-          value
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('Interaction updated:', data);
-      
-      // If marking as not interested and onNotInterested prop exists
-      if (interactionType === 'dislike' && value && onNotInterested) {
-        onNotInterested(job.id);
-      }
-      
-    } catch (error) {
-      console.error('Error updating job interaction:', error);
-      // Revert UI state on error
-      if (interactionType === 'like') {
-        setIsInterested(null);
-      } else if (interactionType === 'dislike') {
-        setIsInterested(null);
-      } else if (interactionType === 'bookmark') {
-        dispatch(toggleSaveJob(job)); // Toggle back
-      }
-    }
-  };
-
-  // Update handleSaveJob to use handleJobInteraction
+  // Local action handlers without API calls
   const handleSaveJob = (e) => {
-    handleJobInteraction('bookmark', !isSaved, e);
-  };
-  
-  // Update handleLike to use handleJobInteraction
-  const handleLike = async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      if (!isSignedIn || !isPro) {
-        if (!isPro) setShowProModal(true);
-        return;
-      }
-      
-      setIsLoading(true);
-      try {
-        // Call both endpoints
-        await Promise.all([
-          handleJobInteraction('like', isInterested !== true, e),
-          handleJobInterest(true, e)
-        ]);
-      } catch (error) {
-        console.error('Error in handleLike:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    const handleDislike = async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      if (!isSignedIn || !isPro) {
-        if (!isPro) setShowProModal(true);
-        return;
-      }
-      
-      setIsLoading(true);
-      try {
-        // Call both endpoints
-        await Promise.all([
-          handleJobInteraction('dislike', isInterested !== false, e),
-          handleJobInterest(false, e)
-        ]);
-      } catch (error) {
-        console.error('Error in handleDislike:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-  
-  // Remove duplicate handleLike and handleDislike declarations here
-  
-  // Add a check for onNotInterested before calling it
-  const handleJobInterest = async (interested, e) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!isSignedIn) return;
-    
-    if (!isPro) {
-      setShowProModal(true);
+    if (!isSignedIn || !isPro) {
+      if (!isPro) setShowProModal(true);
       return;
     }
     
-    // Optimistically update UI first for better responsiveness
-    const previousInterest = isInterested;
-    const newInterestValue = isInterested === interested ? null : interested;
-    setIsInterested(newInterestValue);
+    // Just dispatch to Redux without API calls
+    dispatch({ type: 'jobs/toggleSaveJob', payload: job });
+  };
+  
+  const handleLike = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     
-    // If marking as not interested and onNotInterested prop exists, call it immediately
-    if (newInterestValue === false && onNotInterested) {
-      onNotInterested(job.id);
+    if (!isSignedIn || !isPro) {
+      if (!isPro) setShowProModal(true);
+      return;
     }
     
-    setIsLoading(true);
+    // Just update local state
+    setIsInterested(isInterested === true ? null : true);
+  };
+  
+  const handleDislike = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     
-    try {
-      console.log(`Setting interest for job ${job.id} to ${newInterestValue}`);
-      
-      // Construct and log the URL for debugging
-      const url = `${API_URL_BACKEND}/users/${user.id}/job-interest`;
-      console.log("Posting job interest to:", url);
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // Remove credentials if CORS is an issue
-        // credentials: 'include',
-        body: JSON.stringify({
-          jobId: job.id,
-          interest: newInterestValue,
-        }),
-      });
-      
-      if (!response.ok) {
-        // Revert to previous state if request fails
-        setIsInterested(previousInterest);
-        const errorText = await response.text();
-        console.error("Failed to update job interest:", response.status, errorText);
-      } else {
-        const responseData = await response.json();
-        console.log("Job interest updated successfully:", responseData);
-        
-        // Clear any existing timers
-        if (interested) {
-          if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
-          if (dislikeTimerRef.current) clearTimeout(dislikeTimerRef.current);
-          // Set a new timer for the like API call
-          likeTimerRef.current = setTimeout(() => {
-            // Only make the API call if the interest is still the same after the delay
-            if (isInterested === true) {
-              const likeUrl = `${API_URL_BACKEND}/api/job/${job.id}/like`;
-              console.log("Liking job at:", likeUrl);
-              
-              fetch(likeUrl, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                // Remove credentials if CORS is an issue
-                // credentials: 'include',
-                body: JSON.stringify({ userId: user?.id }) // Add user ID for tracking
-              })
-              .then(response => {
-                if (!response.ok) throw new Error(`Failed to like job: ${response.status}`);
-                return response.json();
-              })
-              .then(data => console.log("Like updated:", data))
-              .catch(error => console.error("Error updating like stats:", error));
-            }
-          }, 3500); // 3.5 second delay
-        } else {
-          if (likeTimerRef.current) clearTimeout(likeTimerRef.current);
-          if (dislikeTimerRef.current) clearTimeout(dislikeTimerRef.current);
-          
-          // Set a new timer for the dislike API call
-          dislikeTimerRef.current = setTimeout(() => {
-            // Only make the API call if the interest is still the same after the delay
-            if (isInterested === false) {
-              const dislikeUrl = `${API_URL_BACKEND}/api/job/${job.id}/dislike`;
-              console.log("Disliking job at:", dislikeUrl);
-              
-              fetch(dislikeUrl, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                // Remove credentials if CORS is an issue
-                // credentials: 'include',
-                body: JSON.stringify({ userId: user?.id }) // Add user ID for tracking
-              })
-              .then(response => {
-                if (!response.ok) throw new Error(`Failed to dislike job: ${response.status}`);
-                return response.json();
-              })
-              .then(data => console.log("Dislike updated:", data))
-              .catch(error => console.error("Error updating dislike stats:", error));
-            }
-          }, 3500); // 3.5 second delay
-        }
-      }
-    } catch (err) {
-      // Revert to previous state if request fails
-      setIsInterested(previousInterest);
-      console.error("Error updating job interest:", err);
-    } finally {
-      setIsLoading(false);
+    if (!isSignedIn || !isPro) {
+      if (!isPro) setShowProModal(true);
+      return;
+    }
+    
+    // Just update local state
+    setIsInterested(isInterested === false ? null : false);
+    
+    // If marking as not interested and onNotInterested prop exists
+    if (isInterested !== false && onNotInterested) {
+      onNotInterested(job.id);
     }
   };
 
@@ -414,7 +156,6 @@ function JobCard({ job, onNotInterested, isRecommended }) {
     );
   };
 
-  // Rest of your component remains the same
   const toggleExpand = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -763,7 +504,7 @@ function JobCard({ job, onNotInterested, isRecommended }) {
           </div>
         </div>
 
-        {/* Card Actions - Modified for Pro status */}
+        {/* Card Actions - With Lock Icons */}
         <div
           className={`flex justify-between items-center px-4 py-2 bg-gray-50 border-t border-gray-100 ${
             showActions ? "opacity-100" : "opacity-0 md:opacity-100"
@@ -772,61 +513,59 @@ function JobCard({ job, onNotInterested, isRecommended }) {
           <div className="flex space-x-2">
             <button
               onClick={handleSaveJob}
-              className={`p-1.5 rounded-full ${
+              className={`p-1.5 rounded-full relative ${
                 isSaved
                   ? "text-blue-600 bg-blue-50"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
               } transition-all duration-200 transform hover:scale-110 ${!isPro ? "opacity-60" : ""}`}
               title={isPro ? (isSaved ? "Unsave" : "Save") : "Pro Feature"}
             >
-              {!isPro && <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />}
               <Bookmark
                 className="h-4 w-4"
                 fill={isSaved ? "currentColor" : "none"}
               />
+              {!isPro && <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />}
             </button>
 
             <button
               onClick={handleLike}
-              disabled={isLoading || !isPro}
-              className={`p-1.5 rounded-full ${
+              className={`p-1.5 rounded-full relative ${
                 isInterested === true
                   ? "text-green-600 bg-green-50"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
               } transition-all duration-200 transform hover:scale-110 ${!isPro ? "opacity-60" : ""}`}
               title={isPro ? "Interested" : "Pro Feature"}
             >
-              {!isPro && <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />}
               <ThumbsUp
-                className={`h-4 w-4 ${isLoading ? "opacity-50" : ""}`}
+                className="h-4 w-4"
                 fill={isInterested === true ? "currentColor" : "none"}
               />
+              {!isPro && <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />}
             </button>
 
             <button
               onClick={handleDislike}
-              disabled={isLoading || !isPro}
-              className={`p-1.5 rounded-full ${
+              className={`p-1.5 rounded-full relative ${
                 isInterested === false
                   ? "text-red-600 bg-red-50"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
               } transition-all duration-200 transform hover:scale-110 ${isInterested === false ? "animate-pulse" : ""} ${!isPro ? "opacity-60" : ""}`}
               title={isPro ? "Not for me" : "Pro Feature"}
             >
-              {!isPro && <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />}
               <ThumbsDown
-                className={`h-4 w-4 ${isLoading ? "opacity-50" : ""}`}
+                className="h-4 w-4"
                 fill={isInterested === false ? "currentColor" : "none"}
               />
+              {!isPro && <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />}
             </button>
 
             <button
               onClick={handleShare}
-              className={`p-1.5 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 transform hover:scale-110 ${!isPro ? "opacity-60" : ""}`}
+              className={`p-1.5 rounded-full relative text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 transform hover:scale-110 ${!isPro ? "opacity-60" : ""}`}
               title={isPro ? "Share" : "Pro Feature"}
             >
-              {!isPro && <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />}
               <Share2 className="h-4 w-4" />
+              {!isPro && <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />}
             </button>
           </div>
 

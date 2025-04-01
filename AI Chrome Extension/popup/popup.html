@@ -1,58 +1,91 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Job Application Autofill</title>
-  <link rel="stylesheet" href="popup.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      width: 300px;
+      padding: 15px;
+      font-family: Arial, sans-serif;
+    }
+    
+    h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    
+    .input-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    
+    input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      width: 100%;
+    }
+    
+    button:hover {
+      background-color: #45a049;
+    }
+    
+    #statusMessage {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 4px;
+      background-color: #f5f5f5;
+      min-height: 20px;
+    }
+    
+    .login-message {
+      background-color: #fff3cd;
+      border: 1px solid #ffeeba;
+      color: #856404;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <div class="logo">
-        <i class="fas fa-robot"></i>
-      </div>
-      <h1>AI Job Autofill</h1>
-    </div>
-    
-    <div class="card clerk-id-container">
-      <div class="card-header">
-        <i class="fas fa-id-card"></i>
-        <h2>Authentication</h2>
-      </div>
-      <div class="card-content">
-        <div class="input-group">
-          <input type="text" id="clerk-id-input" placeholder=" ">
-          <label for="clerk-id-input">Your Clerk ID</label>
-        </div>
-      </div>
-    </div>
-    
-    <div class="actions">
-      <button id="autofillForm" class="primary-btn">
-        <span class="btn-content">
-          <i class="fas fa-magic"></i>
-          <span>Fill Form</span>
-        </span>
-      </button>
-    </div>
-    
-    <div class="status">
-      <i class="fas fa-info-circle"></i>
-      <p id="statusMessage">Enter your ID and click "Fill Form" to autofill the application.</p>
-    </div>
-    
-    <div class="footer">
-      <button id="settings-btn" class="icon-btn" title="Settings">
-        <i class="fas fa-cog"></i>
-      </button>
-      <button id="help-btn" class="icon-btn" title="Help">
-        <i class="fas fa-question-circle"></i>
-      </button>
-    </div>
+  <h2>AI Job Application Autofill</h2>
+  
+  <div id="login-message" class="login-message">
+    Please log in to your account on <strong>yourdomain.com</strong> first to automatically detect your login credentials.
   </div>
+  
+  <div class="input-group">
+    <label for="clerk-id-input">Your Clerk ID:</label>
+    <input type="text" id="clerk-id-input" placeholder="Enter your Clerk ID here" />
+  </div>
+  
+  <button id="autofillForm">Fill Form with AI</button>
+  
+  <div id="statusMessage"></div>
+  
   <script src="popup.js"></script>
 </body>
 </html>
-

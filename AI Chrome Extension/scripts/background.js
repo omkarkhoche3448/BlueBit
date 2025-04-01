@@ -1,10 +1,20 @@
+// background.js
 // Track which tabs have the content script injected
 const injectedTabs = new Set();
 
 // When a tab is updated (page load completes), inject our content script
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url && tab.url.startsWith('http')) {
-    // Avoid re-injecting the script if it's already injected
+    // Always inject the website detector script first (lightweight)
+    chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      files: ['scripts/website-detector.js']
+    })
+    .catch(err => {
+      console.error('Error injecting website detector script:', err);
+    });
+    
+    // Avoid re-injecting the main script if it's already injected
     if (!injectedTabs.has(tabId)) {
       console.log('Injecting content script into tab:', tabId);
       
@@ -38,6 +48,21 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+  // New message type for saving clerk token
+  if (request.action === 'saveClerkToken') {
+    console.log('Saving clerk token to extension storage');
+    chrome.storage.local.set({ 'clerkUserId': request.token }, function() {
+      if (chrome.runtime.lastError) {
+        console.error('Error saving token:', chrome.runtime.lastError);
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        console.log('Clerk token saved to extension storage');
+        sendResponse({ success: true });
+      }
+    });
+    return true; // Keep the channel open for async response
+  }
+  
   if (request.action === 'processWithAI') {
     processFieldsWithBackend(request.fields, request.clerkId)
       .then(responses => {
@@ -51,7 +76,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     return true; // Required for async sendResponse
   }
   
-  // New message to check if content script is already injected
+  // Message to check if content script is already injected
   if (request.action === 'isContentScriptInjected') {
     const tabId = request.tabId;
     const isInjected = injectedTabs.has(tabId);
@@ -135,5 +160,3 @@ async function processFieldsWithBackend(fields, clerkId) {
     }));
   }
 }
-
-// The backend will handle the AI processing with Gemini
