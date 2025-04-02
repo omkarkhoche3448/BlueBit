@@ -3,108 +3,145 @@ from jobspy import scrape_jobs
 import logging
 from datetime import datetime
 from models import Job
-import json
-
-RESULTS_WANTED = 50
-HOURS_OLD = 720
-
-# Import necessary modules at the top of the file
 import sqlalchemy
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy import inspect
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+RESULTS_WANTED = 50
+HOURS_OLD = 720  # Approximately 30 days
+
 def scrape_and_store_jobs(session, params=None):
     if params is None:
-        # Default parameters for comprehensive job scraping
+        # Default parameters focusing on remote jobs
         params = {
             'site_name': ['indeed', 'linkedin', 'glassdoor', 'zip_recruiter', 'google'],
-            'search_term': 'software engineer',
-            'location': 'New York',
+            'search_term': 'software engineer remote',
+            'location': 'Remote',
+            'is_remote': True,
             'results_wanted': RESULTS_WANTED,
+            'hours_old': HOURS_OLD
         }
     
     all_jobs = []
     
-    # Define different parameter combinations to get a diverse dataset
-    locations = ['India', 'United States', 'Canada', 'United Kingdom', 'Germany', 'France', 'Australia', 'Netherlands', 'Singapore', 'Remote']
-    job_types = ['fulltime', 'parttime', 'contract', 'internship']  # 'parttime', 'contract', 'internship'
-    search_terms = ['data scientist', 'product manager', 'software developer', 'AI engineer', 'cybersecurity analyst', 'cloud engineer']
+    # Define countries to search across (supported by Indeed & Glassdoor)
+    countries = [
+        'USA', 'UK', 'Canada', 'Australia', 'Germany', 'France', 'India', 
+        'Netherlands', 'Singapore', 'Switzerland', 'Spain', 'Italy', 'Japan', 
+        'Sweden', 'Ireland', 'Brazil', 'Mexico', 'South Africa', 'Hong Kong', 
+        'New Zealand', 'Vietnam', 'Belgium'
+    ]
     
-    # Loop through different parameter combinations
-    for location in locations:
-        for job_type in job_types:
-            for search_term in search_terms:
-                try:
-                    current_params = params.copy()
-                    current_params['location'] = location
-                    current_params['job_type'] = job_type
-                    current_params['search_term'] = search_term
-                    current_params['results_wanted'] = RESULTS_WANTED  # Get more results per combination
-                    current_params['hours_old'] = HOURS_OLD  # Approximately 30 days (1 month)
-                    
-                    logging.info(f"Scraping jobs for: {search_term} - {job_type} - {location}")
-                    
-                    jobs = scrape_jobs(**current_params)
-                    
-                    # Log first job for debugging
-                    if len(jobs) > 0:
-                        logging.info(f"Found {len(jobs)} jobs for {search_term} - {job_type} - {location}")
-                        
-                    # Replace NaN values with None before converting to dict
-                    jobs = jobs.replace({pd.NA: None, float('nan'): None})
-                    jobs_dict = jobs.to_dict(orient='records')
-                    all_jobs.extend(jobs_dict)
-                    
-                    # If we've collected enough jobs, stop scraping
-                    if len(all_jobs) >= 1000:
-                        logging.info(f"Reached target of 1000 jobs. Stopping scraping.")
-                        break
-                        
-                except Exception as e:
-                    logging.error(f"Error scraping jobs for {search_term} - {job_type} - {location}: {str(e)}")
-                    continue
-            
-            # Check if we've collected enough jobs
-            if len(all_jobs) >= 1000:
-                break
+    # Job roles to search for
+    search_terms = [
+        'software engineer remote', 
+        'data scientist remote', 
+        'product manager remote', 
+        'web developer remote', 
+        'AI engineer remote', 
+        'cybersecurity analyst remote', 
+        'cloud engineer remote',
+        'devops engineer remote',
+        'frontend developer remote',
+        'backend developer remote'
+    ]
+    
+    # Iterate through countries and search terms
+    for country in countries:
+        for search_term in search_terms:
+            try:
+                # Prepare parameters for this specific search
+                current_params = {
+                    'site_name': ['indeed', 'linkedin', 'glassdoor', 'zip_recruiter'],
+                    'search_term': search_term,
+                    'location': 'Remote',
+                    'is_remote': True,
+                    'results_wanted': RESULTS_WANTED,
+                    'hours_old': HOURS_OLD,
+                    'country_indeed': country  # Set country for Indeed & Glassdoor
+                }
                 
-        # Check if we've collected enough jobs
-        if len(all_jobs) >= 1000:
+                logging.info(f"Scraping remote jobs for: {search_term} in {country}")
+                
+                # Execute the job scraping
+                jobs = scrape_jobs(**current_params)
+                
+                # Log results
+                if len(jobs) > 0:
+                    logging.info(f"Found {len(jobs)} remote jobs for {search_term} in {country}")
+                    
+                # Clean data and convert to dict
+                jobs = jobs.replace({pd.NA: None, float('nan'): None})
+                jobs_dict = jobs.to_dict(orient='records')
+                all_jobs.extend(jobs_dict)
+                
+                # Break if we have collected enough jobs
+                if len(all_jobs) >= 500:
+                    logging.info(f"Reached target of 500 jobs. Stopping scraping.")
+                    break
+                    
+            except Exception as e:
+                logging.error(f"Error scraping jobs for {search_term} in {country}: {str(e)}")
+                continue
+        
+        # Break outer loop if we have enough jobs
+        if len(all_jobs) >= 500:
             break
     
-    # Store in database - MODIFIED TO MERGE WITH EXISTING JOBS
+    # Additional search for LinkedIn-specific remote jobs globally
     try:
-        # First, get all existing jobs from the database
+        linkedin_params = {
+            'site_name': ['linkedin'],
+            'search_term': 'remote',
+            'location': 'Worldwide',
+            'is_remote': True,
+            'results_wanted': 100,
+            'hours_old': HOURS_OLD,
+            'linkedin_fetch_description': True  # Get more details from LinkedIn
+        }
+        
+        logging.info("Scraping global remote jobs from LinkedIn")
+        linkedin_jobs = scrape_jobs(**linkedin_params)
+        
+        if len(linkedin_jobs) > 0:
+            logging.info(f"Found {len(linkedin_jobs)} global remote jobs from LinkedIn")
+            linkedin_jobs = linkedin_jobs.replace({pd.NA: None, float('nan'): None})
+            linkedin_jobs_dict = linkedin_jobs.to_dict(orient='records')
+            all_jobs.extend(linkedin_jobs_dict)
+    except Exception as e:
+        logging.error(f"Error scraping global LinkedIn jobs: {str(e)}")
+    
+    # Store in database - using existing logic from your code
+    try:
+        # Get existing jobs from the database
         existing_jobs = session.query(Job).all()
         existing_job_ids = {job.id for job in existing_jobs}
         logging.info(f"Found {len(existing_job_ids)} existing jobs in database")
         
-        # Filter out duplicates from newly scraped jobs
+        # Filter out duplicates
         new_jobs_to_add = []
         for job_data in all_jobs:
             if job_data.get('id') not in existing_job_ids:
                 new_jobs_to_add.append(job_data)
         
-        # Find the part where jobs are being added to the database
         logging.info(f"Adding {len(new_jobs_to_add)} new unique jobs to database")
         
         # Method 1: For PostgreSQL - using ON CONFLICT DO NOTHING
         if 'postgresql' in session.bind.dialect.name:
             try:
-                # Get table object
                 table = inspect(Job).mapped_table
                 
-                # Create values to insert
                 values = [
                     {c.name: job_data.get(c.name) for c in table.c}
                     for job_data in new_jobs_to_add
                 ]
                 
-                # Create insert statement with ON CONFLICT DO NOTHING
                 stmt = insert(table).values(values)
                 stmt = stmt.on_conflict_do_nothing(index_elements=['id'])
                 
-                # Execute statement
                 result = session.execute(stmt)
                 session.commit()
                 logging.info(f"Successfully inserted {result.rowcount} jobs")

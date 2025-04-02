@@ -8,7 +8,7 @@ import json
 import threading
 import time
 import schedule
-from sqlalchemy import create_engine, Column, String, Boolean, Float, Date, Text, Integer
+from sqlalchemy import create_engine, Column, String, Boolean, Float, Date, Text, Integer, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.dialects.postgresql import JSON
@@ -620,45 +620,72 @@ class RecommendationEngine:
     
     def update_user_recommendations(self):
         """Update stored recommendations for all users"""
+        logging.info(f"Starting batch processing of recommendations")
+        
+        # Get all user IDs first (without keeping the objects)
         session = Session()
-        try:
-            # Get all users
-            users = session.query(User).all()
-            
-            logging.info(f"Starting batch processing of recommendations")
-            
-            for user in users:
+        user_ids = [user.clerk_id for user in session.query(User).all()]
+        session.close()
+        
+        # Process each user with a fresh session
+        for user_id in user_ids:
+            session = Session()  # Create a new session for each user
+            try:
+                # Get fresh user object in this session
+                user = session.query(User).filter(User.clerk_id == user_id).first()
+                if not user:
+                    logging.warning(f"User {user_id} not found")
+                    continue
+                    
+                # Generate recommendations
+                recommendation_ids = self.get_hybrid_recommendations(user_id, top_n=50)
+                
+                # Ensure recommendation_ids is a list
+                if recommendation_ids is None:
+                    recommendation_ids = []
+                    
+                # Try direct update first
                 try:
-                    user_id = user.clerk_id
-                    
-                    # Generate recommendations
-                    recommendation_ids = self.get_hybrid_recommendations(user_id, top_n=50)
-                    
-                    # Ensure recommendation_ids is a list
-                    if recommendation_ids is None:
-                        recommendation_ids = []
-                    
-                    # Update user's stored recommendations
                     user.recommended_job_ids = recommendation_ids
                     session.commit()
-                    
                     logging.info(f"Updated recommendations for user {user_id}: {len(recommendation_ids)} jobs")
                 except Exception as e:
-                    logging.error(f"Error updating recommendations for user {user.clerk_id}: {str(e)}")
+                    logging.error(f"ORM update failed for user {user_id}: {str(e)}")
                     session.rollback()
-            
-            logging.info(f"Completed batch processing of recommendations")
-            return True
-            
-        except Exception as e:
-            logging.error(f"Error in batch recommendation update: {str(e)}")
-            return False
-        finally:
-            session.close()
+                    
+                    # Try raw SQL as fallback
+                    try:
+                        json_data = json.dumps(recommendation_ids)
+                        sql = text("UPDATE users SET recommended_job_ids = :json_data WHERE clerk_id = :user_id")
+                        session.execute(sql, {"json_data": json_data, "user_id": user_id})
+                        session.commit()
+                        logging.info(f"SQL update successful for user {user_id}")
+                    except Exception as sql_e:
+                        logging.error(f"SQL update failed for user {user_id}: {str(sql_e)}")
+                        session.rollback()
+                
+            except Exception as e:
+                logging.error(f"Error processing recommendations for user {user_id}: {str(e)}")
+                session.rollback()
+            finally:
+                session.close()  # Always close the session
+        
+        logging.info(f"Completed batch processing of recommendations")
+        return True
     
     def initialize_model(self):
         """Initialize the recommendation model"""
         try:
+            # Check if database has data first
+            session = Session()
+            job_count = session.query(Job).count()
+            user_count = session.query(User).count()
+            session.close()
+            
+            if job_count == 0 or user_count == 0:
+                logging.warning("Delaying recommendation initialization - database not populated")
+                return False
+                
             # Preprocess jobs
             if not self.preprocess_jobs():
                 logging.error("Failed to preprocess jobs")
@@ -682,7 +709,7 @@ class RecommendationEngine:
             logging.error(f"Error initializing recommendation model: {str(e)}")
             return False
 
-    def schedule_recommendation_updates(self, interval_hours=0.1): # Recommendaton system time
+    def schedule_recommendation_updates(self, interval_hours=0.01):# Recommendaton system time
         """Schedule periodic updates of the recommendation model"""
         def update_job():
             logging.info("Running scheduled recommendation model update")
@@ -713,7 +740,6 @@ def init_recommendation_engine():
     recommendation_engine.schedule_recommendation_updates()
 
 # Function to get recommendations for a user
-# Function to get recommendations for a user
 def get_recommendations_for_user(user_id, count=20):
     """Get recommendations for a specific user"""
     session = Session()
@@ -726,7 +752,7 @@ def get_recommendations_for_user(user_id, count=20):
         
         # If user has recommendations stored, return those
         if user.recommended_job_ids:
-            # Handle potential string representation in SQLite
+            # Handle potential string representation
             if isinstance(user.recommended_job_ids, str):
                 try:
                     recommended_job_ids = json.loads(user.recommended_job_ids)
@@ -735,6 +761,8 @@ def get_recommendations_for_user(user_id, count=20):
             else:
                 recommended_job_ids = user.recommended_job_ids
                 
+            logging.info(f"Using existing recommendations for user {user_id}: {len(recommended_job_ids if recommended_job_ids else [])} jobs")
+            
             # Get the job details for these IDs
             jobs = session.query(Job).filter(Job.id.in_(recommended_job_ids)).all()
             
@@ -752,26 +780,68 @@ def get_recommendations_for_user(user_id, count=20):
         
         # If no stored recommendations, generate them on the fly
         else:
-            # Get recommendation IDs
-            recommendation_ids = recommendation_engine.get_hybrid_recommendations(user_id, top_n=count)
+            logging.info(f"Generating new recommendations for user {user_id}")
             
-            # Get the job details for these IDs
-            jobs = session.query(Job).filter(Job.id.in_(recommendation_ids)).all()
+            # Get recommendation IDs
+            recommendation_ids = recommendation_engine.get_hybrid_recommendations(user_id, top_n=50)
+            
+            # Store in database - using a new session to avoid conflicts
+            if recommendation_ids:
+                # Close current session
+                session.close()
+                
+                # Create new session specifically for the update
+                update_session = Session()
+                try:
+                    # Get fresh user object in the new session
+                    update_user = update_session.query(User).filter(User.clerk_id == user_id).first()
+                    if update_user:
+                        # Try ORM update
+                        update_user.recommended_job_ids = recommendation_ids
+                        update_session.commit()
+                        logging.info(f"Stored {len(recommendation_ids)} recommendations for user {user_id}")
+                except Exception as e:
+                    logging.error(f"Failed to store recommendations: {str(e)}")
+                    update_session.rollback()
+                    
+                    # Try SQL update as fallback
+                    try:
+                        json_data = json.dumps(recommendation_ids)
+                        sql = text("UPDATE users SET recommended_job_ids = :json_data WHERE clerk_id = :user_id")
+                        update_session.execute(sql, {"json_data": json_data, "user_id": user_id})
+                        update_session.commit()
+                        logging.info(f"SQL update successful for user {user_id}")
+                    except Exception as sql_e:
+                        logging.error(f"SQL update also failed: {str(sql_e)}")
+                        update_session.rollback()
+                finally:
+                    update_session.close()
+                
+                # Create a new session for retrieving jobs for display
+                session = Session()
+            
+            # Get the job details for display
+            display_ids = recommendation_ids[:count] if recommendation_ids else []
+            jobs = session.query(Job).filter(Job.id.in_(display_ids)).all()
             
             # Convert to list of dictionaries
             job_list = [{c.name: getattr(job, c.name) for c in job.__table__.columns} for job in jobs]
+            
+            # Get fresh user object for matching score calculation
+            user = session.query(User).filter(User.clerk_id == user_id).first()
             
             # Calculate matching score for each job
             job_list = calculate_matching_scores(job_list, user)
             
             # Sort according to the order in recommendation_ids
             job_dict = {job['id']: job for job in job_list}
-            sorted_jobs = [job_dict[job_id] for job_id in recommendation_ids if job_id in job_dict]
+            sorted_jobs = [job_dict[job_id] for job_id in display_ids if job_id in job_dict]
             
             return sorted_jobs
-            
     except Exception as e:
         logging.error(f"Error getting recommendations for user {user_id}: {str(e)}")
+        import traceback
+        logging.error(traceback.format_exc())
         return []
     finally:
         session.close()
