@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -23,6 +23,10 @@ import {
 
 import { useClerk } from "@clerk/clerk-react";
 
+// Lazy load components that aren't needed immediately
+const SignIn = lazy(() => import("@clerk/clerk-react").then(module => ({ default: module.SignIn })));
+const SignUp = lazy(() => import("@clerk/clerk-react").then(module => ({ default: module.SignUp })));
+
 export default function LandingPage() {
   const clerk = useClerk();
 
@@ -38,20 +42,39 @@ export default function LandingPage() {
     testimonials: false,
     pricing: false,
   });
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Intersection Observer for scroll animations
+  // Check if device is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Intersection Observer for scroll animations - optimized with fewer re-renders
   useEffect(() => {
     const observerOptions = {
-      threshold: 0.2,
-      rootMargin: "0px 0px -100px 0px",
+      threshold: isMobile ? 0.1 : 0.2, // Lower threshold for mobile
+      rootMargin: isMobile ? "0px 0px -50px 0px" : "0px 0px -100px 0px",
     };
 
     const observerCallback = (entries) => {
+      const updatedSections = {};
+      
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          setIsVisible((prev) => ({ ...prev, [entry.target.id]: true }));
+          updatedSections[entry.target.id] = true;
         }
       });
+      
+      if (Object.keys(updatedSections).length > 0) {
+        setIsVisible(prev => ({ ...prev, ...updatedSections }));
+      }
     };
 
     const observer = new IntersectionObserver(
@@ -65,21 +88,17 @@ export default function LandingPage() {
       if (element) observer.observe(element);
     });
 
-    return () => {
-      sections.forEach((section) => {
-        const element = document.getElementById(section);
-        if (element) observer.unobserve(element);
-      });
-    };
-  }, []);
+    return () => observer.disconnect();
+  }, [isMobile]);
 
+  // Optimized animations for mobile
   const fadeInUp = {
-    hidden: { opacity: 0, y: 60 },
+    hidden: { opacity: 0, y: isMobile ? 30 : 60 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.6,
+        duration: isMobile ? 0.4 : 0.6,
         ease: "easeOut",
       },
     },
@@ -90,7 +109,7 @@ export default function LandingPage() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2,
+        staggerChildren: isMobile ? 0.1 : 0.2,
       },
     },
   };
@@ -196,7 +215,7 @@ export default function LandingPage() {
       company: "Recently hired at Google",
       quote:
         "Handjobs saved me countless hours of searching across different platforms. I found my dream job at Google in just two weeks!",
-      avatar: "https://i.pravatar.cc/80?img=1", // Updated avatar URL
+      avatar: "https://i.pravatar.cc/80?img=1",
     },
     {
       name: "Michael Chen",
@@ -204,7 +223,7 @@ export default function LandingPage() {
       company: "Recently hired at Airbnb",
       quote:
         "The filtering options are incredible. I was able to narrow down exactly what I was looking for and found the perfect match.",
-      avatar: "https://i.pravatar.cc/80?img=2", // Updated avatar URL
+      avatar: "https://i.pravatar.cc/80?img=2",
     },
     {
       name: "Jessica Williams",
@@ -212,7 +231,7 @@ export default function LandingPage() {
       company: "Recently hired at Figma",
       quote:
         "As a designer, I appreciate the clean interface and thoughtful user experience. It made my job search so much easier.",
-      avatar: "https://i.pravatar.cc/80?img=3", // Updated avatar URL
+      avatar: "https://i.pravatar.cc/80?img=3",
     },
   ];
 
@@ -280,16 +299,25 @@ export default function LandingPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Handle form submission
     console.log("Email submitted:", email);
-    // Reset form
     setEmail("");
-    // Show success message or redirect
+  };
+
+  // Close mobile menu when clicking on a link
+  const handleMobileNavClick = (sectionId) => {
+    setIsMenuOpen(false);
+    // Smooth scroll to section
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
     <div className="min-h-screen bg-white overflow-hidden">
-      {/* Add modals near the top of the return statement */}
+      {/* Add viewport meta tag for better mobile experience */}
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+      </head>
+      
+      {/* Auth Modals - Lazy loaded */}
       <AnimatePresence>
         {showSignIn && (
           <motion.div
@@ -302,10 +330,12 @@ export default function LandingPage() {
             <motion.div
               initial={{ y: 50 }}
               animate={{ y: 0 }}
-              className="bg-white rounded-xl p-8 max-w-md w-full"
+              className="bg-white rounded-xl p-4 sm:p-8 max-w-md w-full mx-4"
               onClick={(e) => e.stopPropagation()}
             >
-              <SignIn afterSignInUrl="/home" />
+              <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
+                <SignIn afterSignInUrl="/home" />
+              </Suspense>
             </motion.div>
           </motion.div>
         )}
@@ -321,15 +351,18 @@ export default function LandingPage() {
             <motion.div
               initial={{ y: 50 }}
               animate={{ y: 0 }}
-              className="bg-white rounded-xl p-8 max-w-md w-full"
+              className="bg-white rounded-xl p-4 sm:p-8 max-w-md w-full mx-4"
               onClick={(e) => e.stopPropagation()}
             >
-              <SignUp afterSignUpUrl="/home" />
+              <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
+                <SignUp afterSignUpUrl="/home" />
+              </Suspense>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-      {/* Navigation */}
+      
+      {/* Navigation - Optimized for mobile */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
@@ -340,10 +373,10 @@ export default function LandingPage() {
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5 }}
               >
-                <div className="h-10 w-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center mr-2">
-                  <Briefcase className="h-6 w-6 text-white" />
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center mr-2">
+                  <Briefcase className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
-                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+                <span className="text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
                   Handjobs
                 </span>
               </motion.div>
@@ -375,25 +408,13 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="hidden md:flex items-center space-x-4">
-              {/* <button
-                onClick={() => clerk.openSignIn()}
-                className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
-              >
-                Log in
-              </button>
-              <motion.button
-                onClick={() => clerk.openSignUp()}
-                className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md hover:shadow-lg transition-all duration-200"
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Sign up free
-              </motion.button> */}
+              {/* Auth buttons commented out as in original code */}
             </div>
             <div className="flex md:hidden">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-blue-600 focus:outline-none"
+                aria-label="Toggle menu"
               >
                 {isMenuOpen ? (
                   <X className="h-6 w-6" />
@@ -405,69 +426,58 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Mobile menu */}
+        {/* Mobile menu - Improved animation and UX */}
         <AnimatePresence>
           {isMenuOpen && (
             <motion.div
-              className="md:hidden"
+              className="md:hidden fixed inset-x-0 top-16 z-40"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white shadow-lg">
+              <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white shadow-lg border-b border-gray-200">
                 <a
                   href="#features"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600"
-                  onClick={() => setIsMenuOpen(false)}
+                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                  onClick={() => handleMobileNavClick("features")}
                 >
                   Features
                 </a>
                 <a
                   href="#howItWorks"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600"
-                  onClick={() => setIsMenuOpen(false)}
+                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                  onClick={() => handleMobileNavClick("howItWorks")}
                 >
                   How It Works
                 </a>
                 <a
                   href="#testimonials"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600"
-                  onClick={() => setIsMenuOpen(false)}
+                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                  onClick={() => handleMobileNavClick("testimonials")}
                 >
                   Testimonials
                 </a>
                 <a
                   href="#pricing"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600"
-                  onClick={() => setIsMenuOpen(false)}
+                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                  onClick={() => handleMobileNavClick("pricing")}
                 >
                   Pricing
                 </a>
-                {/* <a
-                  href="#"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600"
-                >
-                  Log in
-                </a>
-                <a
-                  href="#"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600"
-                >
-                  Sign up free
-                </a> */}
+                {/* Auth buttons commented out as in original code */}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </nav>
 
-      {/* Hero Section */}
-      <section className="pt-28 pb-20 md:pt-36 md:pb-32 bg-gradient-to-b from-gray-50 to-white overflow-hidden">
+      {/* Hero Section - Optimized for mobile */}
+      <section className="pt-24 pb-16 md:pt-36 md:pb-32 bg-gradient-to-b from-gray-50 to-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="lg:grid lg:grid-cols-12 lg:gap-8">
             <motion.div
-              className="sm:text-center md:max-w-2xl md:mx-auto lg:col-span-6 lg:text-left"
+              className="text-center lg:text-left lg:col-span-6"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
@@ -477,13 +487,13 @@ export default function LandingPage() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
               >
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-base font-medium bg-blue-100 text-blue-800">
-                  <Star className="h-4 w-4 mr-1" />
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm sm:text-base font-medium bg-blue-100 text-blue-800">
+                  <Star className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                   Launching Soon
                 </span>
               </motion.div>
               <motion.h1
-                className="mt-4 text-4xl font-extrabold tracking-tight text-gray-900 sm:mt-5 sm:text-5xl lg:mt-6 xl:text-6xl"
+                className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 sm:mt-5 lg:mt-6 xl:text-6xl"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.8 }}
@@ -504,12 +514,12 @@ export default function LandingPage() {
                 search platform.
               </motion.p>
               <motion.div
-                className="mt-8 sm:mx-auto sm:max-w-lg sm:text-center lg:mx-0 lg:text-left"
+                className="mt-8 mx-auto max-w-sm sm:max-w-lg lg:mx-0"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8, duration: 0.8 }}
               >
-                <form onSubmit={handleSubmit} className="mt-3 sm:flex">
+                <form onSubmit={handleSubmit} className="mt-3 flex flex-col sm:flex-row">
                   <label htmlFor="email" className="sr-only">
                     Email
                   </label>
@@ -538,9 +548,11 @@ export default function LandingPage() {
                 </p>
               </motion.div>
             </motion.div>
+            
+            {/* App mockup - Only show on larger screens or simplified on mobile */}
             <motion.div
               className="mt-12 relative sm:max-w-lg sm:mx-auto lg:mt-0 lg:max-w-none lg:mx-0 lg:col-span-6 lg:flex lg:items-center"
-              initial={{ opacity: 0, x: 60 }}
+              initial={{ opacity: 0, x: isMobile ? 0 : 60 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
             >
@@ -548,7 +560,7 @@ export default function LandingPage() {
                 <div className="relative block w-full bg-white rounded-lg overflow-hidden">
                   <div className="w-full">
                     <div className="relative h-fit bg-white rounded-lg border border-gray-200 shadow-xl overflow-hidden">
-                      {/* App UI mockup */}
+                      {/* App UI mockup - Simplified for mobile */}
                       <div className="p-4">
                         {/* Header */}
                         <div className="flex items-center justify-between mb-6">
@@ -582,12 +594,12 @@ export default function LandingPage() {
                           </div>
                         </div>
 
-                        {/* Tabs */}
-                        <div className="flex space-x-1 mb-6 border-b border-gray-200">
+                        {/* Tabs - Simplified for mobile */}
+                        <div className="flex space-x-1 mb-6 border-b border-gray-200 overflow-x-auto pb-1 hide-scrollbar">
                           {platformTabs.map((tab, index) => (
                             <button
                               key={index}
-                              className={`flex items-center px-4 py-2 text-sm font-medium rounded-t-lg ${
+                              className={`flex items-center px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-t-lg whitespace-nowrap ${
                                 activeTab === index
                                   ? "text-blue-600 border-b-2 border-blue-600"
                                   : "text-gray-500 hover:text-gray-700"
@@ -600,7 +612,7 @@ export default function LandingPage() {
                           ))}
                         </div>
 
-                        {/* Job listings */}
+                        {/* Job listings - Show fewer on mobile */}
                         <div className="space-y-4">
                           {[
                             {
@@ -621,7 +633,8 @@ export default function LandingPage() {
                               source: platformTabs[activeTab].name,
                               sourceColor: platformTabs[activeTab].color,
                             },
-                            {
+                            // Show only 2 jobs on mobile, 3 on desktop
+                            ...(!isMobile ? [{
                               title: "Data Scientist",
                               company: "Netflix",
                               location: "Los Angeles",
@@ -629,7 +642,7 @@ export default function LandingPage() {
                               logo: "https://upload.wikimedia.org/wikipedia/commons/6/69/Netflix_logo.svg",
                               source: platformTabs[activeTab].name,
                               sourceColor: platformTabs[activeTab].color,
-                            },
+                            }] : []),
                           ].map((job, i) => (
                             <motion.div
                               key={i}
@@ -641,12 +654,14 @@ export default function LandingPage() {
                             >
                               <div className="flex items-start">
                                 <div className="h-10 w-10 rounded-md overflow-hidden mr-3 flex-shrink-0">
+                                  {/* Use loading="lazy" for images */}
                                   <img
                                     src={job.logo || "/placeholder.svg"}
                                     alt={job.company}
                                     width={40}
                                     height={40}
                                     className="h-full w-full object-cover"
+                                    loading="lazy"
                                   />
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -695,11 +710,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Logos Section */}
-      <section className="py-12 bg-white">
+      {/* Logos Section - Optimized for mobile */}
+      <section className="py-8 sm:py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.p
-            className="text-center text-base font-medium text-gray-500 mb-8"
+            className="text-center text-sm sm:text-base font-medium text-gray-500 mb-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
@@ -707,7 +722,7 @@ export default function LandingPage() {
             Aggregating jobs from leading platforms
           </motion.p>
           <motion.div
-            className="grid grid-cols-2 gap-8 md:grid-cols-6 lg:grid-cols-5"
+            className="grid grid-cols-2 gap-8 md:grid-cols-6 lg:grid-cols-5 sm:grid-cols-1"
             variants={staggerContainer}
             initial="hidden"
             animate="visible"
@@ -744,6 +759,9 @@ export default function LandingPage() {
                     src={item.logo}
                     alt={item.name}
                     className="h-full w-auto"
+                    loading="lazy"
+                    width={120}
+                    height={48}
                   />
                 </div>
               </motion.div>
@@ -752,11 +770,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 bg-gray-50">
+      {/* Features Section - Optimized for mobile */}
+      <section id="features" className="py-16 sm:py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            className="lg:text-center mb-16"
+            className="text-center mb-12 sm:mb-16"
             initial={{ opacity: 0, y: 40 }}
             animate={
               isVisible.features ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }
@@ -766,17 +784,17 @@ export default function LandingPage() {
             <h2 className="text-base font-semibold tracking-wide uppercase text-blue-600">
               Features
             </h2>
-            <p className="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl lg:text-5xl">
+            <p className="mt-2 text-2xl sm:text-3xl font-extrabold text-gray-900 sm:text-4xl lg:text-5xl">
               Everything you need to find your dream job
             </p>
-            <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
+            <p className="mt-4 max-w-2xl text-lg sm:text-xl text-gray-500 mx-auto">
               Handjobs brings all job opportunities to one place, saving you time
               and helping you find the perfect match.
             </p>
           </motion.div>
 
           <motion.div
-            className="grid gap-8 md:grid-cols-2 lg:grid-cols-3"
+            className="grid gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3"
             variants={staggerContainer}
             initial="hidden"
             animate={isVisible.features ? "visible" : "hidden"}
@@ -787,13 +805,13 @@ export default function LandingPage() {
                 className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300"
                 variants={fadeInUp}
               >
-                <div className="p-8">
+                <div className="p-6 sm:p-8">
                   <div
                     className={`w-12 h-12 rounded-lg ${feature.color} flex items-center justify-center text-white mb-5`}
                   >
                     {feature.icon}
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3">
                     {feature.title}
                   </h3>
                   <p className="text-gray-600">{feature.description}</p>
@@ -804,11 +822,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section id="howItWorks" className="py-20 bg-white">
+      {/* How It Works Section - Optimized for mobile */}
+      <section id="howItWorks" className="py-16 sm:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            className="text-center mb-16"
+            className="text-center mb-12 sm:mb-16"
             initial={{ opacity: 0, y: 40 }}
             animate={
               isVisible.howItWorks
@@ -820,10 +838,10 @@ export default function LandingPage() {
             <h2 className="text-base font-semibold tracking-wide uppercase text-blue-600">
               How It Works
             </h2>
-            <p className="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl lg:text-5xl">
+            <p className="mt-2 text-2xl sm:text-3xl font-extrabold text-gray-900 sm:text-4xl lg:text-5xl">
               Simplifying your job search
             </p>
-            <p className="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
+            <p className="mt-4 max-w-2xl text-lg sm:text-xl text-gray-500 mx-auto">
               Our platform works tirelessly behind the scenes to bring you the
               best opportunities with minimal effort.
             </p>
@@ -835,10 +853,11 @@ export default function LandingPage() {
             animate={isVisible.howItWorks ? { opacity: 1 } : { opacity: 0 }}
             transition={{ duration: 0.7, delay: 0.3 }}
           >
-            {/* Timeline connector */}
+            {/* Timeline connector - only visible on desktop */}
             <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-gray-200 hidden md:block"></div>
 
-            <div className="space-y-12 md:space-y-0 md:grid md:grid-cols-4 md:gap-x-6 md:gap-y-12">
+            {/* Mobile-optimized grid */}
+            <div className="space-y-10 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-x-6 md:gap-y-12">
               {steps.map((step, index) => (
                 <motion.div
                   key={index}
@@ -849,18 +868,21 @@ export default function LandingPage() {
                       ? { opacity: 1, y: 0 }
                       : { opacity: 0, y: 30 }
                   }
-                  transition={{ duration: 0.5, delay: index * 0.1 + 0.5 }}
+                  transition={{ 
+                    duration: isMobile ? 0.4 : 0.5, 
+                    delay: isMobile ? index * 0.08 + 0.3 : index * 0.1 + 0.5 
+                  }}
                 >
                   <div className="flex flex-col items-center text-center">
                     <div
-                      className={`flex items-center justify-center w-16 h-16 rounded-full ${step.color} text-white mb-4 z-10`}
+                      className={`flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full ${step.color} text-white mb-4 z-10`}
                     >
                       {step.icon}
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
                       {step.title}
                     </h3>
-                    <p className="text-gray-600">{step.description}</p>
+                    <p className="text-gray-600 max-w-xs mx-auto">{step.description}</p>
                   </div>
                 </motion.div>
               ))}
@@ -869,11 +891,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 bg-gray-50">
+      {/* Testimonials Section - Optimized for mobile */}
+      <section id="testimonials" className="py-16 sm:py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            className="text-center mb-16"
+            className="text-center mb-12 sm:mb-16"
             initial={{ opacity: 0, y: 40 }}
             animate={
               isVisible.testimonials
@@ -885,17 +907,18 @@ export default function LandingPage() {
             <h2 className="text-base font-semibold tracking-wide uppercase text-blue-600">
               Testimonials
             </h2>
-            <p className="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl lg:text-5xl">
+            <p className="mt-2 text-2xl sm:text-3xl font-extrabold text-gray-900 sm:text-4xl lg:text-5xl">
               Success stories from our users
             </p>
-            <p className="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
+            <p className="mt-4 max-w-2xl text-lg sm:text-xl text-gray-500 mx-auto">
               Hear from job seekers who found their dream positions using
               Handjobs.
             </p>
           </motion.div>
 
+          {/* Testimonials grid - Responsive for mobile */}
           <motion.div
-            className="grid gap-8 md:grid-cols-3"
+            className="grid gap-6 sm:gap-8 md:grid-cols-3"
             variants={staggerContainer}
             initial="hidden"
             animate={isVisible.testimonials ? "visible" : "hidden"}
@@ -903,17 +926,18 @@ export default function LandingPage() {
             {testimonials.map((testimonial, index) => (
               <motion.div
                 key={index}
-                className="bg-white rounded-xl shadow-md overflow-hidden p-8 hover:shadow-xl transition-shadow duration-300"
+                className="bg-white rounded-xl shadow-md overflow-hidden p-6 sm:p-8 hover:shadow-xl transition-shadow duration-300"
                 variants={fadeInUp}
               >
                 <div className="flex items-center mb-6">
-                  <div className="h-12 w-12 rounded-full overflow-hidden mr-4">
+                  <div className="h-12 w-12 rounded-full overflow-hidden mr-4 flex-shrink-0">
                     <img
                       src={testimonial.avatar || "/placeholder.svg"}
                       alt={testimonial.name}
                       width={48}
                       height={48}
                       className="h-full w-full object-cover"
+                      loading="lazy"
                     />
                   </div>
                   <div>
@@ -933,11 +957,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 bg-white">
+      {/* Pricing Section - Optimized for mobile */}
+      <section id="pricing" className="py-16 sm:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            className="text-center mb-16"
+            className="text-center mb-12 sm:mb-16"
             initial={{ opacity: 0, y: 40 }}
             animate={
               isVisible.pricing ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }
@@ -947,90 +971,94 @@ export default function LandingPage() {
             <h2 className="text-base font-semibold tracking-wide uppercase text-blue-600">
               Pricing
             </h2>
-            <p className="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl lg:text-5xl">
+            <p className="mt-2 text-2xl sm:text-3xl font-extrabold text-gray-900 sm:text-4xl lg:text-5xl">
               Plans for every stage of your job search
             </p>
-            <p className="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
+            <p className="mt-4 max-w-2xl text-lg sm:text-xl text-gray-500 mx-auto">
               Start for free, upgrade when you need more features.
             </p>
           </motion.div>
 
-          <motion.div
-            className="grid gap-8 lg:grid-cols-3"
-            variants={staggerContainer}
-            initial="hidden"
-            animate={isVisible.pricing ? "visible" : "hidden"}
-          >
-            {plans.map((plan, index) => (
-              <motion.div
-                key={index}
-                className={`bg-white rounded-xl shadow-md overflow-hidden border-2 ${
-                  plan.popular
-                    ? "border-blue-500 ring-2 ring-blue-500 ring-opacity-50"
-                    : plan.color
-                } hover:shadow-xl transition-shadow duration-300`}
-                variants={fadeInUp}
-              >
-                <div className="p-8">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-2xl font-bold text-gray-900">
-                      {plan.name}
-                    </h3>
-                    {plan.popular && (
-                      <span className="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                        Popular
+          {/* Pricing cards - Optimized for mobile with scrollable container on small screens */}
+          <div className={`${isMobile ? 'flex overflow-x-auto pb-6 -mx-4 px-4 hide-scrollbar' : ''}`}>
+            <motion.div
+              className={`${isMobile ? 'flex space-x-6' : 'grid gap-8 lg:grid-cols-3'}`}
+              variants={staggerContainer}
+              initial="hidden"
+              animate={isVisible.pricing ? "visible" : "hidden"}
+            >
+              {plans.map((plan, index) => (
+                <motion.div
+                  key={index}
+                  className={`${isMobile ? 'flex-shrink-0 w-[85vw] max-w-sm' : ''} 
+                    bg-white rounded-xl shadow-md overflow-hidden border-2 ${
+                    plan.popular
+                      ? "border-blue-500 ring-2 ring-blue-500 ring-opacity-50"
+                      : plan.color
+                    } hover:shadow-xl transition-shadow duration-300`}
+                  variants={fadeInUp}
+                >
+                  <div className="p-6 sm:p-8">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
+                        {plan.name}
+                      </h3>
+                      {plan.popular && (
+                        <span className="inline-flex items-center px-2 py-0.5 sm:px-3 sm:py-0.5 rounded-full text-xs sm:text-sm font-medium bg-blue-100 text-blue-800">
+                          Popular
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-end mb-6">
+                      <span className="text-3xl sm:text-4xl font-extrabold text-gray-900">
+                        {plan.price}
                       </span>
-                    )}
+                      {plan.period && (
+                        <span className="text-lg sm:text-xl text-gray-500 ml-1">
+                          {plan.period}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-gray-500 mb-6">{plan.description}</p>
+                    <ul className="space-y-4 mb-8">
+                      {plan.features.map((feature, i) => (
+                        <li key={i} className="flex items-start">
+                          <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                          <span className="text-gray-600">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <motion.a
+                      href="#"
+                      className={`block w-full py-3 px-4 rounded-md text-center font-medium ${
+                        plan.popular
+                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
+                          : "bg-white text-blue-600 border border-blue-600 hover:bg-blue-50"
+                      } shadow-sm hover:shadow transition-all duration-200`}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      {plan.cta}
+                    </motion.a>
                   </div>
-                  <div className="flex items-end mb-6">
-                    <span className="text-4xl font-extrabold text-gray-900">
-                      {plan.price}
-                    </span>
-                    {plan.period && (
-                      <span className="text-xl text-gray-500 ml-1">
-                        {plan.period}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-gray-500 mb-6">{plan.description}</p>
-                  <ul className="space-y-4 mb-8">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-start">
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                        <span className="text-gray-600">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <motion.a
-                    href="#"
-                    className={`block w-full py-3 px-4 rounded-md text-center font-medium ${
-                      plan.popular
-                        ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
-                        : "bg-white text-blue-600 border border-blue-600 hover:bg-blue-50"
-                    } shadow-sm hover:shadow transition-all duration-200`}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                  >
-                    {plan.cta}
-                  </motion.a>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-20 bg-gray-50">
+      {/* FAQ Section - Optimized for mobile */}
+      <section className="py-16 sm:py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-base font-semibold tracking-wide uppercase text-blue-600">
               FAQ
             </h2>
-            <p className="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">
+            <p className="mt-2 text-2xl sm:text-3xl font-extrabold text-gray-900 sm:text-4xl">
               Frequently asked questions
             </p>
-            <p className="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
+            <p className="mt-4 max-w-2xl text-lg sm:text-xl text-gray-500 mx-auto">
               Everything you need to know about Handjobs Job Aggregator.
             </p>
           </div>
@@ -1073,15 +1101,15 @@ export default function LandingPage() {
                 viewport={{ once: true, margin: "-100px" }}
               >
                 <div className="flex justify-between items-start">
-                  <h3 className="text-lg font-medium text-gray-900">
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900 pr-6">
                     {faq.question}
                   </h3>
-                  <span className="ml-6 h-7 flex items-center">
+                  <span className="ml-2 h-7 flex items-center flex-shrink-0">
                     <AlertCircle className="h-5 w-5 text-blue-500" />
                   </span>
                 </div>
                 <div className="mt-2">
-                  <p className="text-base text-gray-500">{faq.answer}</p>
+                  <p className="text-sm sm:text-base text-gray-500">{faq.answer}</p>
                 </div>
               </motion.div>
             ))}
@@ -1089,12 +1117,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
+      {/* CTA Section - Optimized for mobile */}
+      <section className="py-16 sm:py-20 bg-gradient-to-r from-blue-600 to-purple-600">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <motion.h2
-              className="text-3xl font-extrabold text-white sm:text-4xl"
+              className="text-2xl sm:text-3xl font-extrabold text-white sm:text-4xl"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
@@ -1104,7 +1132,7 @@ export default function LandingPage() {
               <span className="block mt-2">Get early access today.</span>
             </motion.h2>
             <motion.p
-              className="mt-4 text-lg leading-6 text-blue-100"
+              className="mt-4 text-base sm:text-lg leading-6 text-blue-100"
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -1114,7 +1142,7 @@ export default function LandingPage() {
               finding better opportunities.
             </motion.p>
             <motion.div
-              className="mt-8 flex justify-center"
+              className="mt-8 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
@@ -1123,17 +1151,17 @@ export default function LandingPage() {
               <div className="inline-flex rounded-md shadow">
                 <motion.a
                   href="#"
-                  className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50"
+                  className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50"
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   Get started
                 </motion.a>
               </div>
-              <div className="ml-3 inline-flex">
+              <div className="inline-flex">
                 <motion.a
                   href="#"
-                  className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-800 bg-opacity-60 hover:bg-opacity-70"
+                  className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-800 bg-opacity-60 hover:bg-opacity-70"
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -1145,21 +1173,21 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Footer - Optimized for mobile */}
       <footer className="bg-white">
         <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid gap-8 md:grid-cols-3">
             {/* Logo & About Section */}
             <div className="space-y-6">
               <div className="flex items-center">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center mr-2">
-                  <Briefcase className="h-6 w-6 text-white" />
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center mr-2">
+                  <Briefcase className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
-                <span className="text-2xl font-bold text-gray-800">
+                <span className="text-xl sm:text-2xl font-bold text-gray-800">
                   Handjobs
                 </span>
               </div>
-              <p className="text-gray-600 text-base">
+              <p className="text-gray-600 text-sm sm:text-base">
                 One search. All job opportunities.
                 <br />
                 Save time and find your dream job faster.
@@ -1174,7 +1202,7 @@ export default function LandingPage() {
                   >
                     <span className="sr-only">{social}</span>
                     <svg
-                      className="h-6 w-6"
+                      className="h-5 w-5 sm:h-6 sm:w-6"
                       fill="currentColor"
                       viewBox="0 0 24 24"
                       aria-hidden="true"
@@ -1186,8 +1214,8 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Footer Links */}
-            <div className="md:col-span-2 grid grid-cols-2 md:grid-cols-3 gap-8">
+            {/* Footer Links - Simplified for mobile */}
+            <div className="md:col-span-2 grid grid-cols-2 gap-8">
               {footerLinks.map((section, index) => (
                 <div key={index}>
                   <h3 className="text-sm font-semibold text-gray-600 tracking-wider uppercase">
@@ -1198,7 +1226,7 @@ export default function LandingPage() {
                       <li key={linkIndex}>
                         <a
                           href={link.href}
-                          className="text-base text-gray-500 hover:text-gray-900 transition duration-200"
+                          className="text-sm sm:text-base text-gray-500 hover:text-gray-900 transition duration-200"
                         >
                           {link.name}
                         </a>
@@ -1212,13 +1240,24 @@ export default function LandingPage() {
 
           {/* Copyright Section */}
           <div className="mt-12 border-t border-gray-200 pt-8 text-center">
-            <p className="text-base text-gray-500">
+            <p className="text-sm sm:text-base text-gray-500">
               &copy; {new Date().getFullYear()} Handjobs Job Aggregator. All
               rights reserved.
             </p>
           </div>
         </div>
       </footer>
+      
+      {/* Add custom CSS for hiding scrollbars but allowing scrolling */}
+      <style jsx global>{`
+        .hide-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none; /* Chrome, Safari and Opera */
+        }
+      `}</style>
     </div>
   );
 }
