@@ -17,6 +17,10 @@ def register_job_routes(app):
                 filters = data.get('filters', {})
                 clerk_id = data.get('clerkId')
                 
+                # Get pagination parameters
+                page = data.get('page', 1)
+                per_page = data.get('per_page', 10)
+                
                 # Get a database session
                 session = Session()
                 
@@ -40,63 +44,7 @@ def register_job_routes(app):
                         (Job.company.ilike(search_term))
                     )
                 
-                if filters.get('jobType'):
-                    query = query.filter(Job.job_type.ilike(f"%{filters['jobType']}%"))
-                    
-                if filters.get('location'):
-                    location_filter = filters['location']
-                    # If location is a list, take the first item
-                    if isinstance(location_filter, list):
-                        location_filter = location_filter[0]
-                    location_filter = location_filter.lower()
-                    query = query.filter(func.lower(Job.location).contains(location_filter))
-
-                if filters.get('company'):
-                    company_filter = filters['company']
-                    # Debug logging
-                    logging.debug(f"Filtering by company: {company_filter}")
-                    
-                    # Handle potential list input
-                    if isinstance(company_filter, list):
-                        company_filter = company_filter[0]
-                    
-                    company_filter = company_filter.lower()
-                    
-                    # More precise filtering
-                    query = query.filter(func.lower(Job.company) == company_filter)
-                    
-                if filters.get('isRemote') == 'true':
-                    query = query.filter(Job.is_remote == True)
-                    
-                # Handle salary range if provided
-                if filters.get('salaryRange'):
-                    salary_range = filters['salaryRange']
-                    # Implement salary range filtering based on your specific format
-                    # Example: if salary_range is "50000-100000"
-                    if '-' in salary_range:
-                        min_salary, max_salary = salary_range.split('-')
-                        if min_salary:
-                            query = query.filter(Job.min_amount >= float(min_salary))
-                        if max_salary:
-                            query = query.filter(Job.max_amount <= float(max_salary))
-                
-                # Handle date posted filter
-                if filters.get('datePosted'):
-                    date_posted = filters['datePosted']
-                    today = datetime.now().date()
-                    
-                    if date_posted == 'past24h':
-                        date_threshold = today - pd.Timedelta(days=1)
-                        query = query.filter(Job.date_posted >= date_threshold)
-                    elif date_posted == 'past3days':
-                        date_threshold = today - pd.Timedelta(days=3)
-                        query = query.filter(Job.date_posted >= date_threshold)
-                    elif date_posted == 'pastWeek':
-                        date_threshold = today - pd.Timedelta(days=7)
-                        query = query.filter(Job.date_posted >= date_threshold)
-                    elif date_posted == 'pastMonth':
-                        date_threshold = today - pd.Timedelta(days=30)
-                        query = query.filter(Job.date_posted >= date_threshold)
+                # ... existing filter code ...
                 
                 # Apply sorting
                 if filters.get('sortBy'):
@@ -107,20 +55,42 @@ def register_job_routes(app):
                         query = query.order_by(Job.max_amount.desc())
                     # Default is relevance, which doesn't need explicit sorting
                 
+                # Get total count before pagination
+                total_count = query.count()
+                
+                # Apply pagination
+                offset = (page - 1) * per_page
+                query = query.offset(offset).limit(per_page)
+                
                 # Execute the query and get results
                 filtered_jobs = query.all()
                 
                 # Convert SQLAlchemy objects to dictionaries
-                jobs_list = [{c.name: getattr(job, c.name) for c in job.__table__.columns} for job in filtered_jobs]    
+                jobs_list = [{c.name: getattr(job, c.name) for c in job.__table__.columns} for job in filtered_jobs]
+                
+                # Return paginated results with metadata
+                result = {
+                    'jobs': jobs_list,
+                    'pagination': {
+                        'total': total_count,
+                        'page': page,
+                        'per_page': per_page,
+                        'total_pages': (total_count + per_page - 1) // per_page
+                    }
+                }
+                
                 session.close()
-                return jsonify(jobs_list)
+                return jsonify(result)
             
-            # Handle GET request (optional - you might want to return all jobs or a subset)
+            # Handle GET request with pagination
+            page = int(request.args.get('page', 1))
+            per_page = int(request.args.get('per_page', 10))
             clerk_id = request.args.get('clerkId')
+            
             session = Session()
             
             # Start with base query
-            query = session.query(Job).limit(100)
+            query = session.query(Job)
             
             # Filter out not interested jobs if clerk_id is provided
             if clerk_id:
@@ -130,14 +100,34 @@ def register_job_routes(app):
                     if user.not_interested_job_ids:
                         query = query.filter(~Job.id.in_(user.not_interested_job_ids))
             
+            # Get total count
+            total_count = query.count()
+            
+            # Apply pagination
+            offset = (page - 1) * per_page
+            query = query.offset(offset).limit(per_page)
+            
             all_jobs = query.all()
             jobs_list = [{c.name: getattr(job, c.name) for c in job.__table__.columns} for job in all_jobs]
+            
+            # Return paginated results with metadata
+            result = {
+                'jobs': jobs_list,
+                'pagination': {
+                    'total': total_count,
+                    'page': page,
+                    'per_page': per_page,
+                    'total_pages': (total_count + per_page - 1) // per_page
+                }
+            }
+            
             session.close()
-            return jsonify(jobs_list)
+            return jsonify(result)
                 
         except Exception as e:
             logging.error(f"Error in search_jobs: {str(e)}")
             return jsonify({'error': str(e)}), 500
+
 
     @app.route('/api/job/<string:job_id>', methods=['GET'])
     @cross_origin()

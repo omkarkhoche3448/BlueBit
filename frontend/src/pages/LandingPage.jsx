@@ -408,7 +408,19 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="hidden md:flex items-center space-x-4">
-              {/* Auth buttons commented out as in original code */}
+              {/* Enable Sign In and Sign Up buttons */}
+              <button
+                onClick={() => setShowSignIn(true)}
+                className="px-4 py-2 text-sm font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => setShowSignUp(true)}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+              >
+                Sign Up
+              </button>
             </div>
             <div className="flex md:hidden">
               <button
@@ -714,7 +726,7 @@ export default function LandingPage() {
       <section className="py-8 sm:py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.p
-            className="text-center text-sm sm:text-base font-medium text-gray-500 mb-8"
+                      className="text-center text-sm sm:text-base font-medium text-gray-500 mb-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
@@ -722,7 +734,7 @@ export default function LandingPage() {
             Aggregating jobs from leading platforms
           </motion.p>
           <motion.div
-            className="grid grid-cols-2 gap-8 md:grid-cols-6 lg:grid-cols-5 sm:grid-cols-1"
+            className="grid grid-cols-2 gap-8 md:grid-cols-6 lg:grid-cols-5"
             variants={staggerContainer}
             initial="hidden"
             animate="visible"

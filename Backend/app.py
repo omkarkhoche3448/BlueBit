@@ -289,22 +289,22 @@ def analyze():
 
 if __name__ == '__main__':
     # Initialize database and load initial jobs in a separate thread
-    # db_thread = threading.Thread(target=init_db_and_load_jobs)
-    # db_thread.daemon = True
-    # db_thread.start()
+    db_thread = threading.Thread(target=init_db_and_load_jobs)
+    db_thread.daemon = True
+    db_thread.start()
     
     # Initialize recommendation engine in a separate thread
-    rec_thread = threading.Thread(target=init_recommendation_engine)
-    rec_thread.daemon = True
-    rec_thread.start()
+    # rec_thread = threading.Thread(target=init_recommendation_engine)
+    # rec_thread.daemon = True
+    # rec_thread.start()
     
-    # Start the recommendation scheduler in a separate thread
-    def start_scheduler():
-        session = Session()
-        start_recommendation_scheduler_internal(session)
+    # # Start the recommendation scheduler in a separate thread
+    # def start_scheduler():
+    #     session = Session()
+    #     start_recommendation_scheduler_internal(session)
     
-    scheduler_thread = threading.Thread(target=start_scheduler)
-    scheduler_thread.daemon = True
-    scheduler_thread.start()
+    # scheduler_thread = threading.Thread(target=start_scheduler)
+    # scheduler_thread.daemon = True
+    # scheduler_thread.start()
     
     app.run(debug=True, port=8000)
