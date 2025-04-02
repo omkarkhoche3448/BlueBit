@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { ChevronLeft, ChevronRight, Star, MapPin, Clock, Building, Briefcase } from "lucide-react"
+import { ChevronLeft, ChevronRight, Star, MapPin, Clock, Building, Briefcase, Zap, ThumbsUp, BookmarkPlus } from "lucide-react"
 import { useUser } from "@clerk/clerk-react"
 import axios from "axios"
 import { useProStatusContext } from "../../contexts/ProStatusContext"
@@ -76,32 +76,54 @@ function RecommendedJobs() {
     }))
   }
 
-  // If recommendations array is empty, show interaction message
+  // If recommendations array is empty, show enhanced interaction message
   if (!isLoading && recommendations.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <div className="text-center py-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Personalized Job Recommendations</h2>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-blue-800 text-sm font-semibold mb-2">🚀 Not Enough Data for Recommendations</p>
-            <p className="text-gray-600 text-xs">
-              Do some Interactions or Engage in more job interactions to unlock personalized recommendations tailored just for you.
-            </p>
-            <div className="mt-4">
-              <p className="text-gray-700 text-xs">Start by:</p>
-              <ul className="text-gray-600 text-xs list-disc list-inside mt-1">
-                <li>Liking jobs</li>
-                <li>Applying to positions</li>
-                <li>Saving interesting job listings</li>
-              </ul>
+      <div className="bg-white rounded-lg shadow-md p-4 mb-6 border border-gray-100">
+        <div className="text-center">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-4">
+            <div className="flex items-center space-x-4">
+              <div className="bg-blue-100 rounded-full p-2 flex-shrink-0">
+                <Zap className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="text-left">
+                <h2 className="text-blue-800 font-semibold text-sm mb-1">Unlock Your Perfect Job Match</h2>
+                <p className="text-gray-600 text-xs">
+                  Help us understand your preferences to deliver tailored recommendations.
+                </p>
+              </div>
             </div>
-            <Link
-              to="/search"
-              className="mt-4 inline-block bg-blue-500 text-white text-xs px-4 py-2 rounded hover:bg-blue-600 transition"
-            >
-              Explore Jobs
-            </Link>
+            
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              <div className="bg-white rounded p-2 border border-blue-100">
+                <div className="flex items-center text-blue-500 mb-1">
+                  <ThumbsUp className="w-4 h-4 mr-1" />
+                  <span className="text-xs font-medium">Like Jobs</span>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded p-2 border border-blue-100">
+                <div className="flex items-center text-blue-500 mb-1">
+                  <BookmarkPlus className="w-4 h-4 mr-1" />
+                  <span className="text-xs font-medium">Save Jobs</span>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded p-2 border border-blue-100">
+                <div className="flex items-center text-blue-500 mb-1">
+                  <Briefcase className="w-4 h-4 mr-1" />
+                  <span className="text-xs font-medium">Apply</span>
+                </div>
+              </div>
+            </div>
           </div>
+          
+          <Link
+            to="/search"
+            className="inline-block bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all mt-3"
+          >
+            Explore Jobs
+          </Link>
         </div>
       </div>
     )

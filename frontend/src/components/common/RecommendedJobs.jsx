@@ -79,53 +79,50 @@ function RecommendedJobs() {
   // If recommendations array is empty, show enhanced interaction message
   if (!isLoading && recommendations.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6 border border-gray-100">
-        <div className="text-center py-4">
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">Personalized Job Recommendations</h2>
-          
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-6 mb-4">
-            <div className="flex flex-col items-center">
-              <div className="bg-blue-100 rounded-full p-3 mb-4">
-                <Zap className="w-8 h-8 text-blue-600" />
+      <div className="bg-white rounded-lg shadow-md p-4 mb-6 border border-gray-100">
+        <div className="text-center">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-4">
+            <div className="flex items-center space-x-4">
+              <div className="bg-blue-100 rounded-full p-2 flex-shrink-0">
+                <Zap className="w-6 h-6 text-blue-600" />
               </div>
-              <p className="text-blue-800 text-base font-semibold mb-2">Unlock Your Perfect Job Match</p>
-              <p className="text-gray-700 text-sm max-w-md mb-4">
-                We need a bit more information about your preferences to deliver personalized recommendations tailored to your career goals.
-              </p>
+              <div className="text-left">
+                <h2 className="text-blue-800 font-semibold text-sm mb-1">Unlock Your Perfect Job Match</h2>
+                <p className="text-gray-600 text-xs">
+                  Help us understand your preferences to deliver tailored recommendations.
+                </p>
+              </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-              <div className="bg-white rounded-lg p-4 shadow-sm border border-blue-100">
-                <div className="flex items-center mb-2">
-                  <ThumbsUp className="w-5 h-5 text-blue-500 mr-2" />
-                  <h3 className="font-medium text-gray-800">Like Jobs</h3>
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              <div className="bg-white rounded p-2 border border-blue-100">
+                <div className="flex items-center text-blue-500 mb-1">
+                  <ThumbsUp className="w-4 h-4 mr-1" />
+                  <span className="text-xs font-medium">Like Jobs</span>
                 </div>
-                <p className="text-gray-600 text-xs">Mark jobs you're interested in to help us understand your preferences.</p>
               </div>
               
-              <div className="bg-white rounded-lg p-4 shadow-sm border border-blue-100">
-                <div className="flex items-center mb-2">
-                  <BookmarkPlus className="w-5 h-5 text-blue-500 mr-2" />
-                  <h3 className="font-medium text-gray-800">Save Listings</h3>
+              <div className="bg-white rounded p-2 border border-blue-100">
+                <div className="flex items-center text-blue-500 mb-1">
+                  <BookmarkPlus className="w-4 h-4 mr-1" />
+                  <span className="text-xs font-medium">Save Jobs</span>
                 </div>
-                <p className="text-gray-600 text-xs">Bookmark positions that match your skills and interests.</p>
               </div>
               
-              <div className="bg-white rounded-lg p-4 shadow-sm border border-blue-100">
-                <div className="flex items-center mb-2">
-                  <Briefcase className="w-5 h-5 text-blue-500 mr-2" />
-                  <h3 className="font-medium text-gray-800">Apply to Jobs</h3>
+              <div className="bg-white rounded p-2 border border-blue-100">
+                <div className="flex items-center text-blue-500 mb-1">
+                  <Briefcase className="w-4 h-4 mr-1" />
+                  <span className="text-xs font-medium">Apply</span>
                 </div>
-                <p className="text-gray-600 text-xs">Submit applications to help us refine your recommendation feed.</p>
               </div>
             </div>
           </div>
           
           <Link
             to="/search"
-            className="inline-block bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-md font-medium hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm"
+            className="inline-block bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all mt-3"
           >
-            Explore Available Jobs
+            Explore Jobs
           </Link>
         </div>
       </div>
