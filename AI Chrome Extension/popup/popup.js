@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const autofillFormButton = document.getElementById('autofillForm');
   const statusMessage = document.getElementById('statusMessage');
   const clerkIdInput = document.getElementById('clerk-id-input');
+  const loginMessage = document.getElementById('login-message');
   let manualClerkId = null;
 
   if (!autofillFormButton) {
@@ -12,17 +13,29 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
-  // Update manualClerkId when input changes
-  clerkIdInput.addEventListener('input', function() {
-    manualClerkId = clerkIdInput.value.trim();
+  // Check if there's a stored Clerk ID
+  chrome.storage.local.get(['clerkUserId'], function(result) {
+    if (result.clerkUserId) {
+      console.log('Found stored Clerk ID:', result.clerkUserId);
+      clerkIdInput.value = result.clerkUserId;
+      manualClerkId = result.clerkUserId;
+      
+      // Update status message to show connected state
+      loginMessage.classList.remove('hidden');
+      statusMessage.textContent = 'Connected to your account. Ready to fill forms!';
+      statusMessage.style.color = '#4CAF50';
+      
+      // Update button to show it's ready
+      autofillFormButton.classList.add('ready');
+    }
   });
 
   // Autofill the form using the backend API
   autofillFormButton.addEventListener('click', function() {
-    // Check if Clerk ID is entered
+    // Check if Clerk ID is entered or automatically detected
     if (!manualClerkId) {
-      statusMessage.textContent = 'Please enter your Clerk ID first.';
-      clerkIdInput.focus();
+      statusMessage.textContent = 'Please log in to your account first.';
+      loginMessage.classList.remove('hidden');
       return;
     }
     
@@ -56,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Scripts injected successfully');
         statusMessage.textContent = 'Scripts injected, processing form...';
         
-        // Use the manually entered Clerk ID
+        // Use the auto-detected Clerk ID
         processFormWithClerkId(currentTab.id, manualClerkId);
       })
       .catch(err => {
@@ -94,4 +107,21 @@ document.addEventListener('DOMContentLoaded', function() {
       statusMessage.textContent = 'Error: Failed to communicate with the page.';
     }
   }
+  
+  // Add event handlers for help and settings buttons
+  document.getElementById('helpButton').addEventListener('click', function() {
+    statusMessage.textContent = 'Log in at localhost:5173 to connect your resume data automatically.';
+    loginMessage.classList.remove('hidden');
+  });
+  
+  document.getElementById('settingsButton').addEventListener('click', function() {
+    // Show/hide advanced settings if needed in the future
+    chrome.storage.local.get(['clerkUserId'], function(result) {
+      if (result.clerkUserId) {
+        statusMessage.textContent = `Connected with ID: ${result.clerkUserId.substring(0, 8)}...`;
+      } else {
+        statusMessage.textContent = 'Not connected. Please log in to your account.';
+      }
+    });
+  });
 });

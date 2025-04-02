@@ -234,3 +234,7 @@ h1 {
   color: var(--dark);
 }
 
+.hidden-field {
+  display: none;
+}
+
