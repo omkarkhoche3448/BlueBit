@@ -33,6 +33,17 @@ export const fetchJobs = createAsyncThunk("jobs/fetchJobs", async (params, { rej
     // Get the user's Clerk ID
     const clerkId = window.Clerk?.user?.id || null;
     
+    // Format filters for the API
+    const formattedFilters = {
+      jobType: filters.jobType || [],
+      location: filters.location || [],
+      company: filters.company || [],
+      searchTerm: filters.searchTerm || '',
+      // Add any other filters that might be needed
+    };
+    
+    console.log("Sending filters to API:", formattedFilters);
+    
     // Send the filters, pagination params, and Clerk ID in the request body
     const response = await fetch(url, {
       method: "POST",
@@ -40,7 +51,7 @@ export const fetchJobs = createAsyncThunk("jobs/fetchJobs", async (params, { rej
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ 
-        filters,
+        filters: formattedFilters,
         clerkId,
         page,
         per_page
@@ -90,6 +101,13 @@ const jobsSlice = createSlice({
       page: 1,
       per_page: 10,
       total_pages: 0
+    },
+    // Add filters to the state so they can be accessed from any component
+    activeFilters: {
+      jobType: [],
+      location: [],
+      company: [],
+      searchTerm: ''
     }
   },
   reducers: {
@@ -124,6 +142,43 @@ const jobsSlice = createSlice({
         state.appliedJobs.push(jobId);
       }
     },
+    // New reducers for managing filters
+    updateFilters: (state, action) => {
+      state.activeFilters = {
+        ...state.activeFilters,
+        ...action.payload
+      };
+      // Reset to page 1 when filters change
+      state.pagination.page = 1;
+    },
+    updateFilterCategory: (state, action) => {
+      const { category, value } = action.payload;
+      state.activeFilters[category] = value;
+      // Reset to page 1 when filters change
+      state.pagination.page = 1;
+    },
+    toggleFilter: (state, action) => {
+      const { category, value } = action.payload;
+      const currentFilters = state.activeFilters[category] || [];
+      
+      if (currentFilters.includes(value)) {
+        state.activeFilters[category] = currentFilters.filter(item => item !== value);
+      } else {
+        state.activeFilters[category] = [...currentFilters, value];
+      }
+      // Reset to page 1 when filters change
+      state.pagination.page = 1;
+    },
+    clearAllFilters: (state) => {
+      state.activeFilters = {
+        jobType: [],
+        location: [],
+        company: [],
+        searchTerm: ''
+      };
+      // Reset to page 1 when filters are cleared
+      state.pagination.page = 1;
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -142,10 +197,32 @@ const jobsSlice = createSlice({
         state.error = action.payload
       })
       
-      // Rest of the extraReducers remain the same
+      // Handle fetchJobById
+      .addCase(fetchJobById.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(fetchJobById.fulfilled, (state, action) => {
+        state.loading = false
+        state.currentJob = action.payload
+      })
+      .addCase(fetchJobById.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
   },
 })
 
-export const { toggleSaveJob, clearErrors, setPage, setPerPage, applyToJob } = jobsSlice.actions
+export const { 
+  toggleSaveJob, 
+  clearErrors, 
+  setPage, 
+  setPerPage, 
+  applyToJob,
+  updateFilters,
+  updateFilterCategory,
+  toggleFilter,
+  clearAllFilters
+} = jobsSlice.actions
 
 export default jobsSlice.reducer

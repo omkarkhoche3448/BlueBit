@@ -20,6 +20,7 @@ import LandingPage from "./pages/LandingPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import { ProStatusProvider } from './contexts/ProStatusContext';
 import LikedJobsPage from "./pages/LikedJobsPage";
+import { FiltersProvider } from "./contexts/FiltersContext";
 
 const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND
 
@@ -77,6 +78,7 @@ function AuthenticatedRoute({ children }) {
 function App() {
   return (
     <ProStatusProvider>
+      <FiltersProvider>
       <Routes>
         <Route
           path="/"
@@ -153,6 +155,7 @@ function App() {
           }
         />
       </Routes>
+      </FiltersProvider>
     </ProStatusProvider>
   );
 }
