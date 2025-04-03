@@ -1,57 +1,112 @@
-import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
-import { ChevronLeft, ChevronRight, Star, MapPin, Clock, Building, Briefcase, Zap, ThumbsUp, BookmarkPlus } from "lucide-react"
-import { useUser } from "@clerk/clerk-react"
-import axios from "axios"
-import { useProStatusContext } from "../../contexts/ProStatusContext"
+import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  MapPin,
+  Clock,
+  Building,
+  Briefcase,
+  Zap,
+  ThumbsUp,
+  BookmarkPlus,
+} from "lucide-react";
+import { useUser } from "@clerk/clerk-react";
+import axios from "axios";
+import { useProStatusContext } from "../../contexts/ProStatusContext";
 
 const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 
 function RecommendedJobs() {
-  const [recommendations, setRecommendations] = useState([])
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [isLoading, setIsLoading] = useState(true)
-  const { user } = useUser()
-  const { isPro } = useProStatusContext()
-  const itemsPerPage = 3
+  const [recommendations, setRecommendations] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useUser();
+  const { isPro } = useProStatusContext();
+  const itemsPerPage = 3;
+  const carouselInterval = useRef(null);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     const fetchRecommendations = async () => {
-      if (!user) return
+      if (!user) return;
 
       try {
-        setIsLoading(true)
-        const response = await axios.get(`${API_URL_BACKEND}/users/${user.id}/recommendations`)
+        setIsLoading(true);
+        const response = await axios.get(
+          `${API_URL_BACKEND}/users/${user.id}/recommendations`
+        );
         // Fix: Access the recommendations array from the response data
-        setRecommendations(response.data.recommendations || [])
+        setRecommendations(response.data.recommendations || []);
       } catch (error) {
-        console.error("Error fetching recommendations:", error)
-        setRecommendations([])
+        console.error("Error fetching recommendations:", error);
+        setRecommendations([]);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
+    };
+
+    fetchRecommendations();
+  }, [user]);
+
+  // Auto-sliding carousel functionality
+  useEffect(() => {
+    // Only start auto-sliding if we have enough items
+    if (recommendations.length > itemsPerPage && isPro) {
+      carouselInterval.current = setInterval(() => {
+        if (!isPaused) {
+          setCurrentIndex((prevIndex) => {
+            // Calculate next index with wraparound
+            const maxStartIndex = recommendations.length - itemsPerPage;
+            const nextIndex = prevIndex + itemsPerPage;
+            return nextIndex > maxStartIndex ? 0 : nextIndex;
+          });
+        }
+      }, 5000); // 5 seconds interval
     }
 
-    fetchRecommendations()
-  }, [user])
+    // Cleanup function to clear interval when component unmounts
+    return () => {
+      if (carouselInterval.current) {
+        clearInterval(carouselInterval.current);
+      }
+    };
+  }, [recommendations, isPro, isPaused, itemsPerPage]);
+
+  // Pause auto-sliding when user interacts with the carousel
+  const pauseCarousel = () => {
+    setIsPaused(true);
+    // Resume auto-sliding after 10 seconds of inactivity
+    setTimeout(() => setIsPaused(false), 10000);
+  };
 
   // Handle sliding through recommendations
   const handleNext = () => {
+    pauseCarousel();
     if (isPro && currentIndex + itemsPerPage < recommendations.length) {
-      setCurrentIndex(currentIndex + itemsPerPage)
+      setCurrentIndex(currentIndex + itemsPerPage);
+    } else if (isPro) {
+      // Wrap around to the beginning
+      setCurrentIndex(0);
     }
-  }
+  };
 
   const handlePrev = () => {
+    pauseCarousel();
     if (isPro && currentIndex > 0) {
-      setCurrentIndex(currentIndex - itemsPerPage)
+      setCurrentIndex(currentIndex - itemsPerPage);
+    } else if (isPro) {
+      // Wrap around to the end
+      const maxStartIndex = Math.max(0, recommendations.length - itemsPerPage);
+      setCurrentIndex(maxStartIndex);
     }
-  }
+  };
 
   // Format recommendations to match JobCard expected format
   const formatRecommendations = () => {
     if (!Array.isArray(recommendations)) {
-      return []
+      return [];
     }
 
     return recommendations.map((job) => ({
@@ -73,13 +128,13 @@ function RecommendedJobs() {
           : null,
       description: job.description,
       job_url: job.job_url,
-    }))
-  }
+    }));
+  };
 
   // If recommendations array is empty, show enhanced interaction message
   if (!isLoading && recommendations.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6 border border-gray-100">
+      <div className="bg-white rounded-lg shadow-md p-4 mb-6 border border-gray-100 max-w-sm mx-auto">
         <div className="text-center">
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-4">
             <div className="flex items-center space-x-4">
@@ -87,64 +142,79 @@ function RecommendedJobs() {
                 <Zap className="w-6 h-6 text-blue-600" />
               </div>
               <div className="text-left">
-                <h2 className="text-blue-800 font-semibold text-sm mb-1">Unlock Your Perfect Job Match</h2>
+                <h2 className="text-blue-800 font-semibold text-sm mb-1">
+                  Unlock Your Perfect Job Match
+                </h2>
                 <p className="text-gray-600 text-xs">
-                  Help us understand your preferences to deliver tailored recommendations.
+                  Help us understand your preferences to deliver tailored
+                  recommendations.
                 </p>
               </div>
             </div>
-            
-            <div className="grid grid-cols-3 gap-2 mt-3">
+
+            <div className="grid grid-cols-2 md:grid-cols-1 gap-2 mt-3 mx-auto">
               <div className="bg-white rounded p-2 border border-blue-100">
-                <div className="flex items-center text-blue-500 mb-1">
+                <div className="flex items-center justify-center text-blue-500 mb-1">
                   <ThumbsUp className="w-4 h-4 mr-1" />
                   <span className="text-xs font-medium">Like Jobs</span>
                 </div>
               </div>
-              
+
               <div className="bg-white rounded p-2 border border-blue-100">
-                <div className="flex items-center text-blue-500 mb-1">
+                <div className="flex items-center justify-center text-blue-500 mb-1">
                   <BookmarkPlus className="w-4 h-4 mr-1" />
                   <span className="text-xs font-medium">Save Jobs</span>
                 </div>
               </div>
-              
-              <div className="bg-white rounded p-2 border border-blue-100">
-                <div className="flex items-center text-blue-500 mb-1">
+
+              <div className="bg-white rounded p-2 border border-blue-100 col-span-2 flex justify-center">
+                <div className="flex items-center justify-center text-blue-500 mb-1">
                   <Briefcase className="w-4 h-4 mr-1" />
                   <span className="text-xs font-medium">Apply</span>
                 </div>
               </div>
             </div>
           </div>
-          
+
           <Link
             to="/search"
-            className="inline-block bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all mt-3"
+            className=" inline-block mt-3 md:mt-0 md:w-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg shadow hover:bg-blue-700 outline-none "
           >
             Explore Jobs
           </Link>
         </div>
       </div>
-    )
+    );
   }
 
-  const formattedJobs = formatRecommendations()
-  const currentJobs = formattedJobs.slice(currentIndex, currentIndex + itemsPerPage)
-  const hasNext = isPro && currentIndex + itemsPerPage < recommendations.length
-  const hasPrev = isPro && currentIndex > 0
+  const formattedJobs = formatRecommendations();
+  const currentJobs = formattedJobs.slice(
+    currentIndex,
+    currentIndex + itemsPerPage
+  );
+  const hasNext = isPro && recommendations.length > itemsPerPage;
+  const hasPrev = isPro && recommendations.length > itemsPerPage;
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
       <div className="flex justify-between items-center mb-5">
-        <h2 className="text-lg font-semibold text-gray-900">Recommended jobs for you</h2>
-        <Link to="/recommendations" className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
+        <h2 className="text-lg font-semibold text-gray-900">
+          Recommended jobs for you
+        </h2>
+        <Link
+          to="/recommendations"
+          className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
+        >
           View all
           <ChevronRight className="w-4 h-4 ml-1" />
         </Link>
       </div>
 
-      <div className="relative">
+      <div 
+        className="relative"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
         {hasPrev && (
           <button
             onClick={handlePrev}
@@ -156,8 +226,8 @@ function RecommendedJobs() {
         )}
 
         <div className="overflow-hidden px-1">
-          <div 
-            className="flex space-x-4 transition-transform duration-300 ease-in-out" 
+          <div
+            className="flex space-x-4 transition-transform duration-500 ease-in-out"
             style={{ transform: `translateX(-${currentIndex * (220 + 16)}px)` }}
           >
             {formattedJobs.map((job) => (
@@ -179,19 +249,31 @@ function RecommendedJobs() {
 
       {!isPro && recommendations.length > itemsPerPage && (
         <div className="mt-4 bg-blue-50 border border-blue-100 rounded-md p-3 text-xs text-center">
-          <p className="text-blue-800 font-medium mb-1">Upgrade to Pro to see more recommendations</p>
-          <p className="text-gray-600">Pro users can access all job recommendations tailored to their profile.</p>
+          <p className="text-blue-800 font-medium mb-1">
+            Upgrade to Pro to see more recommendations
+          </p>
+          <p className="text-gray-600">
+            Pro users can access all job recommendations tailored to their
+            profile.
+          </p>
         </div>
       )}
 
-      {isPro && (
+      {isPro && recommendations.length > itemsPerPage && (
         <div className="flex justify-center mt-4 space-x-1">
-          {Array.from({ length: Math.ceil(recommendations.length / itemsPerPage) }).map((_, idx) => (
+          {Array.from({
+            length: Math.ceil(recommendations.length / itemsPerPage),
+          }).map((_, idx) => (
             <button
               key={idx}
-              onClick={() => setCurrentIndex(idx * itemsPerPage)}
+              onClick={() => {
+                pauseCarousel();
+                setCurrentIndex(idx * itemsPerPage);
+              }}
               className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                Math.floor(currentIndex / itemsPerPage) === idx ? "bg-blue-600 w-5" : "bg-gray-300"
+                Math.floor(currentIndex / itemsPerPage) === idx
+                  ? "bg-blue-600 w-5"
+                  : "bg-gray-300"
               }`}
               aria-label={`Page ${idx + 1}`}
             />
@@ -199,7 +281,7 @@ function RecommendedJobs() {
         </div>
       )}
     </div>
-  )
+  );
 }
 
 function JobCard({ job }) {
@@ -211,7 +293,11 @@ function JobCard({ job }) {
         <div className="flex items-center justify-between p-3 border-b border-gray-50">
           <div className="w-10 h-10 rounded-md bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden">
             {job.company_logo ? (
-              <img src={job.company_logo} alt={job.company} className="w-8 h-8 object-contain" />
+              <img
+                src={job.company_logo}
+                alt={job.company}
+                className="w-8 h-8 object-contain"
+              />
             ) : (
               <Briefcase className="w-8 h-8 text-gray-400" />
             )}
@@ -236,7 +322,9 @@ function JobCard({ job }) {
           <div className="flex items-center text-gray-500 text-xs">
             <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
             <span className="truncate">{job.location}</span>
-            {job.is_remote && <span className="ml-1 text-green-600 font-medium">• Remote</span>}
+            {job.is_remote && (
+              <span className="ml-1 text-green-600 font-medium">• Remote</span>
+            )}
           </div>
         </div>
 
@@ -249,13 +337,16 @@ function JobCard({ job }) {
             View Job
           </Link>
 
-          <button className="text-gray-300 hover:text-yellow-400 transition-colors" aria-label="Save job">
+          <button
+            className="text-gray-300 hover:text-yellow-400 transition-colors"
+            aria-label="Save job"
+          >
             <Star className="w-4 h-4" />
           </button>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default RecommendedJobs
+export default RecommendedJobs;
