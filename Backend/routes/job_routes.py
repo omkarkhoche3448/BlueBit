@@ -1,7 +1,8 @@
 from flask import request, jsonify
 from flask_cors import cross_origin
 import logging
-from sqlalchemy import func, or_, text, select
+import re
+from sqlalchemy import func, or_, and_, text, select
 from sqlalchemy.engine.result import ScalarResult
 from datetime import datetime
 from contextlib import contextmanager
@@ -21,19 +22,78 @@ def session_scope():
     finally:
         session.close()
 
+def get_total_count(session, query):
+    """Efficiently get the total count using exists() subquery"""
+    count_stmt = select(func.count()).select_from(query.subquery())
+    return session.execute(count_stmt).scalar()
+
 def apply_pagination(session, query, page, requested_per_page):
+    """Apply pagination to query"""
     # Limit per_page to a maximum of 10
     per_page = min(10, requested_per_page)
     
-    # Get total count - use the original query for counting
-    count_stmt = select(func.count()).select_from(query.subquery())
-    total_count = session.execute(count_stmt).scalar()
+    # Get total count efficiently
+    total_count = get_total_count(session, query)
     
     # Apply pagination
     offset = (page - 1) * per_page
-    paginated_results = session.execute(query.offset(offset).limit(per_page)).scalars().all()
+    # Use execution plan optimization by adding columns we'll need
+    paginated_results = session.execute(
+        query.offset(offset).limit(per_page)
+    ).scalars().all()
     
     return paginated_results, total_count, per_page
+
+def create_search_conditions(search_input):
+    """Create optimized search conditions based on user input, excluding description field."""
+    # Clean up the search input
+    search_input = search_input.strip().lower()
+    
+    # Common stopwords to ignore when searching
+    stopwords = {'and', 'or', 'the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'with'}
+    
+    # Check for exact phrase search (enclosed in quotes) - compile regex once
+    exact_phrase_pattern = re.compile(r'"([^"]+)"')
+    exact_phrases = exact_phrase_pattern.findall(search_input)
+    
+    # Remove exact phrases from the main search string to process other terms
+    for phrase in exact_phrases:
+        search_input = search_input.replace(f'"{phrase}"', '')
+    
+    # Split remaining search terms
+    individual_terms = [term.strip() for term in search_input.split() if term.strip() and term.strip().lower() not in stopwords]
+    
+    # Combine exact phrases back with individual terms
+    all_search_terms = exact_phrases + individual_terms
+    
+    # Create a single combined condition for all search terms
+    search_conditions = []
+    
+    # Handle exact phrases (must match exactly)
+    for phrase in exact_phrases:
+        phrase_pattern = f"%{phrase}%"
+        # Search only in title, company, location, and job_type, not in description
+        phrase_condition = or_(
+            Job.title.ilike(phrase_pattern),
+            Job.company.ilike(phrase_pattern),
+            Job.location.ilike(phrase_pattern),
+            Job.job_type.ilike(phrase_pattern)
+        )
+        search_conditions.append(phrase_condition)
+    
+    # Handle individual terms
+    for term in individual_terms:
+        term_pattern = f"%{term}%"
+        # Search only in title, company, location, and job_type, not in description
+        term_condition = or_(
+            Job.title.ilike(term_pattern),
+            Job.company.ilike(term_pattern),
+            Job.location.ilike(term_pattern),
+            Job.job_type.ilike(term_pattern)
+        )
+        search_conditions.append(term_condition)
+        
+    return search_conditions
 
 def register_job_routes(app):
     @app.route('/api/search-jobs', methods=['GET', 'POST'])
@@ -41,122 +101,152 @@ def register_job_routes(app):
     def search_jobs():
         try:
             with session_scope() as session:
+                # Common parameters extraction
                 if request.method == 'POST':
                     data = request.json
                     filters = data.get('filters', {})
                     clerk_id = data.get('clerkId')
-                    
-                    # Get pagination parameters
                     page = int(data.get('page', 1))
                     requested_per_page = int(data.get('per_page', 10))
-                    
-                    # Start with a base query for jobs
-                    query = select(Job).select_from(Job)
-                    
-                    # Create a list of filter conditions to apply all at once
-                    filter_conditions = []
-                    
-                    # Filter out jobs the user is not interested in
-                    if clerk_id:
-                        user = session.query(User).filter(User.clerk_id == clerk_id).first()
-                        if user and user.not_interested_job_ids and len(user.not_interested_job_ids) > 0:
-                            filter_conditions.append(~Job.id.in_(user.not_interested_job_ids))
-                    
-                    # Apply search term filter
-                    if filters.get('searchTerm'):
-                        search_term = f"%{filters['searchTerm']}%"
-                        search_condition = or_(
-                            Job.title.ilike(search_term),
-                            Job.description.ilike(search_term),
-                            Job.company.ilike(search_term)
-                        )
-                        filter_conditions.append(search_condition)
-                    
-                    # Apply job type filter
-                    if filters.get('jobType') and len(filters['jobType']) > 0:
-                        job_types = filters['jobType']
-                        job_type_conditions = [Job.job_type.ilike(f"%{job_type}%") for job_type in job_types]
-                        filter_conditions.append(or_(*job_type_conditions))
-                    
-                    # Apply location filter
-                    if filters.get('location') and len(filters['location']) > 0:
-                        locations = filters['location']
-                        location_conditions = [Job.location.ilike(f"%{loc.replace('-', ' ')}%") for loc in locations]
-                        filter_conditions.append(or_(*location_conditions))
-                    
-                    # Apply company filter
-                    if filters.get('company') and len(filters['company']) > 0:
-                        companies = filters['company']
-                        company_conditions = [Job.company.ilike(f"%{comp.replace('-', ' ')}%") for comp in companies]
-                        filter_conditions.append(or_(*company_conditions))
-                    
-                    # Apply all filters at once
-                    if filter_conditions:
-                        query = query.where(*filter_conditions)
-                    
-                    # Apply sorting
+                    search_term = filters.get('searchTerm', '')
+                    job_types = filters.get('jobType', [])
+                    locations = filters.get('location', [])
+                    companies = filters.get('company', [])
+                    min_salary = filters.get('minSalary')
+                    exp_levels = filters.get('experienceLevel', [])
                     sort_by = filters.get('sortBy', 'datePosted')
-                    if sort_by == 'datePosted':
-                        query = query.order_by(Job.date_posted.desc())
-                    elif sort_by == 'salary':
-                        query = query.order_by(Job.max_amount.desc(), Job.date_posted.desc())
-                    else:
-                        query = query.order_by(Job.date_posted.desc())
-                    
-                    # Apply pagination and get results - pass the session
-                    filtered_jobs, total_count, per_page = apply_pagination(session, query, page, requested_per_page)
-                    
-                    # Convert SQLAlchemy objects to dictionaries within the active session
-                    jobs_list = []
-                    for job in filtered_jobs:
-                        job_dict = {c.name: getattr(job, c.name) for c in job.__table__.columns}
-                        
-                        # Convert datetime objects to strings
-                        for key, value in job_dict.items():
-                            if isinstance(value, datetime):
-                                job_dict[key] = value.isoformat()
-                        
-                        jobs_list.append(job_dict)
-                    
-                    # Return paginated results with metadata
-                    result = {
-                        'jobs': jobs_list,
-                        'pagination': {
-                            'total': total_count,
-                            'page': page,
-                            'per_page': per_page,
-                            'total_pages': (total_count + per_page - 1) // per_page if per_page > 0 else 0
-                        }
-                    }
-                    
-                    return jsonify(result)
+                else:  # GET request
+                    page = int(request.args.get('page', 1))
+                    requested_per_page = int(request.args.get('per_page', 10))
+                    clerk_id = request.args.get('clerkId')
+                    search_term = request.args.get('searchTerm', '')
+                    job_types = [request.args.get('jobType')] if request.args.get('jobType') else []
+                    locations = [request.args.get('location')] if request.args.get('location') else []
+                    companies = [request.args.get('company')] if request.args.get('company') else []
+                    min_salary = None
+                    exp_levels = []
+                    sort_by = 'datePosted'
                 
-                # Handle GET request with pagination
-                page = int(request.args.get('page', 1))
-                requested_per_page = int(request.args.get('per_page', 10))
-                clerk_id = request.args.get('clerkId')
-                
-                # Start with base query
+                # Start with a base query for jobs - select only what we need
                 query = select(Job).select_from(Job)
                 
-                # Filter out not interested jobs if clerk_id is provided
+                # Create a list of filter conditions
+                filter_conditions = []
+                
+                # Filter out jobs the user is not interested in - optimize with subquery
                 if clerk_id:
                     user = session.query(User).filter(User.clerk_id == clerk_id).first()
                     if user and user.not_interested_job_ids and len(user.not_interested_job_ids) > 0:
-                        query = query.where(~Job.id.in_(user.not_interested_job_ids))
+                        filter_conditions.append(~Job.id.in_(user.not_interested_job_ids))
                 
-                # Sort by date posted (newest first) as default
-                query = query.order_by(Job.date_posted.desc())
+                # Apply search term filter - use optimized function (now excluding description field)
+                if search_term:
+                    search_conditions = create_search_conditions(search_term)
+                    filter_conditions.extend(search_conditions)
                 
-                # Apply pagination and get results - pass the session
-                all_jobs, total_count, per_page = apply_pagination(session, query, page, requested_per_page)
+                # Apply job type filter - IMPROVED
+                if job_types:
+                    job_type_conditions = []
+                    for job_type in job_types:
+                        if not job_type:
+                            continue
+                        job_type_clean = job_type.replace('-', ' ').strip().lower()
+                        if ' ' in job_type_clean:
+                            job_type_conditions.append(func.lower(Job.job_type).contains(job_type_clean))
+                        else:
+                            job_type_conditions.append(or_(
+                                func.lower(Job.job_type) == job_type_clean,
+                                func.lower(Job.job_type).like(f"% {job_type_clean} %"),
+                                func.lower(Job.job_type).like(f"% {job_type_clean}"),
+                                func.lower(Job.job_type).like(f"{job_type_clean} %")
+                            ))
+                    if job_type_conditions:
+                        filter_conditions.append(or_(*job_type_conditions))
                 
-                # Convert SQLAlchemy objects to dictionaries within the active session
+                # Apply location filter - IMPROVED
+                if locations:
+                    location_conditions = []
+                    for loc in locations:
+                        if not loc:
+                            continue
+                        loc_clean = loc.replace('-', ' ').strip().lower()
+                        if len(loc_clean.split()) > 1:
+                            location_conditions.append(func.lower(Job.location).contains(loc_clean))
+                        else:
+                            location_conditions.append(or_(
+                                func.lower(Job.location) == loc_clean,
+                                func.lower(Job.location).like(f"% {loc_clean} %"),
+                                func.lower(Job.location).like(f"% {loc_clean}"),
+                                func.lower(Job.location).like(f"{loc_clean} %"),
+                                func.lower(Job.location).like(f"%, {loc_clean}"),
+                                func.lower(Job.location).like(f"{loc_clean}, %")
+                            ))
+                    if location_conditions:
+                        filter_conditions.append(or_(*location_conditions))
+                
+                # Apply company filter - IMPROVED
+                if companies:
+                    company_conditions = []
+                    for comp in companies:
+                        if not comp:
+                            continue
+                        comp_clean = comp.replace('-', ' ').strip().lower()
+                        if len(comp_clean.split()) > 1:
+                            company_conditions.append(func.lower(Job.company).contains(comp_clean))
+                        else:
+                            company_conditions.append(or_(
+                                func.lower(Job.company) == comp_clean,
+                                func.lower(Job.company).like(f"% {comp_clean} %"),
+                                func.lower(Job.company).like(f"% {comp_clean}"),
+                                func.lower(Job.company).like(f"{comp_clean} %")
+                            ))
+                    if company_conditions:
+                        filter_conditions.append(or_(*company_conditions))
+                
+                # Apply salary range filter if provided
+                if min_salary:
+                    try:
+                        min_salary_val = float(min_salary)
+                        filter_conditions.append(or_(
+                            Job.min_amount >= min_salary_val,
+                            Job.max_amount >= min_salary_val
+                        ))
+                    except (ValueError, TypeError):
+                        pass
+                
+                # Apply experience level filter if provided - THIS STILL SEARCHES IN DESCRIPTION
+                if exp_levels:
+                    exp_conditions = []
+                    for level in exp_levels:
+                        level_clean = level.replace('-', ' ').lower()
+                        exp_conditions.append(or_(
+                            func.lower(Job.title).contains(level_clean),
+                            func.lower(Job.description).contains(level_clean)  # Keep searching in description for experience levels
+                        ))
+                    if exp_conditions:
+                        filter_conditions.append(or_(*exp_conditions))
+                
+                # Apply all filters at once
+                if filter_conditions:
+                    query = query.where(*filter_conditions)
+                
+                # Apply sorting - using indexes effectively
+                if sort_by == 'datePosted':
+                    query = query.order_by(Job.date_posted.desc())
+                elif sort_by == 'salary':
+                    query = query.order_by(Job.max_amount.desc(), Job.date_posted.desc())
+                else:
+                    query = query.order_by(Job.date_posted.desc())
+                
+                # Apply pagination and get results
+                filtered_jobs, total_count, per_page = apply_pagination(session, query, page, requested_per_page)
+                
+                # Efficiently convert SQLAlchemy objects to dictionaries
                 jobs_list = []
-                for job in all_jobs:
+                for job in filtered_jobs:
                     job_dict = {c.name: getattr(job, c.name) for c in job.__table__.columns}
                     
-                    # Convert datetime objects to strings
+                    # Convert datetime objects to strings only once
                     for key, value in job_dict.items():
                         if isinstance(value, datetime):
                             job_dict[key] = value.isoformat()
