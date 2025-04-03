@@ -199,7 +199,7 @@ function JobList() {
       {/* Pagination Controls - modified for server-side pagination */}
       {pagination.total_pages > 1 && (
         <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
-          <div className="flex flex-1 justify-between sm:hidden">
+          <div className="flex flex-1 justify-between sm:hidden ">
             {/* Mobile version */}
             <button
               onClick={() => handlePageChange(Math.max(1, pagination.page - 1))}
@@ -208,7 +208,7 @@ function JobList() {
             >
               Previous
             </button>
-            <span className="text-sm text-gray-700">
+            <span className="text-sm text-gray-700 mt-2">
               Page {pagination.page} of {pagination.total_pages}
             </span>
             <button
