@@ -89,7 +89,7 @@ function SearchPage() {
   }, []);
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 p-4 max-w-7xl mx-auto">
+    <div className="flex flex-col md:flex-row md:gap-6 md:p-4 max-w-7xl mx-auto">
       {/* Mobile Filters Toggle - Enhanced styling */}
       <MobileFiltersToggle 
         onClick={toggleMobileFilters}

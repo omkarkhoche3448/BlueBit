@@ -1,12 +1,24 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Briefcase, User, Bell, MessageSquare, Menu, Search, X, Award } from "lucide-react";
+import {
+  Briefcase,
+  User,
+  Bell,
+  MessageSquare,
+  Menu,
+  Search,
+  X,
+  Award,
+  Settings,
+} from "lucide-react";
 import Logo from "../../assets/PlatformLogo.webp";
 import { UserButton } from "@clerk/clerk-react";
+import { useClerk } from "@clerk/clerk-react";
 
 function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
+  const { openUserProfile, signOut } = useClerk();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -14,6 +26,7 @@ function Header() {
   const isResumeParserPage = location.pathname === "/resume-parser";
   const isSearchPage = location.pathname === "/search";
   const isResumeCreater = location.pathname === "/create-resume";
+  const isPreferences = location.pathname === "/preferences";
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -34,7 +47,7 @@ function Header() {
     { to: "/resume-parser", label: "Resume Analyzer", icon: MessageSquare },
     { to: "/create-resume", label: "Create Resume", icon: Bell },
     { to: "/recommendations", label: "Recommend Jobs", icon: Award },
-    // { to: "/profile", label: "Profile", icon: User },
+    { to: "/preferences", label: "Edit Preferences", icon: Settings },
   ];
 
   const getLinkClasses = (isActive) =>
@@ -54,7 +67,7 @@ function Header() {
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex ml-6 space-x-8">
+            <div className="hidden md:flex ml-3 space-x-6">
               {navLinks.map((link) => (
                 <Link
                   key={link.to}
@@ -67,33 +80,41 @@ function Header() {
             </div>
           </div>
 
-          {!isSearchPage && !isHomePage && !isResumeParserPage && !isResumeCreater && (
-            <div className="hidden md:block flex-1 max-w-1/5 mx-auto">
-              <form onSubmit={handleSearch} className="w-full">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5 text-gray-400" />
+          {!isSearchPage &&
+            !isHomePage &&
+            !isResumeParserPage &&
+            !isResumeCreater &&
+            !isPreferences && (
+              <div className="hidden md:block flex-1 max-w-[240px] mx-auto">
+                <form onSubmit={handleSearch} className="w-full">
+                  <div className="relative w-full max-w-md mx-auto">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <Search className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      className="block w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg bg-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Search jobs, skills, companies..."
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                    />
                   </div>
-                  <input
-                    type="text"
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Search jobs, skills, companies..."
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                  />
-                </div>
-              </form>
-            </div>
-          )}
+                </form>
+              </div>
+            )}
 
           {/* Desktop Icons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link to="/messages" className="text-gray-500 hover:text-gray-700" title="Messages">
+            <Link
+              to="/messages"
+              className="text-gray-500 hover:text-gray-700"
+              title="Messages"
+            >
               <MessageSquare className="h-6 w-6" />
             </Link>
-            <Link to="/notifications" className="text-gray-500 hover:text-gray-700" title="Notifications">
+            {/* <Link to="/notifications" className="text-gray-500 hover:text-gray-700" title="Notifications">
               <Bell className="h-6 w-6" />
-            </Link>
+            </Link> */}
             <UserButton />
           </div>
 
@@ -104,7 +125,11 @@ function Header() {
               className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
             >
               <span className="sr-only">Open main menu</span>
-              {isMenuOpen ? <X className="block h-6 w-6" /> : <Menu className="block h-6 w-6" />}
+              {isMenuOpen ? (
+                <X className="block h-6 w-6" />
+              ) : (
+                <Menu className="block h-6 w-6" />
+              )}
             </button>
           </div>
         </div>
@@ -113,34 +138,27 @@ function Header() {
       {isMenuOpen && (
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            {!isSearchPage && (
-              <form onSubmit={handleSearch} className="mb-3">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    placeholder="Search jobs, skills, companies..."
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                  />
-                </div>
-              </form>
-            )}
             {navLinks.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
                 className={`flex items-center px-3 py-2 rounded-md text-base font-medium ${
-                  link.active ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  link.active
+                    ? "bg-blue-50 text-blue-600"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
                 <link.icon className="mr-3 h-5 w-5" />
                 <span>{link.label}</span>
               </Link>
             ))}
+            <button
+              onClick={() => openUserProfile()}
+              className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            >
+              <User className="mr-3 h-5 w-5" />
+              View Profile
+            </button>
           </div>
         </div>
       )}
