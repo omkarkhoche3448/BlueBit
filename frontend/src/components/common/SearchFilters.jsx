@@ -19,8 +19,8 @@ function SearchFilters() {
   // State for expand/collapse sections
   const [expandedSections, setExpandedSections] = useState({
     jobType: true,
-    location: true,
-    company: true,
+    location: false,
+    company: false,
   });
 
   // State for "show more" toggles
