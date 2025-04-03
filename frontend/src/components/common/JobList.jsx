@@ -20,32 +20,31 @@ function JobList() {
   const [notInterestedJobs, setNotInterestedJobs] = useState({});
   const [jobsToHide, setJobsToHide] = useState(new Set());
   
-  // Set per_page based on pro status and fetch jobs only once on component mount
+  // Combined useEffect for initialization and job fetching
   useEffect(() => {
+    // Set per_page based on pro status
     const jobsPerPage = isPro ? 10 : 5;
-    dispatch(setPerPage(jobsPerPage));
     
-    // Only fetch if we're on the initial state
-    if (pagination.page === 1 && jobs.length === 0) {
+    // For initial load, update per_page first, then fetch jobs
+    const initialize = async () => {
+      // Only update per_page if it's different from current value
+      if (jobsPerPage !== pagination.per_page) {
+        dispatch(setPerPage(jobsPerPage));
+      }
+      
+      // Always fetch jobs with current filters and pagination
+      // This ensures we always use the latest state values
       dispatch(fetchJobs({
         filters,
         page: pagination.page,
-        per_page: jobsPerPage // Use the value we just set instead of pagination.per_page
+        per_page: jobsPerPage // Use our local variable instead of state that might not be updated yet
       }));
-    }
-  }, [isPro, dispatch]);
-
-  // Handle pagination or filter changes after initial load
-  useEffect(() => {
-    // Skip the initial render - we handle that in the first useEffect
-    if (jobs.length > 0 || pagination.page > 1) {
-      dispatch(fetchJobs({
-        filters,
-        page: pagination.page,
-        per_page: pagination.per_page
-      }));
-    }
-  }, [dispatch, filters, pagination.page, pagination.per_page]);
+    };
+    
+    initialize();
+    
+    // Only re-run this effect when these specific dependencies change
+  }, [dispatch, isPro, filters, pagination.page]);
 
   // Handle marking a job as not interested
   const handleNotInterested = (jobId) => {

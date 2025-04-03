@@ -88,8 +88,6 @@ function SearchFilters() {
     }));
   };
 
-  // Note: Removed the unnecessary useEffect that was causing duplicate requests
-
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden sticky top-20">
       <div className="p-4 border-b border-gray-300 flex justify-between items-center">
