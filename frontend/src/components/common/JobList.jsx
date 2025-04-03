@@ -16,36 +16,25 @@ function JobList() {
   const { user, isSignedIn } = useUser();
   const { isPro } = useProStatusContext();
 
-  // Not interested jobs state
   const [notInterestedJobs, setNotInterestedJobs] = useState({});
   const [jobsToHide, setJobsToHide] = useState(new Set());
-  
   // Combined useEffect for initialization and job fetching
   useEffect(() => {
-    // Set per_page based on pro status
     const jobsPerPage = isPro ? 10 : 5;
-    
-    // For initial load, update per_page first, then fetch jobs
-    const initialize = async () => {
-      // Only update per_page if it's different from current value
-      if (jobsPerPage !== pagination.per_page) {
-        dispatch(setPerPage(jobsPerPage));
-      }
-      
-      // Always fetch jobs with current filters and pagination
-      // This ensures we always use the latest state values
-      dispatch(fetchJobs({
-        filters,
-        page: pagination.page,
-        per_page: jobsPerPage // Use our local variable instead of state that might not be updated yet
-      }));
-    };
-    
-    initialize();
-    
-    // Only re-run this effect when these specific dependencies change
-  }, [dispatch, isPro, filters, pagination.page]);
+    if (jobsPerPage !== pagination.per_page) {
+      dispatch(setPerPage(jobsPerPage));
+    }
+  }, [dispatch, isPro, pagination.per_page]);
 
+  // Effect to fetch jobs when Pro status, filters, or page changes
+  useEffect(() => {
+    const jobsPerPage = isPro ? 10 : 5;
+    dispatch(fetchJobs({
+      filters,
+      page: pagination.page,
+      per_page: jobsPerPage
+    }));
+  }, [dispatch, isPro, filters, pagination.page]);
   // Handle marking a job as not interested
   const handleNotInterested = (jobId) => {
     // Create a timer to hide the job after 5 seconds
