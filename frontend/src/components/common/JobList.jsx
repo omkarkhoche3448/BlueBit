@@ -19,24 +19,32 @@ function JobList() {
   // Not interested jobs state
   const [notInterestedJobs, setNotInterestedJobs] = useState({});
   const [jobsToHide, setJobsToHide] = useState(new Set());
-
-  // Set per_page based on pro status
+  
+  // Set per_page based on pro status and fetch jobs only once on component mount
   useEffect(() => {
     const jobsPerPage = isPro ? 10 : 5;
     dispatch(setPerPage(jobsPerPage));
+    
+    // Only fetch if we're on the initial state
+    if (pagination.page === 1 && jobs.length === 0) {
+      dispatch(fetchJobs({
+        filters,
+        page: pagination.page,
+        per_page: jobsPerPage // Use the value we just set instead of pagination.per_page
+      }));
+    }
   }, [isPro, dispatch]);
 
-  // Fetch jobs with pagination
+  // Handle pagination or filter changes after initial load
   useEffect(() => {
-    const fetchJobsWithParams = () => {
+    // Skip the initial render - we handle that in the first useEffect
+    if (jobs.length > 0 || pagination.page > 1) {
       dispatch(fetchJobs({
         filters,
         page: pagination.page,
         per_page: pagination.per_page
       }));
-    };
-    
-    fetchJobsWithParams();
+    }
   }, [dispatch, filters, pagination.page, pagination.per_page]);
 
   // Handle marking a job as not interested

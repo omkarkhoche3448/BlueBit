@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { useFilters } from "../../contexts/FiltersContext";
 import { useDispatch, useSelector } from "react-redux";
@@ -88,14 +88,7 @@ function SearchFilters() {
     }));
   };
 
-  // Load initial jobs when component mounts
-  useEffect(() => {
-    dispatch(fetchJobs({
-      filters: selectedFilters,
-      page: pagination.page,
-      per_page: pagination.per_page
-    }));
-  }, []);
+  // Note: Removed the unnecessary useEffect that was causing duplicate requests
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden sticky top-20">
