@@ -63,7 +63,7 @@ function ResumeParserPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
+    <div className="max-w-4xl mx-auto">
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">Resume Parser & ATS Analyzer</h1>
         <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">

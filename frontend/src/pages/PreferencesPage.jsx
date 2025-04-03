@@ -221,7 +221,7 @@ function PreferencesPage() {
     const selectedPreferences = preferences[category];
 
     return (
-      <div className="p-6 bg-gray-50 rounded-lg">
+      <div className=" rounded-lg">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
           <button
@@ -281,14 +281,14 @@ function PreferencesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-6 md:py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {isEditMode ? "Update Preferences" : "Welcome to JobFinder!"}
+            <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
+              {isEditMode ? "Update Preferences" : "Welcome to Handjobs!"}
             </h1>
-            <p className="mt-2 text-lg text-gray-600">
+            <p className="mt-2 text-md text-gray-600 md:text-lg">
               {isEditMode
                 ? "Modify your existing preferences"
                 : "Let's personalize your experience"}
@@ -297,10 +297,10 @@ function PreferencesPage() {
           {hasExistingPreferences && !isEditMode && (
             <button
               onClick={() => setIsEditMode(true)}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              className="inline-flex items-center p-2 md:px-4 md:py-2 border border-gray-300 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
             >
               <Pencil className="h-4 w-4 mr-2" />
-              Edit Preferences
+              <span className="text-xs md:text-base">Edit Preferences</span>
             </button>
           )}
         </div>
