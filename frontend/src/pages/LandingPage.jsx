@@ -137,67 +137,64 @@ export default function LandingPage() {
     },
   ];
 
-    // Plans data
-    const plans = [
-      {
-        name: "Free",
-        monthlyPrice: "₹0",
-        annualPrice: "₹0",
-        period: "/month",
-        description: "Perfect for casual job seekers",
-        popular: false,
-        color: "bg-white",
-        cta: "Get Started",
-        features: [
-          "Basic job search across platforms",
-          "Limited filters",
-          "Save up to 5 jobs",
-          "Weekly email alerts",
-        ],
-      },
-      {
-        name: "Pro",
-        monthlyPrice: "₹199",
-        annualPrice: "₹149",
-        period: "/month",
-        description: "For serious job hunters",
-        popular: true,
-        color: "bg-blue-50",
-        cta: "Start Free Trial",
-        features: [
-          "Advanced search with all filters",
-          "Unlimited saved jobs",
-          "Real-time notifications",
-          "Application tracking",
-          "Resume analyzer",
-          "Salary insights",
-        ],
-      },
-      {
-        name: "Enterprise",
-        monthlyPrice: "Custom",
-        annualPrice: "Custom",
-        period: "",
-        description: "For teams and organizations",
-        popular: false,
-        color: "bg-white",
-        cta: "Contact Sales",
-        features: [
-          "Everything in Pro",
-          "API access",
-          "Custom integrations",
-          "Dedicated account manager",
-          "Advanced analytics",
-          "White-label options",
-        ],
-      },
-    ];
-  
-    // For mobile, make popular plan first
-    const displayPlans = isMobile
-      ? [...plans].sort((a, b) => b.popular - a.popular)
-      : plans;
-  
+  const plans = [
+    {
+      name: "Free",
+      monthlyPrice: "₹0",
+      period: "/month",
+      description: "Perfect for casual job seekers",
+      popular: false,
+      color: "bg-white",
+      cta: "Get Started",
+      features: [
+        "Basic job search across platforms",
+        "Limited filters",
+        "Save up to 5 jobs",
+        "Weekly email alerts",
+      ],
+    },
+    {
+      name: "Pro",
+      monthlyPrice: "₹149",
+      originalPrice: "₹299", // Add the original price for strike-through
+      period: "/month",
+      description: "For serious job hunters",
+      popular: true,
+      color: "bg-blue-50",
+      cta: "Start Free Trial",
+      features: [
+        "Advanced search with all filters",
+        "Unlimited saved jobs",
+        "Real-time notifications",
+        "Application tracking",
+        "Resume analyzer",
+        "Salary insights",
+      ],
+      offer: "Early Bird Offer", // Add the offer label
+    },
+    {
+      name: "Enterprise",
+      monthlyPrice: "Custom",
+      period: "",
+      description: "For teams and organizations",
+      popular: false,
+      color: "bg-white",
+      cta: "Contact Sales",
+      features: [
+        "Everything in Pro",
+        "API access",
+        "Custom integrations",
+        "Dedicated account manager",
+        "Advanced analytics",
+        "White-label options",
+      ],
+    },
+  ];
+
+  // For mobile, make popular plan first
+  const displayPlans = isMobile
+    ? [...plans].sort((a, b) => b.popular - a.popular)
+    : plans;
 
   const staggerContainer = {
     hidden: { opacity: 0 },
@@ -341,7 +338,6 @@ export default function LandingPage() {
     },
   ];
 
-  
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -349,36 +345,37 @@ export default function LandingPage() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!email) {
-        toast.error("Please enter a valid email address.");
-        return;
+      toast.error("Please enter a valid email address.");
+      return;
     }
 
     if (!emailRegex.test(email)) {
-        toast.error("Please enter a valid email address.");
-        return;
+      toast.error("Please enter a valid email address.");
+      return;
     }
 
     try {
-        const googleFormUrl = "https://docs.google.com/forms/d/e/1FAIpQLSfgMLqH5s89tMH4R0a0iojbz73Aubwf3Uo1WrDdryW5RCVQUg/formResponse";
-        const formData = new URLSearchParams();
-        formData.append("entry.1242802776", email);
-        const response = await fetch(googleFormUrl, {
-            method: "POST",
-            body: formData,
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-            mode: "no-cors", // Allow the request to bypass CORS restrictions
-        });
+      const googleFormUrl =
+        "https://docs.google.com/forms/d/e/1FAIpQLSfgMLqH5s89tMH4R0a0iojbz73Aubwf3Uo1WrDdryW5RCVQUg/formResponse";
+      const formData = new URLSearchParams();
+      formData.append("entry.1242802776", email);
+      const response = await fetch(googleFormUrl, {
+        method: "POST",
+        body: formData,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        mode: "no-cors", // Allow the request to bypass CORS restrictions
+      });
 
-        // Since we can't access the response in no-cors mode, assume success
-        toast.success("We received your request. We'll revert you back soon!");
-        setEmail(""); // Clear input field
+      // Since we can't access the response in no-cors mode, assume success
+      toast.success("We received your request. We'll revert you back soon!");
+      setEmail(""); // Clear input field
     } catch (error) {
-        console.error("Error submitting form:", error);
-        toast.error("An error occurred. Please try again later.");
+      console.error("Error submitting form:", error);
+      toast.error("An error occurred. Please try again later.");
     }
-};
+  };
 
   // Close mobile menu when clicking on a link
   const handleMobileNavClick = (sectionId) => {
@@ -1044,53 +1041,22 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing Section - Optimized for mobile */}
+      {/* Pricing Section - Updated */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="text-center mb-12">
-            <h2 className="text-xl font-semibold text-blue-600">
-              Simple Pricing
-            </h2>
+            <h2 className="text-xl font-semibold text-blue-600">Simple Pricing</h2>
             <h3 className="mt-2 text-3xl sm:text-4xl font-bold text-gray-900">
               Choose the plan that's right for you
             </h3>
             <p className="mt-4 text-xl text-gray-600 max-w-2xl mx-auto">
               Start for free, upgrade when you need more features
             </p>
-
-            {/* Billing toggle */}
-            <div className="mt-8 flex items-center justify-center">
-              <span className={`mr-3 ${!isAnnual ? "font-medium" : ""}`}>
-                Monthly
-              </span>
-              <button
-                onClick={() => setIsAnnual(!isAnnual)}
-                className="relative inline-flex h-6 w-12 rounded-full bg-gray-200"
-                aria-pressed="false"
-              >
-                <span className="sr-only">Toggle billing frequency</span>
-                <span
-                  className={`${
-                    isAnnual ? "translate-x-6" : "translate-x-1"
-                  } inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform ease-in-out duration-200 mt-1`}
-                />
-              </button>
-              <span className={`ml-3 ${isAnnual ? "font-medium" : ""}`}>
-                Annual{" "}
-                <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full ml-1">
-                  Save 25%
-                </span>
-              </span>
-            </div>
           </div>
 
           {/* Plans container */}
-          <div
-            className={
-              isMobile ? "py-2 overflow-x-auto pb-8 hide-scrollbar" : ""
-            }
-          >
+          <div className={isMobile ? "py-2 overflow-x-auto pb-8 hide-scrollbar" : ""}>
             <div
               className={
                 isMobile
@@ -1117,12 +1083,10 @@ export default function LandingPage() {
                     </div>
                   )}
                   <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900">
-                      {plan.name}
-                    </h3>
+                    <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
                     <div className="mt-4 flex items-baseline">
                       <span className="text-3xl font-extrabold tracking-tight text-gray-900">
-                        {isAnnual ? plan.annualPrice : plan.monthlyPrice}
+                        {plan.monthlyPrice}
                       </span>
                       {plan.period && (
                         <span className="ml-1 text-lg text-gray-500">
@@ -1130,6 +1094,13 @@ export default function LandingPage() {
                         </span>
                       )}
                     </div>
+                    
+                    
+                    {plan.offer && (
+                      <div className="mt-2 text-sm text-green-600 font-medium">
+                        {plan.offer}
+                      </div>
+                    )}
                     <p className="mt-5 text-gray-500">{plan.description}</p>
 
                     <button
