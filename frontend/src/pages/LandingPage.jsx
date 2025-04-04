@@ -20,6 +20,8 @@ import {
   AlertCircle,
   Bell,
 } from "lucide-react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import { useClerk } from "@clerk/clerk-react";
 
@@ -339,11 +341,44 @@ export default function LandingPage() {
     },
   ];
 
-  const handleSubmit = (e) => {
+  
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Email submitted:", email);
-    setEmail("");
-  };
+
+    // Regular expression for validating email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!email) {
+        toast.error("Please enter a valid email address.");
+        return;
+    }
+
+    if (!emailRegex.test(email)) {
+        toast.error("Please enter a valid email address.");
+        return;
+    }
+
+    try {
+        const googleFormUrl = "https://docs.google.com/forms/d/e/1FAIpQLSfgMLqH5s89tMH4R0a0iojbz73Aubwf3Uo1WrDdryW5RCVQUg/formResponse";
+        const formData = new URLSearchParams();
+        formData.append("entry.1242802776", email);
+        const response = await fetch(googleFormUrl, {
+            method: "POST",
+            body: formData,
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            mode: "no-cors", // Allow the request to bypass CORS restrictions
+        });
+
+        // Since we can't access the response in no-cors mode, assume success
+        toast.success("We received your request. We'll revert you back soon!");
+        setEmail(""); // Clear input field
+    } catch (error) {
+        console.error("Error submitting form:", error);
+        toast.error("An error occurred. Please try again later.");
+    }
+};
 
   // Close mobile menu when clicking on a link
   const handleMobileNavClick = (sectionId) => {
@@ -354,6 +389,8 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white overflow-hidden">
+      {/* Toast container for displaying notifications */}
+      <ToastContainer />
       {/* Add viewport meta tag for better mobile experience */}
       <head>
         <meta
