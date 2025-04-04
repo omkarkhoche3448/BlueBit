@@ -25,16 +25,28 @@ def process_chrome_extension_form():
         
         # Fetch user's resume from the database
         session = Session()
-        user = session.query(User).filter_by(clerk_id=clerk_id).first()
-        
-        if not user or not user.resume_text:
-            session.close()
-            return jsonify({"success": False, "error": "No resume found for this user"}), 404
+        try:
+            user = session.query(User).filter_by(clerk_id=clerk_id).first()
             
-        user_resume = user.resume_text 
-        user_address = user.preferred_address
-
-        session.close()
+            if not user:
+                return jsonify({"success": False, "error": "User not found"}), 404
+                
+            if user.autofill_limit <= 0:
+                return jsonify({"success": False, "error": "Autofill limit reached"}), 403
+            
+            if not user.resume_text:
+                return jsonify({"success": False, "error": "No resume found for this user"}), 404
+                
+            # Store needed user data
+            user_resume = user.resume_text 
+            user_address = user.preferred_address
+            
+            # Update the limit
+            user.autofill_limit -= 1
+            session.commit()
+            
+        finally:
+            session.close()
         
         # Prepare prompt for Gemini using the requested format
         prompt = f"""I'm filling out a job application form. Below is my resume information, followed by the form fields I need to fill. Please provide appropriate responses for each field based on my resume data.

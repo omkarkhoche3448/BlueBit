@@ -22,6 +22,7 @@ class User(Base):
     pro_expiration_date = Column(Date, nullable=True)  # Stores expiration date of pro account
     preferred_address = Column(String(500), nullable=True)  # Stores preferred address for job search
     bookmarks = Column(JSON, nullable=True)  # Stores bookmarks for jobs or other items
+    autofill_limit = Column(Float, default=50)  # Stores autofill limit for user
 
 # Define Job model
 class Job(Base):
