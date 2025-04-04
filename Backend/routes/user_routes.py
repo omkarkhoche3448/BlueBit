@@ -16,6 +16,37 @@ genai.configure(api_key="AIzaSyDCSbDt2Xdd3xvvIIwqqcc9EiZfQ_mTyHM")  # Replace wi
 # Configure Google Generative AI with your API key
 # genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
 
+def is_valid_resume(text):
+    """
+    Validate if the extracted text looks like a resume using Gemini API.
+    Returns True if it's a valid resume, False otherwise.
+    """
+    try:
+        prompt = """
+        Does the following text look like a resume or CV? 
+        Please respond ONLY with "YES" or "NO" - nothing else.
+        
+        ```
+        {text}
+        ```
+        """
+        
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        response = model.generate_content(prompt.format(text=text[:10000])) # Limit text length
+        
+        # Clean the response - strip whitespace and convert to uppercase
+        response_text = response.text.strip().upper()
+        
+        # Log the response for debugging
+        logging.info(f"Resume validation response: {response_text}")
+        
+        # Return True only if response is exactly "YES"
+        return response_text == "YES"
+        
+    except Exception as e:
+        logging.error(f"Error validating resume: {str(e)}")
+        return False  # Default to False on error
+
 def register_user_routes(app):
     @app.route('/api/users/<string:clerk_id>/preferences', methods=['GET', 'POST'])
     def manage_preferences(clerk_id):
@@ -217,44 +248,43 @@ def register_user_routes(app):
                 elif file.filename.endswith('.docx'):
                     text, error = extract_text_from_docx(file)
                     
-                # Check for extraction errors
                 if error:
-                    return jsonify({'error': f'Failed to extract text: {error}'}), 400
-                if not text:
-                    return jsonify({'error': 'No text extracted from the file'}), 400
-                    
+                    return jsonify({'error': f'Failed to extract text from resume: {error}'}), 400
+                
+                if not text or text.strip() == '':
+                    return jsonify({'error': 'No text could be extracted from the file'}), 400
+                
+                # NEW: Validate if the extracted text is actually a resume
+                if not is_valid_resume(text):
+                    # Remove the uploaded file if it's not a valid resume
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                    return jsonify({'error': 'The uploaded file does not appear to be a valid resume. Please upload a valid resume.'}), 400
+                
                 # Extract keywords from the resume text
                 keywords = extract_resume_keywords(text)
-                    
-                # Save to database
-                user = session.query(User).filter(User.clerk_id == clerk_id).first()
                 
-                if user:
-                    # Update existing user
-                    user.resume_text = text
-                    user.resume_path = file_path
-                    user.resume_keywords = keywords
-                else:
-                    # Create new user
-                    new_user = User(
-                        clerk_id=clerk_id,
-                        resume_text=text,
-                        resume_path=file_path,
-                        resume_keywords=keywords
-                    )
-                    session.add(new_user)
+                # Store the resume info in the user record
+                user = session.query(User).filter(User.clerk_id == clerk_id).first()
+                if not user:
+                    user = User(clerk_id=clerk_id)
+                    session.add(user)
+                
+                user.resume_path = file_path
+                user.resume_text = text
+                user.resume_keywords = keywords
                 
                 session.commit()
+                
                 return jsonify({
                     'message': 'Resume uploaded successfully',
-                    'keywordsExtracted': len(keywords)
+                    'path': file_path,
+                    'keywords': keywords
                 })
         
         except Exception as e:
-            session.rollback()
             logging.error(f"Error managing resume: {str(e)}")
-            return jsonify({'error': f'Failed to manage resume: {str(e)}'}), 500
-        
+            return jsonify({'error': str(e)}), 500
         finally:
             session.close()
 
