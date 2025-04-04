@@ -28,7 +28,7 @@ import RecommendationsPage from "./pages/RecommendationsPage";
 import { ProStatusProvider } from "./contexts/ProStatusContext";
 import LikedJobsPage from "./pages/LikedJobsPage";
 import { FiltersProvider } from "./contexts/FiltersContext";
-// import HelpButton from "./components/common/HelpButton";
+import HelpButton from "./components/common/HelpButton";
 
 const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 
@@ -244,9 +244,9 @@ function App() {
               }
             /> */}
           </Routes>
-          {/* <SignedIn>
+          <SignedIn>
             <HelpButton />
-          </SignedIn> */}
+          </SignedIn>
         </FiltersProvider>
       </ProStatusProvider>
     </ErrorBoundary>
