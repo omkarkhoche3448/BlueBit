@@ -294,9 +294,9 @@ if __name__ == '__main__':
     # db_thread.start()
     
     # Initialize recommendation engine in a separate thread
-    rec_thread = threading.Thread(target=init_recommendation_engine)
-    rec_thread.daemon = True
-    rec_thread.start()
+    # rec_thread = threading.Thread(target=init_recommendation_engine)
+    # rec_thread.daemon = True
+    # rec_thread.start()
     
     # # Start the recommendation scheduler in a separate thread
     # def start_scheduler():

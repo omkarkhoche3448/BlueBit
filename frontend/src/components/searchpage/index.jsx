@@ -1,4 +1,6 @@
 import { Search, SlidersHorizontal, ChevronDown, SlidersHorizontalIcon } from "lucide-react";
+import { useFilters } from "../../contexts/FiltersContext";
+import { useState, useEffect, useRef } from "react";
 
 function MobileFiltersToggle({ onClick }) {
     return (
@@ -47,116 +49,155 @@ function SearchHeader({
           </button>
         </form>
   
-        {/* Search Results Info & Sort */}
-        <div className="mt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-          <div className="text-sm text-gray-500">
-            {loading ? (
-              "Searching..."
-            ) : (
-              <>
-                {jobs.length > 0 ? (
-                  <>
-                    <span className="font-medium">1-{Math.min(20, jobs.length)}</span> of{" "}
-                    <span className="font-medium">{jobs.length}</span> {searchTerm ? `results for "${searchTerm}"` : "jobs"}
-                  </>
-                ) : (
-                  "No results found"
-                )}
-              </>
-            )}
+        {!loading && (
+          <div className="mt-3 flex items-center justify-between text-sm text-gray-500">
+            <span>{jobs?.length} jobs found</span>
+            <div className="flex items-center">
+              <span className="mr-2">Sort by:</span>
+              <SortDropdown
+                sortBy={sortBy}
+                onSortChange={onSortChange}
+              />
+            </div>
           </div>
-          <SortDropdown sortBy={sortBy} onSortChange={onSortChange} />
-        </div>
+        )}
       </div>
     );
 }
   
 function SortDropdown({ sortBy, onSortChange }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+    
+    // Handle clicks outside the dropdown to close it
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        }
+        
+        // Add event listener
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            // Cleanup event listener
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [dropdownRef]);
+    
+    // Toggle dropdown visibility
+    const toggleDropdown = () => setIsOpen(!isOpen);
+    
+    // Handle sort option selection
+    const handleSortChange = (value) => {
+        onSortChange(value);
+        setIsOpen(false); // Close dropdown after selection
+    };
+    
     return (
-      <div className="flex items-center">
-        <label htmlFor="sort" className="text-sm font-medium text-gray-700 mr-2">
-          Sort by:
-        </label>
-        <div className="relative">
-          <select
-            id="sort"
-            name="sort"
-            className="block w-full pl-3 pr-10 py-1 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md appearance-none"
-            onChange={onSortChange}
-            value={sortBy}
+      <div className="relative inline-block text-left" ref={dropdownRef}>
+        <div>
+          <button
+            type="button"
+            className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500"
+            id="options-menu"
+            aria-expanded={isOpen}
+            aria-haspopup="true"
+            onClick={toggleDropdown}
           >
-            <option value="relevance">Relevance</option>
-            <option value="date">Most Recent</option>
-            <option value="salary-high">Salary (High to Low)</option>
-            <option value="salary-low">Salary (Low to High)</option>
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-            <ChevronDown className="h-4 w-4" />
-          </div>
+            {sortBy === "relevance" ? "Relevance" : 
+             sortBy === "date" ? "Date Posted" : 
+             sortBy === "salary" ? "Salary" : "Relevance"}
+            <ChevronDown className="-mr-1 ml-2 h-5 w-5" aria-hidden="true" />
+          </button>
         </div>
+
+        {isOpen && (
+          <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+            <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+              <button
+                className={`${
+                  sortBy === "relevance" ? "bg-gray-100 text-gray-900" : "text-gray-700"
+                } block px-4 py-2 text-sm w-full text-left hover:bg-gray-100`}
+                onClick={() => handleSortChange("relevance")}
+                role="menuitem"
+              >
+                Relevance
+              </button>
+              <button
+                className={`${
+                  sortBy === "date" ? "bg-gray-100 text-gray-900" : "text-gray-700"
+                } block px-4 py-2 text-sm w-full text-left hover:bg-gray-100`}
+                onClick={() => handleSortChange("date")}
+                role="menuitem"
+              >
+                Date Posted
+              </button>
+              <button
+                className={`${
+                  sortBy === "salary" ? "bg-gray-100 text-gray-900" : "text-gray-700"
+                } block px-4 py-2 text-sm w-full text-left hover:bg-gray-100`}
+                onClick={() => handleSortChange("salary")}
+                role="menuitem"
+              >
+                Salary
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
 }
   
-function AppliedFilters({ filters, onClearFilters }) {
+function AppliedFilters() {
+  const { selectedFilters, clearFilters, appliedFiltersCount } = useFilters();
+  
+  // Don't render if no filters are applied
+  if (appliedFiltersCount === 0) {
+    return null;
+  }
+  
+  // Map filter names to display labels
   const filterLabels = {
-    searchTerm: "Search",
-    jobType: "Job Type",
-    location: "Location",
-    experienceLevel: "Experience",
-    salaryRange: "Salary",
-    datePosted: "Posted",
-    companyIndustry: "Company",
-    companySize: "Company Size",
-    jobLevel: "Job Level",
-    isRemote: "Remote",
+    jobType: 'Job Type',
+    location: 'Location',
+    company: 'Company'
   };
-
-  // Check if any filter is applied (excluding sortBy and defaults)
-  const hasActiveFilters = Object.entries(filters).some(
-    ([key, value]) => 
-      value && 
-      key !== "sortBy" && 
-      value !== "relevance" && 
-      value !== ""
-  );
-
+  
   return (
-    hasActiveFilters && (
-      <div className="bg-white rounded-lg shadow-sm p-4">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-gray-700">Applied Filters</h3>
-          <button 
-            className="text-xs text-blue-600 hover:text-blue-800" 
-            onClick={onClearFilters}
-          >
-            Clear all
-          </button>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(filters).map(
-            ([key, value]) => 
-              value && 
-              key !== "sortBy" && 
-              value !== "relevance" && 
-              value !== "" && (
-                <FilterBadge 
-                  key={key} 
-                  label={`${filterLabels[key] || key}: ${value}`} 
-                />
-              )
-          )}
-        </div>
+    <div className="bg-white rounded-lg p-4 mb-4 border border-gray-200">
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="font-medium text-gray-700">Applied Filters</h3>
+        <button 
+          onClick={clearFilters}
+          className="text-sm text-red-600 hover:text-red-800 font-medium"
+        >
+          Clear all
+        </button>
       </div>
-    )
+      <div className="flex flex-wrap gap-2">
+        {Object.entries(selectedFilters).map(
+          ([key, values]) => 
+            values && 
+            values.length > 0 && 
+            values.map(value => (
+              <FilterBadge 
+                key={`${key}-${value}`} 
+                label={`${filterLabels[key] || key}: ${value}`} 
+              />
+            ))
+        )}
+      </div>
+    </div>
   );
 }
+
 function FilterBadge({ label }) {
-    return (
-      <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
-        {label}
-      </div>
-    );
+  return (
+    <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+      {label}
+    </div>
+  );
 }
 
 export { MobileFiltersToggle, SearchHeader, SortDropdown, AppliedFilters, FilterBadge };
