@@ -1390,8 +1390,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section - Optimized for mobile */}
-      <section className="py-16 sm:py-20 bg-gradient-to-r from-blue-600 to-purple-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-purple-600 py-16 rounded-xl">
           <div className="text-center">
             <motion.h2
               className="text-2xl sm:text-3xl font-extrabold text-white sm:text-4xl"
@@ -1427,23 +1426,12 @@ export default function LandingPage() {
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  Get started
-                </motion.a>
-              </div>
-              <div className="inline-flex">
-                <motion.a
-                  href="#"
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-800 bg-opacity-60 hover:bg-opacity-70"
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Learn more
+                  Get Started
                 </motion.a>
               </div>
             </motion.div>
           </div>
-        </div>
-      </section>
+        </section>
 
       {/* Footer - Optimized for mobile */}
       <footer className="bg-white">

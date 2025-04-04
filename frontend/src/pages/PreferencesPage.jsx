@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 import { CheckSquare, Square, Loader, Check, Pencil } from "lucide-react";
 import PreferencesService from "../services/PreferencesService";
@@ -45,6 +45,9 @@ const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 function PreferencesPage() {
   const { user, isSignedIn } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isEditMode = location.pathname === "/edit-preferences";
+  
   const [preferences, setPreferences] = useState({
     jobPreferences: [],
     culturalPreferences: [],
@@ -66,7 +69,6 @@ function PreferencesPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [hasExistingPreferences, setHasExistingPreferences] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
 
   // Keyword definitions
   const preferenceKeywords = {
@@ -229,9 +231,13 @@ function PreferencesPage() {
       // On success, show success message briefly
       setSuccess(true);
       
-      // Then redirect to resume upload page
+      // Then redirect based on mode
       setTimeout(() => {
-        navigate("/resume-upload");
+        if (isEditMode) {
+          navigate("/home"); // After editing, go to home
+        } else {
+          navigate("/resume-upload"); // New users go to resume upload
+        }
       }, 1000);
     } catch (err) {
       console.error("Error saving preferences:", err);
@@ -251,8 +257,8 @@ function PreferencesPage() {
     const keywords = preferenceKeywords[category];
     const selectedPreferences = preferences[category];
 
-    return (
-      <div className=" rounded-lg">
+  return (
+      <div className="rounded-lg">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
           <button
@@ -434,29 +440,38 @@ function PreferencesPage() {
     return <PreferencesPageSkeleton />;
   }
 
+  // Determine page title and description based on route and existing preferences
+  const getPageHeader = () => {
+    if (isEditMode) {
+      return {
+        title: "Update Your Preferences",
+        description: "Modify your job preferences and settings"
+      };
+    } else if (hasExistingPreferences) {
+      return {
+        title: "Review Your Preferences",
+        description: "Make any changes to your existing preferences"
+      };
+    } else {
+      return {
+        title: "Welcome to KaamDekho!",
+        description: "Let's personalize your experience"
+      };
+    }
+  };
+
+  const pageHeader = getPageHeader();
+
   return (
     <div className="min-h-screen bg-gray-50 py-6 md:py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
-              {isEditMode ? "Update Preferences" : "Welcome to Handjobs!"}
-            </h1>
-            <p className="mt-2 text-md text-gray-600 md:text-lg">
-              {isEditMode
-                ? "Modify your existing preferences"
-                : "Let's personalize your experience"}
-            </p>
-          </div>
-          {hasExistingPreferences && !isEditMode && (
-            <button
-              onClick={() => setIsEditMode(true)}
-              className="inline-flex items-center p-2 md:px-4 md:py-2 border border-gray-300 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-            >
-              <Pencil className="h-4 w-4 mr-2" />
-              <span className="text-xs md:text-base">Edit Preferences</span>
-            </button>
-          )}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
+            {pageHeader.title}
+          </h1>
+          <p className="mt-2 text-md text-gray-600 md:text-lg">
+            {pageHeader.description}
+          </p>
         </div>
 
         {error && (
@@ -544,65 +559,38 @@ function PreferencesPage() {
             "Select your preferred types of companies:"
           )}
 
-          {renderAddressSection()}
-
-          {isEditMode ? (
-            <div className="flex justify-between items-center pt-6">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsEditMode(false);
-                  fetchUserPreferences();
-                }}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className={`inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 ${
-                  isLoading ? "opacity-70 cursor-not-allowed" : ""
-                }`}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
-                    Updating...
-                  </>
-                ) : (
-                  "Update Preferences"
-                )}
-              </button>
-            </div>
-          ) : (
-            <div className="flex justify-between items-center pt-6">
-              <button
-                type="button"
-                onClick={() => navigate("/home")}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                {hasExistingPreferences ? "Skip for now" : "I'll do this later"}
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveButton}
-                disabled={isLoading}
-                className={`inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 ${
-                  isLoading ? "opacity-70 cursor-not-allowed" : ""
-                }`}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Preferences"
-                )}
-              </button>
-            </div>
-          )}
+          <div className="flex justify-between items-center pt-6">
+            <button
+              type="button"
+              onClick={() => {
+                if (isEditMode) {
+                  navigate("/home");
+                } else {
+                  navigate("/home");
+                }
+              }}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              {isEditMode ? "Cancel" : "I'll do this later"}
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveButton}
+              disabled={isLoading}
+              className={`inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 ${
+                isLoading ? "opacity-70 cursor-not-allowed" : ""
+              }`}
+            >
+              {isLoading ? (
+                <>
+                  <Loader className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
+                  {isEditMode ? "Updating..." : "Saving..."}
+                </>
+              ) : (
+                isEditMode ? "Update Preferences" : "Save Preferences"
+              )}
+            </button>
+          </div>
         </form>
       </div>
     </div>

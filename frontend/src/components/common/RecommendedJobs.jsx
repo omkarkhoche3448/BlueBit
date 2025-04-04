@@ -38,7 +38,7 @@ function RecommendedJobs() {
           `${API_URL_BACKEND}/users/${user.id}/recommendations`
         );
         // Fix: Access the recommendations array from the response data
-        setRecommendations(response.data.recommendations || []);
+        setRecommendations([]);
       } catch (error) {
         console.error("Error fetching recommendations:", error);
         setRecommendations([]);
@@ -134,14 +134,14 @@ function RecommendedJobs() {
   // If recommendations array is empty, show enhanced interaction message
   if (!isLoading && recommendations.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6 border border-gray-100 max-w-sm mx-auto">
+      <div className="bg-white rounded-lg shadow-md p-4 mb-6 border border-gray-100 w-full mx-auto">
         <div className="text-center">
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-4">
             <div className="flex items-center space-x-4">
               <div className="bg-blue-100 rounded-full p-2 flex-shrink-0">
                 <Zap className="w-6 h-6 text-blue-600" />
               </div>
-              <div className="text-left">
+              <div className="text-left flex-1">
                 <h2 className="text-blue-800 font-semibold text-sm mb-1">
                   Unlock Your Perfect Job Match
                 </h2>
@@ -152,23 +152,23 @@ function RecommendedJobs() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-1 gap-2 mt-3 mx-auto">
-              <div className="bg-white rounded p-2 border border-blue-100">
-                <div className="flex items-center justify-center text-blue-500 mb-1">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-5">
+              <div className=" rounded-md p-3 border border-blue-200 hover:bg-blue-50 transition-colors cursor-pointer">
+                <div className="flex items-center justify-center text-blue-600">
                   <ThumbsUp className="w-4 h-4 mr-1" />
                   <span className="text-xs font-medium">Like Jobs</span>
                 </div>
               </div>
 
-              <div className="bg-white rounded p-2 border border-blue-100">
-                <div className="flex items-center justify-center text-blue-500 mb-1">
+              <div className=" rounded p-3 border border-blue-200 hover:bg-blue-50 transition-colors cursor-pointer">
+                <div className="flex items-center justify-center text-blue-600">
                   <BookmarkPlus className="w-4 h-4 mr-1" />
                   <span className="text-xs font-medium">Save Jobs</span>
                 </div>
               </div>
 
-              <div className="bg-white rounded p-2 border border-blue-100 col-span-2 flex justify-center">
-                <div className="flex items-center justify-center text-blue-500 mb-1">
+              <div className=" rounded p-3 border border-blue-200 hover:bg-blue-50 transition-colors cursor-pointer col-span-2 md:col-span-1 md:col-start-auto">
+                <div className="flex items-center justify-center text-blue-600">
                   <Briefcase className="w-4 h-4 mr-1" />
                   <span className="text-xs font-medium">Apply</span>
                 </div>
@@ -178,7 +178,7 @@ function RecommendedJobs() {
 
           <Link
             to="/search"
-            className=" inline-block mt-3 md:mt-0 md:w-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg shadow hover:bg-blue-700 outline-none "
+            className="inline-block mt-4 w-full sm:w-auto px-6 py-2.5 text-sm font-medium text-blue-600 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-lg hover:bg-blue-20 shadow transition-colors outline-none "
           >
             Explore Jobs
           </Link>
@@ -210,7 +210,7 @@ function RecommendedJobs() {
         </Link>
       </div>
 
-      <div 
+      <div
         className="relative"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
