@@ -21,6 +21,7 @@ class User(Base):
     resume_keywords = Column(JSON, nullable=True)  # Stores keywords extracted from resume
     pro_expiration_date = Column(Date, nullable=True)  # Stores expiration date of pro account
     preferred_address = Column(String(500), nullable=True)  # Stores preferred address for job search
+    bookmarks = Column(JSON, nullable=True)  # Stores bookmarks for jobs or other items
 
 # Define Job model
 class Job(Base):

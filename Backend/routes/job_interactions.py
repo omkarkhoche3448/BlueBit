@@ -109,65 +109,84 @@ def register_user_job_interaction_routes(app):
         finally:
             session.close()
     
-    @app.route('/api/users/<string:user_id>/job-bookmark', methods=['POST'])
-    def update_job_bookmark(user_id):
+    @app.route('/api/users/<string:user_id>/bookmarks', methods=['POST', 'OPTIONS'])
+    @cross_origin(methods=['POST', 'OPTIONS'], allow_headers=['Content-Type'])
+    def manage_user_bookmarks(user_id):
+        if request.method == 'OPTIONS':
+            return '', 204  # Return empty response for OPTIONS request
+            
         session = Session()
         try:
             data = request.get_json()
-            job_id = data.get('jobId')
-            bookmarked = data.get('bookmarked')
+            item_id = data.get('itemId')
+            item_type = data.get('itemType', 'job')  # Default to job if not specified
+            action = data.get('action')  # 'add' or 'remove'
             
-            if job_id is None or bookmarked is None:
-                return jsonify({'error': 'Job ID and bookmark value are required'}), 400
-            
+            if not all([item_id, action]):
+                return jsonify({'error': 'Item ID and action are required'}), 400
+                
+            if action not in ['add', 'remove']:
+                return jsonify({'error': 'Action must be either "add" or "remove"'}), 400
+                
             # Get user
             user = session.query(User).filter(User.clerk_id == user_id).first()
             if not user:
                 return jsonify({'error': 'User not found'}), 404
-            
-            # Initialize saved jobs list if None
-            if user.saved_jobs_ids is None:
-                user.saved_jobs_ids = []
-            
-            # Get or create job stats
-            stats = session.query(JobInteractionStats).filter(
-                JobInteractionStats.job_id == job_id
-            ).first()
-            
-            if not stats:
-                stats = JobInteractionStats(
-                    job_id=job_id,
-                    like_count=0,
-                    dislike_count=0,
-                    bookmark_count=0,
-                    last_updated=datetime.now().date()
-                )
-                session.add(stats)
-            
-            # Update bookmark status
-            was_bookmarked = job_id in user.saved_jobs_ids
-            
-            if bookmarked and not was_bookmarked:
-                user.saved_jobs_ids.append(job_id)
-                stats.bookmark_count += 1
-            elif not bookmarked and was_bookmarked:
-                user.saved_jobs_ids.remove(job_id)
-                stats.bookmark_count = max(0, stats.bookmark_count - 1)
-            
-            stats.last_updated = datetime.now().date()
+                
+            # Initialize bookmarks if None
+            if user.bookmarks is None:
+                user.bookmarks = {}
+                
+            # Initialize category in bookmarks if not exists
+            if item_type not in user.bookmarks:
+                user.bookmarks[item_type] = []
+                
+            # Handle bookmark action
+            if action == 'add' and item_id not in user.bookmarks[item_type]:
+                user.bookmarks[item_type].append(item_id)
+                message = f'Item added to {item_type} bookmarks'
+            elif action == 'remove' and item_id in user.bookmarks[item_type]:
+                user.bookmarks[item_type].remove(item_id)
+                message = f'Item removed from {item_type} bookmarks'
+            else:
+                message = 'No changes made to bookmarks'
+                
             session.commit()
             
             return jsonify({
-                'message': 'Bookmark updated successfully',
-                'bookmarked': job_id in user.saved_jobs_ids,
-                'bookmark_count': stats.bookmark_count
+                'message': message,
+                'bookmarks': user.bookmarks
             })
         except Exception as e:
             session.rollback()
             return jsonify({'error': str(e)}), 500
         finally:
             session.close()
-
+            
+    @app.route('/api/users/<string:user_id>/bookmarks', methods=['GET', 'OPTIONS'])
+    @cross_origin(methods=['GET', 'OPTIONS'], allow_headers=['Content-Type'])
+    def get_user_bookmarks(user_id):
+        if request.method == 'OPTIONS':
+            return '', 204  # Return empty response for OPTIONS request
+            
+        session = Session()
+        try:
+            # Get user
+            user = session.query(User).filter(User.clerk_id == user_id).first()
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+                
+            # Return bookmarks or empty object if None
+            bookmarks = user.bookmarks if user.bookmarks is not None else {}
+            
+            return jsonify({
+                'bookmarks': bookmarks
+            })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+        finally:
+            session.close()
+    
     @app.route('/api/jobs/trending', methods=['GET', 'OPTIONS'])
     @cross_origin(methods=['GET', 'OPTIONS'], allow_headers=['Content-Type'])
     def get_trending_jobs():
