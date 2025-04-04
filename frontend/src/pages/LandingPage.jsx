@@ -247,16 +247,16 @@ export default function LandingPage() {
       color: "bg-gradient-to-br from-amber-500 to-amber-600",
     },
     {
-      title: "Direct Applications",
+      title: "AI-Based Automated Form Filler",
       description:
-        "Apply to jobs directly through our platform with just a few clicks. Track your applications in one place.",
+        "Apply to jobs effortlessly with our AI-powered form filler that completes applications for you.",
       icon: <ExternalLink className="h-6 w-6" />,
       color: "bg-gradient-to-br from-green-500 to-green-600",
     },
     {
-      title: "Data Insights",
+      title: "ML-Based Job Recommendations",
       description:
-        "Gain valuable insights into job market trends, salary ranges, and in-demand skills.",
+        "Receive personalized job recommendations tailored to your resume and preferences using machine learning.",
       icon: <BarChart2 className="h-6 w-6" />,
       color: "bg-gradient-to-br from-red-500 to-red-600",
     },
