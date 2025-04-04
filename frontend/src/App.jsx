@@ -102,10 +102,10 @@ function AuthenticatedRoute({ children }) {
     );
   }
 
-  // Show error page if there was a problem
-  if (error) {
-    return <Navigate to="/error" replace />;
-  }
+  // // Show error page if there was a problem
+  // if (error) {
+  //   return <Navigate to="/error" replace />;
+  // }
 
   return children;
 }
@@ -202,7 +202,7 @@ function App() {
             />
       
             {/* Dedicated error routes */}
-            <Route path="/error" element={<NotFoundPage />} />
+            {/* <Route path="/error" element={<NotFoundPage />} /> */}
       
             {/* Catch-all route for both signed-in and signed-out users */}
             {/* <Route

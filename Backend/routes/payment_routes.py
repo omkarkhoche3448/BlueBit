@@ -1,7 +1,7 @@
 from flask import request, jsonify
 from flask_cors import CORS  # Import flask_cors
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from config import Session, razorpay_client, RAZORPAY_KEY_ID
 from models import User
 
@@ -80,7 +80,7 @@ def register_payment_routes(app):
                 if user:
                     print('inside user', user.is_pro)
                     user.is_pro = True
-                    user.pro_subscription_date = datetime.now()
+                    user.pro_expiration_date  = datetime.now() + timedelta(days=30)  # Set expiration date to 30 days from now
                     session.commit()
                     print('inside commit', user.is_pro)
                     

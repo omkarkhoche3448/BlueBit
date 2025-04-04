@@ -70,17 +70,20 @@ function RightSidebar() {
                 clerkId: user.id,
                 paymentId: response.razorpay_payment_id,
                 orderId: order.order_id,
-                signature: response.razorpay_signature  // Added signature
-              })
+                signature: response.razorpay_signature, // Added signature
+              }),
             });
-            
+
             if (!verificationResponse.ok) {
               const errorData = await verificationResponse.json().catch(() => ({}));
               throw new Error(errorData.error || `HTTP error! status: ${verificationResponse.status}`);
             }
-            
+
             const result = await verificationResponse.json();
             alert('Payment successful! Pro features activated.');
+
+            // Refresh the page after successful payment
+            window.location.reload();
           } catch (error) {
             console.error('Payment verification error:', error);
             alert('Payment verification failed: ' + error.message);
