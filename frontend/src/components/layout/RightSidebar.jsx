@@ -56,6 +56,7 @@ function RightSidebar() {
             
             const result = await verificationResponse.json();
             alert('Payment successful! Pro features activated.');
+            window.location.reload();
           } catch (error) {
             console.error('Payment verification error:', error);
             alert('Payment verification failed: ' + error.message);

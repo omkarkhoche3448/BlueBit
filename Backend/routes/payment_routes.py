@@ -15,7 +15,7 @@ def register_payment_routes(app):
         try:
             data = request.json
             clerk_id = data.get('clerkId')
-            amount = 100  # ₹100.00 in smallest currency unit
+            amount = 149  # ₹100.00 in smallest currency unit
             
             if not clerk_id:
                 return jsonify({'error': 'User ID is required'}), 400

@@ -52,6 +52,15 @@ function PreferencesPage() {
     workPreferences: [],
     jobTypePreferences: [],
     companyPreferences: [],
+    preferredAddress: {
+      addressLine1: "",
+      addressLine2: "",
+      landmark: "",
+      city: "",
+      pincode: "",
+      state: "",
+      country: "",
+    },
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -141,6 +150,15 @@ function PreferencesPage() {
           workPreferences: data.workPreferences || [],
           jobTypePreferences: data.jobTypePreferences || [],
           companyPreferences: data.companyPreferences || [],
+          preferredAddress: data.preferredAddress || {
+            addressLine1: "",
+            addressLine2: "",
+            landmark: "",
+            city: "",
+            pincode: "",
+            state: "",
+            country: "",
+          },
         });
         setHasExistingPreferences(true);
       }
@@ -177,6 +195,18 @@ function PreferencesPage() {
     setIsLoading(true);
     setError(null);
 
+    // Format address into a single line with field titles
+    const { preferredAddress } = preferences;
+    const formattedAddress = [
+      preferredAddress.addressLine1 ? `Address Line 1: ${preferredAddress.addressLine1}` : '',
+      preferredAddress.addressLine2 ? `Address Line 2: ${preferredAddress.addressLine2}` : '',
+      preferredAddress.landmark ? `Landmark: ${preferredAddress.landmark}` : '',
+      preferredAddress.city ? `City: ${preferredAddress.city}` : '',
+      preferredAddress.pincode ? `Pincode: ${preferredAddress.pincode}` : '',
+      preferredAddress.state ? `State: ${preferredAddress.state}` : '',
+      preferredAddress.country ? `Country: ${preferredAddress.country}` : ''
+    ].filter(Boolean).join(", ");
+
     try {
       const response = await fetch(
         `${API_URL_BACKEND}/users/${user.id}/preferences`,
@@ -187,6 +217,7 @@ function PreferencesPage() {
           },
           body: JSON.stringify({
             preferences: preferences,
+            formattedAddress: formattedAddress // Add as separate field at the root level
           }),
         }
       );
@@ -270,6 +301,129 @@ function PreferencesPage() {
               </span>
             </div>
           ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Add handler for address field changes
+  const handleAddressChange = (field, value) => {
+    setPreferences((prev) => ({
+      ...prev,
+      preferredAddress: {
+        ...prev.preferredAddress,
+        [field]: value,
+      },
+    }));
+  };
+
+  // Render address section
+  const renderAddressSection = () => {
+    return (
+      <div className="rounded-lg">
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">Preferred Address</h2>
+          <p className="text-sm text-gray-600 mb-4">Enter your preferred address details:</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="addressLine1" className="block text-sm font-medium text-gray-700 mb-1">
+              Address Line 1
+            </label>
+            <input
+              type="text"
+              id="addressLine1"
+              value={preferences.preferredAddress.addressLine1}
+              onChange={(e) => handleAddressChange("addressLine1", e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter your street address"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="addressLine2" className="block text-sm font-medium text-gray-700 mb-1">
+              Address Line 2
+            </label>
+            <input
+              type="text"
+              id="addressLine2"
+              value={preferences.preferredAddress.addressLine2}
+              onChange={(e) => handleAddressChange("addressLine2", e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Apartment, suite, unit, etc. (optional)"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="landmark" className="block text-sm font-medium text-gray-700 mb-1">
+              Landmark
+            </label>
+            <input
+              type="text"
+              id="landmark"
+              value={preferences.preferredAddress.landmark}
+              onChange={(e) => handleAddressChange("landmark", e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Nearby landmark (optional)"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+              City
+            </label>
+            <input
+              type="text"
+              id="city"
+              value={preferences.preferredAddress.city}
+              onChange={(e) => handleAddressChange("city", e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter your city"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="pincode" className="block text-sm font-medium text-gray-700 mb-1">
+              Pincode
+            </label>
+            <input
+              type="text"
+              id="pincode"
+              value={preferences.preferredAddress.pincode}
+              onChange={(e) => handleAddressChange("pincode", e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter your pincode"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
+              State
+            </label>
+            <input
+              type="text"
+              id="state"
+              value={preferences.preferredAddress.state}
+              onChange={(e) => handleAddressChange("state", e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter your state"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
+              Country
+            </label>
+            <input
+              type="text"
+              id="country"
+              value={preferences.preferredAddress.country}
+              onChange={(e) => handleAddressChange("country", e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter your country"
+            />
+          </div>
         </div>
       </div>
     );
@@ -389,6 +543,8 @@ function PreferencesPage() {
             "Company Preference",
             "Select your preferred types of companies:"
           )}
+
+          {renderAddressSection()}
 
           {isEditMode ? (
             <div className="flex justify-between items-center pt-6">

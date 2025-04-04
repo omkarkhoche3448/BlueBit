@@ -36,6 +36,7 @@ def register_user_routes(app):
             elif request.method == 'POST':
                 data = request.json
                 preferences = data.get('preferences')
+                formatted_address = data.get('formattedAddress')
                 
                 if not preferences:
                     return jsonify({'error': 'No preferences provided'}), 400
@@ -46,11 +47,14 @@ def register_user_routes(app):
                 if user:
                     # Update existing user
                     user.preferences = preferences
+                    if formatted_address:
+                        user.preferred_address = formatted_address
                 else:
                     # Create new user
                     new_user = User(
                         clerk_id=clerk_id,
-                        preferences=preferences
+                        preferences=preferences,
+                        preferred_address=formatted_address if formatted_address else None
                     )
                     session.add(new_user)
                 

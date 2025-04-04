@@ -31,7 +31,9 @@ def process_chrome_extension_form():
             session.close()
             return jsonify({"success": False, "error": "No resume found for this user"}), 404
             
-        user_resume = user.resume_text
+        user_resume = user.resume_text 
+        user_address = user.preferred_address
+
         session.close()
         
         # Prepare prompt for Gemini using the requested format
@@ -39,6 +41,8 @@ def process_chrome_extension_form():
 
 RESUME INFORMATION:
 {user_resume}
+PREFFRED ADDRESS:
+{user_address}
 
 FORM FIELDS TO FILL:
 """
