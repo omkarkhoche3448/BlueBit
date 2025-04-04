@@ -6,6 +6,7 @@ import RecommendedJobs from "../components/common/RecommendedJobs";
 import { useUser } from "@clerk/clerk-react";
 import { motion } from "framer-motion";
 import MobileNavigation from "../components/common/MobileNavigation";
+import { Search } from "lucide-react";
 
 function HomePage() {
   const [searchInput, setSearchInput] = useState("");
@@ -68,7 +69,7 @@ function HomePage() {
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1, duration: 0.4 }}
-          className="sticky top-0 z-10 bg-white shadow-sm px-4 py-3"
+          className="sticky top-0 z-10 py-3"
         >
           <form onSubmit={handleSearch} className="relative">
             <input
@@ -78,15 +79,12 @@ function HomePage() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
-            <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
+            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           </form>
         </motion.div>
         
         {/* Main Content */}
-        <div className="flex-grow px-4 py-5">
+        <div className="flex-grow px-1 md:py-5">
           <motion.div 
             initial={{ y: -10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}

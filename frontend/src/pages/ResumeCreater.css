@@ -9,7 +9,9 @@
   width: 280px;
   background-color: var(--sidebar-bg);
   border-right: 1px solid var(--border-color);
-  padding: 20px;
+  @media (min-width: 768px) {
+    padding: 20px;
+  }
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -115,7 +117,9 @@
   max-height: 1100px; /* Ensure it stays on one page */
   background-color: white;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
-  padding: 12px;/* Increased padding */
+  @media (min-width: 1024px) {
+    padding: 12px;/* Increased padding */
+  }
   margin: 0 auto;
   overflow-y: auto;
   font-size: 0.95rem; /* Slightly smaller font size */

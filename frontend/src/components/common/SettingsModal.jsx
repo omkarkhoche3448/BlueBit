@@ -225,7 +225,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <nav className="space-y-1">
               <button
                 onClick={() => handleTabChange("account")}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium flex items-center transition-colors ${
+                className={`w-full text-left px-3 py-2 rounded-md text-xs font-medium flex items-center transition-colors ${
                   activeTab === "account"
                     ? "bg-blue-100 text-blue-800"
                     : "text-gray-700 hover:bg-gray-100"
@@ -237,7 +237,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
               <button
                 onClick={() => handleTabChange("preferences")}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium flex items-center transition-colors ${
+                className={`w-full text-left px-3 py-2 rounded-md text-xs font-medium flex items-center transition-colors ${
                   activeTab === "preferences"
                     ? "bg-blue-100 text-blue-800"
                     : "text-gray-700 hover:bg-gray-100"
@@ -256,12 +256,12 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 }`}
               >
                 <FileUp className="h-4 w-4 mr-2" />
-                Update Resume
+                Resume
               </button>
 
               <button
                 onClick={() => handleTabChange("subscription")}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium flex items-center transition-colors ${
+                className={`w-full text-left px-3 py-2 rounded-md text-xs font-medium flex items-center transition-colors ${
                   activeTab === "subscription"
                     ? "bg-blue-100 text-blue-800"
                     : "text-gray-700 hover:bg-gray-100"
@@ -273,7 +273,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
               <button
                 onClick={() => handleTabChange("notifications")}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium flex items-center transition-colors ${
+                className={`w-full text-left px-3 py-2 rounded-md text-xs font-medium flex items-center transition-colors ${
                   activeTab === "notifications"
                     ? "bg-blue-100 text-blue-800"
                     : "text-gray-700 hover:bg-gray-100"
@@ -372,8 +372,8 @@ const SettingsModal = ({ isOpen, onClose }) => {
                     </div>
                   </button>
 
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-700">
+                  <div className="py-2 px-1 md:p-4 bg-blue-50 rounded-lg">
+                    <p className="text-xs md:text-sm text-blue-700">
                       Keep your resume up to date to increase your chances of finding the perfect job match.
                     </p>
                   </div>

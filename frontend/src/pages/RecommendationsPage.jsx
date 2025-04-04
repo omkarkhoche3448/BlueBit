@@ -43,7 +43,7 @@ function RecommendationsPage() {
   };
 
   return (
-    <div className="container mx-auto max-w-5xl px-4 py-8">
+    <div className="container mx-auto max-w-5xl md:px-4 md:py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Recommended Jobs</h1>
         <p className="text-gray-600">
