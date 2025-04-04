@@ -11,6 +11,7 @@ import { ImprovementTips } from "../components/resumeparser/ImprovementTips";
 import { LineByLineFeedback } from "../components/resumeparser/LineByLineFeedback";
 import { KeywordSuggestions } from "../components/resumeparser/KeywordSuggestions";
 import { ActionVerbAlternatives } from "../components/resumeparser/ActionVerbAlternatives";
+import MobileNavigation from "../components/common/MobileNavigation"; // Import MobileNavigation
 
 function ResumeParserPage() {
   const { isPro, isLoading } = useProStatus();
@@ -94,7 +95,7 @@ function ResumeParserPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto pb-20 md:pb-6"> {/* Added padding bottom for mobile nav */}
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-4">Resume Parser & ATS Analyzer</h1>
         <p className="text-gray-600 mb-6">
@@ -229,6 +230,11 @@ function ResumeParserPage() {
           </CollapsibleSection>
         </div>
       )}
+      
+      {/* Mobile Navigation - Fixed to viewport */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 w-full">
+        <MobileNavigation />
+      </div>
     </div>
   );
 }

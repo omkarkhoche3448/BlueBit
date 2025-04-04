@@ -2,12 +2,13 @@ import { useSelector } from "react-redux"
 import JobCard from "../components/common/JobCard"
 import { Bookmark } from "lucide-react"
 import { AutoSizer, List } from 'react-virtualized'
+import MobileNavigation from "../components/common/MobileNavigation" // Import the MobileNavigation component
 
 function SavedJobsPage() {
   const savedJobs = useSelector((state) => state.jobs.savedJobs)
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-7xl mx-auto">
+    <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-7xl mx-auto pb-16"> {/* Added pb-16 to create space for the mobile nav */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
           <Bookmark className="h-5 w-5 sm:h-6 sm:w-6 mr-2" />
@@ -30,7 +31,7 @@ function SavedJobsPage() {
           </a>
         </div>
       ) : (
-        <div className="h-[calc(100vh-200px)]">
+        <div className="h-[calc(100vh-250px)]"> {/* Adjusted height to account for mobile nav */}
           <AutoSizer>
             {({ height, width }) => (
               <List
@@ -48,6 +49,9 @@ function SavedJobsPage() {
           </AutoSizer>
         </div>
       )}
+      
+      {/* Add the MobileNavigation component */}
+      <MobileNavigation />
     </div>
   )
 }

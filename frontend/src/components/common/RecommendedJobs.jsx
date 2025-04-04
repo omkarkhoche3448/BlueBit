@@ -136,7 +136,8 @@ function RecommendedJobs() {
     return (
       <div className="bg-white rounded-lg shadow-md p-4 mb-6 border border-gray-100 w-full mx-auto">
         <div className="text-center">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-4">
+          {/* Desktop version - hidden on small screens */}
+          <div className="hidden md:block bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-4">
             <div className="flex items-center space-x-4">
               <div className="bg-blue-100 rounded-full p-2 flex-shrink-0">
                 <Zap className="w-6 h-6 text-blue-600" />
@@ -170,18 +171,38 @@ function RecommendedJobs() {
               <div className=" rounded p-3 border border-blue-200 hover:bg-blue-50 transition-colors cursor-pointer col-span-2 md:col-span-1 md:col-start-auto">
                 <div className="flex items-center justify-center text-blue-600">
                   <Briefcase className="w-4 h-4 mr-1" />
-                  <span className="text-xs font-medium">Apply</span>
+                  <span className="text-xs font-medium">Explore</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <Link
-            to="/search"
-            className="inline-block mt-4 w-full sm:w-auto px-6 py-2.5 text-sm font-medium text-blue-600 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-lg hover:bg-blue-20 shadow transition-colors outline-none "
-          >
-            Explore Jobs
-          </Link>
+          {/* Mobile version - shown only on small screens */}
+          <div className="md:hidden bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-3">
+            <h2 className="text-blue-800 font-semibold text-sm mb-1">
+              Unlock Your Perfect Job Match
+            </h2>
+            <p className="text-gray-600 text-xs mb-3">
+              Help us understand your preferences for tailored recommendations.
+            </p>
+
+            <div className="flex justify-center space-x-2">
+              <button className="flex flex-col items-center p-2 rounded-md border border-blue-200 hover:bg-blue-50 transition-colors">
+                <ThumbsUp className="w-4 h-4 text-blue-600 mb-1" />
+                <span className="text-xs text-blue-600">Like</span>
+              </button>
+
+              <button className="flex flex-col items-center p-2 rounded-md border border-blue-200 hover:bg-blue-50 transition-colors">
+                <BookmarkPlus className="w-4 h-4 text-blue-600 mb-1" />
+                <span className="text-xs text-blue-600">Save</span>
+              </button>
+
+              <button className="flex flex-col items-center p-2 rounded-md border border-blue-200 hover:bg-blue-50 transition-colors">
+                <Briefcase className="w-4 h-4 text-blue-600 mb-1" />
+                <span className="text-xs text-blue-600">Explore</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );

@@ -14,6 +14,7 @@ import {
   MobileFiltersToggle,
   SearchHeader,
 } from "../components/searchpage";
+import MobileNavigation from "../components/common/MobileNavigation"; // Import the MobileNavigation component
 
 function SearchPage() {
   const location = useLocation();
@@ -125,7 +126,7 @@ function SearchPage() {
       )}
       
       {/* Main Content - Enhanced mobile spacing */}
-      <main className="flex-1 space-y-4 md:space-y-6 w-full">
+      <main className="flex-1 space-y-4 md:space-y-6 w-full pb-16 md:pb-0"> {/* Added padding bottom for mobile navigation */}
         <SearchHeader
           searchInput={searchInput}
           onSearchInputChange={handleSearchInputChange}
@@ -145,6 +146,11 @@ function SearchPage() {
         
         <JobList />
       </main>
+
+      {/* Mobile Navigation - Fixed to bottom of viewport */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30">
+        <MobileNavigation />
+      </div>
     </div>
   );
 }
