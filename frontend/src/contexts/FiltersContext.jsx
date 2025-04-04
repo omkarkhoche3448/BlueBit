@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 // Create context
 const FiltersContext = createContext();
@@ -44,11 +44,15 @@ export const FiltersProvider = ({ children }) => {
   };
 
   const clearFilters = () => {
+    // Reset all filters to empty arrays
     setSelectedFilters({
       jobType: [],
       location: [],
       company: [],
     });
+    
+    // Trigger any additional actions needed when filters are cleared
+    // (You might want to dispatch a Redux action or trigger an API call here)
   };
 
   // Calculate total number of applied filters
@@ -56,6 +60,11 @@ export const FiltersProvider = ({ children }) => {
     selectedFilters.jobType.length + 
     selectedFilters.location.length + 
     selectedFilters.company.length;
+
+  // Log filter changes for debugging
+  useEffect(() => {
+    console.log("Filters updated:", selectedFilters, "Count:", appliedFiltersCount);
+  }, [selectedFilters, appliedFiltersCount]);
 
   const value = {
     selectedFilters,

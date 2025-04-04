@@ -26,7 +26,8 @@
     "react-router-dom": "^7.4.0",
     "react-to-pdf": "^1.0.1",
     "react-toastify": "^11.0.5",
-    "react-virtualized": "^9.22.6"
+    "react-virtualized": "^9.22.6",
+    "spinkit": "^2.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
