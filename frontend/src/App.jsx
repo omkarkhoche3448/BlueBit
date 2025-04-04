@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 import {
   SignedIn,
   SignedOut,
@@ -19,11 +25,12 @@ import SavedJobsPage from "./pages/SavedJobsPage";
 import SearchPage from "./pages/SearchPage";
 import LandingPage from "./pages/LandingPage";
 import RecommendationsPage from "./pages/RecommendationsPage";
-import { ProStatusProvider } from './contexts/ProStatusContext';
+import { ProStatusProvider } from "./contexts/ProStatusContext";
 import LikedJobsPage from "./pages/LikedJobsPage";
 import { FiltersProvider } from "./contexts/FiltersContext";
+// import HelpButton from "./components/common/HelpButton";
 
-const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND
+const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -113,19 +120,18 @@ function AuthenticatedRoute({ children }) {
 // Route tracker for analytics and error monitoring
 function RouteTracker() {
   const location = useLocation();
-  
+
   useEffect(() => {
     // Log route changes for analytics or monitoring
     console.log("Route changed:", location.pathname);
-    
+
     // Reset any global error state if needed
     // You could add error state management here
-    
+
     // Track page view (you can implement this with your analytics tool)
     // trackPageView(location.pathname);
-    
   }, [location]);
-  
+
   return null;
 }
 
@@ -149,7 +155,7 @@ function App() {
                 </>
               }
             />
-      
+
             <Route
               path="/preferences"
               element={
@@ -158,7 +164,15 @@ function App() {
                 </SignedIn>
               }
             />
-      
+            <Route
+              path="/edit-preferences"
+              element={
+                <SignedIn>
+                  <PreferencesPage />
+                </SignedIn>
+              }
+            />
+
             <Route
               path="/resume-upload"
               element={
@@ -167,7 +181,15 @@ function App() {
                 </SignedIn>
               }
             />
-      
+            <Route
+              path="/update-resume-upload"
+              element={
+                <SignedIn>
+                  <ResumeUploadPage />
+                </SignedIn>
+              }
+            />
+
             <Route
               element={
                 <>
@@ -189,9 +211,12 @@ function App() {
               <Route path="/saved" element={<SavedJobsPage />} />
               <Route path="/liked" element={<LikedJobsPage />} />
               <Route path="/search" element={<SearchPage />} />
-              <Route path="/recommendations" element={<RecommendationsPage />} />
+              <Route
+                path="/recommendations"
+                element={<RecommendationsPage />}
+              />
             </Route>
-      
+
             <Route
               path="/sign-in"
               element={
@@ -200,10 +225,10 @@ function App() {
                 </SignedOut>
               }
             />
-      
+
             {/* Dedicated error routes */}
             {/* <Route path="/error" element={<NotFoundPage />} /> */}
-      
+
             {/* Catch-all route for both signed-in and signed-out users */}
             {/* <Route
               path="*"
@@ -219,6 +244,9 @@ function App() {
               }
             /> */}
           </Routes>
+          {/* <SignedIn>
+            <HelpButton />
+          </SignedIn> */}
         </FiltersProvider>
       </ProStatusProvider>
     </ErrorBoundary>
