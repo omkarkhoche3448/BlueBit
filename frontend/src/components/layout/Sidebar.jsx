@@ -28,7 +28,7 @@ function Sidebar() {
   const savedJobsStatus = useSelector((state) => state.jobs.savedJobsStatus);
   const likedJobs = useSelector((state) => state.jobs.likedJobs || []);
   const { openUserProfile, signOut } = useClerk();
-  const { isPro } = useProStatusContext();
+  const { isPro, refreshProStatus } = useProStatusContext();
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   useEffect(() => {
@@ -77,12 +77,23 @@ function Sidebar() {
         user.fullName
       );
       
-      alert('Payment successful! Pro features activated.');
-      // You might want to refresh the pro status here or redirect the user
+      // Refresh pro status after successful payment
+      await refreshProStatus();
+      
+      toast.success('Payment successful! Pro features activated.', {
+        duration: 4000,
+        position: 'top-center',
+        icon: '🎉',
+        // When toast is closed or dismissed, reload the page
+        onClose: () => window.location.reload()
+      });
       
     } catch (error) {
       console.error('Payment error:', error);
-      alert('Payment failed: ' + error.message);
+      toast.error(`Payment failed: ${error.message}`, {
+        duration: 4000,
+        position: 'top-center'
+      });
     }
   };
 

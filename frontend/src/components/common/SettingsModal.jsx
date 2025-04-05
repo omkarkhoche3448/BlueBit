@@ -15,6 +15,7 @@ import { useProStatusContext } from "../../contexts/ProStatusContext";
 import { useNavigate } from "react-router-dom";
 import PreferencesService from "../../services/PreferencesService";
 import PaymentService from '../../services/paymentService';
+import { toast } from "react-hot-toast";
 
 function formatDate(date) {
   if (!date) return '';
@@ -65,13 +66,22 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
       if (result.success) {
         await refreshProStatus(); // Refresh pro status after successful payment
-        alert('Payment successful! Pro features activated.');
+        toast.success('Payment successful! Pro features activated.', {
+          duration: 4000,
+          position: 'top-center',
+          icon: '🎉',
+          // When toast is closed or dismissed, reload the page
+          onClose: () => window.location.reload()
+        });
       } else {
         throw new Error(result.message || 'Payment failed');
       }
     } catch (error) {
       console.error('Payment error:', error);
-      alert('Payment failed: ' + (error.message || 'Unknown error occurred'));
+      toast.error(`Payment failed: ${error.message || 'Unknown error occurred'}`, {
+        duration: 4000,
+        position: 'top-center'
+      });
     } finally {
       setIsLoading(false);
     }

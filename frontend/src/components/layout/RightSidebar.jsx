@@ -3,10 +3,11 @@ import { ExternalLink } from "lucide-react";
 import { useUser } from '@clerk/clerk-react';
 import { useProStatusContext } from '../../contexts/ProStatusContext';
 import PaymentService from '../../services/paymentService';
+import toast from 'react-hot-toast';
 
 function RightSidebar() {
   const { user } = useUser();
-  const { isPro } = useProStatusContext();
+  const { isPro, refreshProStatus } = useProStatusContext();
 
   const handlePayment = async () => {
     try {
@@ -18,12 +19,23 @@ function RightSidebar() {
         user.fullName
       );
       
-      alert('Payment successful! Pro features activated.');
-      // You might want to refresh the pro status here or redirect the user
+      // Refresh pro status after successful payment
+      await refreshProStatus();
+      
+      toast.success('Payment successful! Pro features activated.', {
+        duration: 4000,
+        position: 'top-center',
+        icon: '🎉',
+        // When toast is closed or dismissed, reload the page
+        onClose: () => window.location.reload()
+      });
       
     } catch (error) {
       console.error('Payment error:', error);
-      alert('Payment failed: ' + error.message);
+      toast.error(`Payment failed: ${error.message}`, {
+        duration: 4000,
+        position: 'top-center'
+      });
     }
   };
 
