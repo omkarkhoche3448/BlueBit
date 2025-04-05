@@ -70,3 +70,36 @@ class JobInteractionStats(Base):
     
     # Define relationship with Job model
     job = relationship("Job", back_populates="stats")
+
+
+# Add these model classes to your models.py file
+
+class JobApplication(Base):
+    __tablename__ = 'job_applications'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String, ForeignKey('users.clerk_id'))
+    job_id = Column(String, ForeignKey('jobs.id'))
+    status = Column(String, default='applied')  # applied, interview, offer, rejected
+    date_applied = Column(String)
+    notes = Column(String)
+    
+    user = relationship("User", back_populates="applications")
+    job = relationship("Job")
+
+class Payment(Base):
+    __tablename__ = 'payments'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String, ForeignKey('users.clerk_id'))
+    amount = Column(Float)
+    currency = Column(String, default='USD')
+    status = Column(String)  # success, pending, failed
+    payment_id = Column(String)  # External payment ID
+    payment_date = Column(String)
+    
+    user = relationship("User", back_populates="payments")
+    
+    # Add these relationships to your User class
+    applications = relationship("JobApplication", back_populates="user", cascade="all, delete-orphan")
+    payments = relationship("Payment", back_populates="user", cascade="all, delete-orphan")

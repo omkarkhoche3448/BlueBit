@@ -29,3 +29,6 @@ model = genai.GenerativeModel('gemini-2.0-flash', generation_config={
 # Create resume directory if it doesn't exist
 RESUME_UPLOAD_FOLDER = 'resume'
 os.makedirs(RESUME_UPLOAD_FOLDER, exist_ok=True)
+
+# Add this line to your config.py file if it doesn't exist
+DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///jobs.db')
