@@ -78,8 +78,14 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
     
     console.log("Save job button clicked for job:", job.id);
     
-    if (!user) {
+    if (!isSignedIn) {
       console.log("User is not signed in. Showing Pro modal.");
+      setShowProModal(true);
+      return;
+    }
+    
+    if (!isPro) {
+      console.log("Non-pro user clicked save. Showing upgrade modal.");
       setShowProModal(true);
       return;
     }
@@ -111,7 +117,10 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
     
     console.log("Setting job interest for job:", job.id, "to", interested);
     
-    if (!isSignedIn) return;
+    if (!isSignedIn) {
+      setShowProModal(true);
+      return;
+    }
     
     if (!isPro) {
       setShowProModal(true);
@@ -155,21 +164,29 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!isPro) {
-      setShowProModal(true);
-      return;
-    }
+    // Note: Share functionality is available to all users (including non-pro),
+    // so we don't check for isPro here
+    
+    // Get the job URL
+    const jobUrl = job.job_url_direct || job.job_url || window.location.href;
     
     // Implement share functionality
     if (navigator.share) {
       navigator.share({
         title: `${job.title} at ${job.company}`,
         text: `Check out this job: ${job.title} at ${job.company}`,
-        url: job.job_url_direct || job.job_url || window.location.href,
+        url: jobUrl,
       });
     } else {
-      // Fallback for browsers that don't support navigator.share
-      alert("Share link copied to clipboard!");
+      // Copy to clipboard as fallback
+      navigator.clipboard.writeText(jobUrl)
+        .then(() => {
+          alert("Job link copied to clipboard!");
+        })
+        .catch((err) => {
+          console.error("Failed to copy link: ", err);
+          alert("Failed to copy link. Please try again.");
+        });
     }
   };
 
@@ -178,9 +195,33 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
     if (!showProModal) return null;
     
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowProModal(false)}>
-        <div className="bg-white p-6 rounded-lg border border-gray-200 max-w-md w-full" onClick={e => e.stopPropagation()}>
-          {/* Modal content */}
+      <div className="fixed inset-0 bg-white bg-opacity-20 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowProModal(false)}>
+        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-xl max-w-md w-full" onClick={e => e.stopPropagation()}>
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Pro Feature</h3>
+            <div className="bg-blue-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <Lock className="h-8 w-8 text-blue-500" />
+            </div>
+            <p className="text-gray-600 mb-4">
+              Upgrade to Pro to unlock this feature and enjoy unlimited access to job saving, liking and more premium features.
+            </p>
+            <Link 
+              to="/pricing" 
+              className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors duration-200"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowProModal(false);
+              }}
+            >
+              Try for 1 Month
+            </Link>
+            <button
+              className="mt-3 text-sm text-gray-500 hover:text-gray-700"
+              onClick={() => setShowProModal(false)}
+            >
+              Maybe Later
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -581,7 +622,6 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
 
             <button
               onClick={(e) => handleJobInterest(true, e)}
-              disabled={isLoading || !isPro}
               className={`p-1.5 rounded-full ${
                 isInterested === true
                   ? "text-green-600 bg-green-50"
@@ -598,7 +638,6 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
 
             <button
               onClick={(e) => handleJobInterest(false, e)}
-              disabled={isLoading || !isPro}
               className={`p-1.5 rounded-full ${
                 isInterested === false
                   ? "text-red-600 bg-red-50"
@@ -615,10 +654,9 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
 
             <button
               onClick={handleShare}
-              className={`p-1.5 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 transform hover:scale-110 ${!isPro ? "opacity-60" : ""}`}
-              title={isPro ? "Share" : "Pro Feature"}
+              className="p-1.5 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 transform hover:scale-110"
+              title="Share"
             >
-              {!isPro && <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />}
               <Share2 className="h-4 w-4" />
             </button>
           </div>
