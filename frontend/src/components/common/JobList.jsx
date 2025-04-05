@@ -111,7 +111,7 @@ function JobList() {
         {[...Array(skeletonCount)].map((_, index) => (
           <div
             key={index}
-            className="bg-white rounded-lg shadow-sm p-4 animate-pulse"
+            className="bg-white rounded-lg p-4 animate-pulse border border-gray-200"
           >
             <div className="flex items-start">
               <div className="h-12 w-12 bg-gray-200 rounded mr-4"></div>
@@ -239,7 +239,7 @@ function JobList() {
             </div>
             <div>
               <nav
-                className="isolate inline-flex -space-x-px rounded-md shadow-sm"
+                className="isolate inline-flex -space-x-px rounded-md"
                 aria-label="Pagination"
               >
                 <button

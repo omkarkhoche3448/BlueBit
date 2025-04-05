@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { useSelector, useDispatch } from "react-redux"
-import { fetchJobById, toggleSaveJob, applyToJob } from "../slices/jobsSlice"
+import { fetchJobById, saveJob, removeJob, applyToJob } from "../slices/jobsSlice"
 import { toast } from 'react-toastify'; 
 import {
   MapPin,
@@ -31,7 +31,11 @@ function JobDetailsPage() {
 
   const handleSaveJob = () => {
     if (currentJob) {
-      dispatch(toggleSaveJob(currentJob))
+      if (isSaved) {
+        dispatch(removeJob(currentJob))
+      } else {
+        dispatch(saveJob(currentJob))
+      }
     }
   }
 

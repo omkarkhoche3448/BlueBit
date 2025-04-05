@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -23,19 +23,19 @@ import {
   ThumbsDown,
   Lock,
 } from "lucide-react";
-import { toggleSaveJob } from "../../slices/jobsSlice";
+import { saveJob, removeJob, updateJobInterest } from "../../slices/jobsSlice";
 import { useUser } from "@clerk/clerk-react";
 import { useProStatusContext } from "../../contexts/ProStatusContext"; // We'll create this context
 
 const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 
-function JobCard({ job, onNotInterested, isRecommended }) {
+const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
   const [showActions, setShowActions] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const { user, isSignedIn } = useUser();
   const dispatch = useDispatch();
-  const savedJobs = useSelector((state) => state.jobs.savedJobs);
-  const isSaved = savedJobs.some((savedJob) => savedJob.id === job.id);
+  const savedJobs = useSelector((state) => state.jobs.savedJobs || []);
+  const isSaved = Array.isArray(savedJobs) && savedJobs.some((savedJob) => savedJob.id === job.id);
   const { isPro } = useProStatusContext(); // Use the context instead of the hook directly
   
   // State for tracking user's interest in this job
@@ -43,42 +43,73 @@ function JobCard({ job, onNotInterested, isRecommended }) {
   const [isLoading, setIsLoading] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
 
-  // Fetch the user's interest status for this job on component mount
+  // Fix the useEffect - remove the nested useEffect
   useEffect(() => {
-    if (isSignedIn && user?.id) {
+    console.log("JobCard mounted with job:", job?.id);
+    if (isSignedIn && user?.id && job?.id) {
       fetchJobInterest();
     }
-  }, [isSignedIn, user, job.id]);
+    return () => {
+      console.log("JobCard unmounted:", job?.id);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn, user?.id, job?.id]);
 
   const fetchJobInterest = async () => {
+    if (!job?.id) return; // Prevent fetching if job ID is undefined
     try {
+      console.log(`Fetching job interest for user ${user.id} and job ${job.id}`);
       const response = await fetch(`${API_URL_BACKEND}/users/${user.id}/job-interest/${job.id}`);
       if (response.ok) {
         const data = await response.json();
+        console.log("Fetched job interest data:", data);
         setIsInterested(data.interest);
+      } else {
+        console.error("Failed to fetch job interest:", response.status, response.statusText);
       }
     } catch (err) {
       console.error("Error fetching job interest:", err);
     }
   };
 
-  // Wrap actions with Pro check
-  const handleSaveJob = (e) => {
+  const handleSaveJob = async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!isPro) {
+    console.log("Save job button clicked for job:", job.id);
+    
+    if (!user) {
+      console.log("User is not signed in. Showing Pro modal.");
       setShowProModal(true);
       return;
     }
     
-    dispatch(toggleSaveJob(job));
+    try {
+      setIsLoading(true); // Add loading state
+      if (isSaved) {
+        console.log("Removing job from saved:", job.id);
+        await dispatch(removeJob({ job, userId: user.id })).unwrap();
+        console.log("Job removed successfully");
+      } else {
+        console.log("Saving job:", job.id);
+        await dispatch(saveJob({ job, userId: user.id })).unwrap();
+        console.log("Job saved successfully");
+      }
+    } catch (error) {
+      console.error("Error saving job:", error);
+      // Show error to user
+      alert("Failed to save job. Please try again.");
+    } finally {
+      setIsLoading(false); // Reset loading state
+    }
   };
 
   // Add a check for onNotInterested before calling it
   const handleJobInterest = async (interested, e) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    console.log("Setting job interest for job:", job.id, "to", interested);
     
     if (!isSignedIn) return;
     
@@ -102,27 +133,19 @@ function JobCard({ job, onNotInterested, isRecommended }) {
     try {
       console.log(`Setting interest for job ${job.id} to ${newInterestValue}`);
       
-      const response = await fetch(`${API_URL_BACKEND}/users/${user.id}/job-interest`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jobId: job.id,
-          interest: newInterestValue,
-        }),
-      });
+      // Dispatch the updateJobInterest action
+      await dispatch(updateJobInterest({
+        userId: user.id,
+        jobId: job.id,
+        interest: newInterestValue
+      })).unwrap();
       
-      if (!response.ok) {
-        // Revert to previous state if request fails
-        setIsInterested(previousInterest);
-        const errorData = await response.json();
-        console.error("Failed to update job interest:", errorData);
-      }
+      console.log("Successfully updated job interest for job:", job.id);
     } catch (err) {
       // Revert to previous state if request fails
       setIsInterested(previousInterest);
       console.error("Error updating job interest:", err);
+      alert("Failed to update job interest. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -156,39 +179,8 @@ function JobCard({ job, onNotInterested, isRecommended }) {
     
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowProModal(false)}>
-        <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full" onClick={e => e.stopPropagation()}>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-gray-900">Pro Feature</h3>
-            <button onClick={() => setShowProModal(false)} className="text-gray-500 hover:text-gray-700">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </button>
-          </div>
-          <div className="mb-4">
-            <p className="text-gray-700 mb-2">This feature is only available for Pro users.</p>
-            <p className="text-gray-600 text-sm">Upgrade to Pro to unlock:</p>
-            <ul className="list-disc pl-5 mt-2 text-sm text-gray-600">
-              <li>Save jobs to your favorites</li>
-              <li>Mark jobs as interested or not interested</li>
-              <li>Share job listings with others</li>
-              <li>And many more premium features!</li>
-            </ul>
-          </div>
-          <div className="flex justify-end">
-            <button 
-              onClick={() => setShowProModal(false)} 
-              className="mr-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
-            >
-              Not now
-            </button>
-            <a 
-              href="/pricing" 
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Upgrade to Pro
-            </a>
-          </div>
+        <div className="bg-white p-6 rounded-lg border border-gray-200 max-w-md w-full" onClick={e => e.stopPropagation()}>
+          {/* Modal content */}
         </div>
       </div>
     );
@@ -294,6 +286,26 @@ function JobCard({ job, onNotInterested, isRecommended }) {
       : cleanText;
   };
 
+  useEffect(() => {
+    console.log("JobCard mounted:", job.id);
+    return () => {
+      console.log("JobCard unmounted:", job.id);
+    };
+  }, [job.id]);
+
+  const handleNotInterested = useCallback(() => {
+    if (onNotInterested) {
+      onNotInterested(job.id);
+    }
+  }, [job.id, onNotInterested]);
+
+  // Log when the Pro modal is shown
+  useEffect(() => {
+    if (showProModal) {
+      console.log("Pro modal is shown");
+    }
+  }, [showProModal]);
+
   return (
     <div
       className={`block cursor-pointer ${isRecommended ? "animate-fadeIn" : ""}`}
@@ -302,16 +314,17 @@ function JobCard({ job, onNotInterested, isRecommended }) {
       onClick={(e) => {
         window.open(job.job_url_direct || job.job_url, '_blank', 'noopener,noreferrer');
       }}
+      key={job.id}
     >
-      <div className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden border ${
+      <div className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden border ${
         isRecommended 
-          ? "border-amber-300 shadow-amber-100 hover:shadow-amber-200" 
+          ? "border-amber-300" 
           : "border-gray-200"
       }`}>
         {isRecommended && (
           <div className="bg-gradient-to-r from-amber-100 to-amber-50 px-4 py-1 border-b border-amber-200">
             <span className="text-xs font-medium text-amber-800 flex items-center">
-              <Star className="h-3 w-3 mr-1 text-amber-500" /> Recommended for you
+              <Building className="h-3 w-3 mr-1 text-amber-500" /> Recommended for you
             </span>
           </div>
         )}
@@ -634,6 +647,6 @@ function JobCard({ job, onNotInterested, isRecommended }) {
       <ProUpgradeModal />
     </div>
   );
-}
+});
 
 export default JobCard;
