@@ -2,8 +2,132 @@ import json
 import re
 import logging
 from config import model
+from PyPDF2 import PdfReader
+from docx import Document
+from collections import Counter
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
 
-def extract_resume_keywords(resume_text):
+# Download required NLTK data if not already present
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords')
+
+# Make sure we download the correct resources
+nltk.download('punkt')
+nltk.download('stopwords')
+
+def extract_text_from_pdf(pdf_file):
+    """Extract text from a PDF file."""
+    try:
+        reader = PdfReader(pdf_file)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text()
+        return text, None
+    except Exception as e:
+        logging.error(f"Error extracting text from PDF: {str(e)}")
+        return None, str(e)
+
+def extract_text_from_docx(docx_file):
+    """Extract text from a DOCX file."""
+    try:
+        doc = Document(docx_file)
+        text = ""
+        for para in doc.paragraphs:
+            text += para.text + "\n"
+        return text, None
+    except Exception as e:
+        logging.error(f"Error extracting text from DOCX: {str(e)}")
+        return None, str(e)
+
+def extract_resume_keywords(resume_text, use_gemini=False):
+    """Extract keywords from resume text using Gemini or fallback to basic NLP."""
+    if use_gemini:
+        return extract_resume_keywords_with_gemini(resume_text)
+    else:
+        return extract_resume_keywords_with_nlp(resume_text)
+
+def extract_resume_keywords_with_nlp(resume_text):
+    """Extract keywords using basic NLP techniques as fallback."""
+    try:
+        # Tokenize the text
+        tokens = word_tokenize(resume_text.lower())
+        
+        # Remove stopwords
+        stop_words = set(stopwords.words('english'))
+        filtered_tokens = [token for token in tokens if token.isalnum() and token not in stop_words]
+        
+        # Count word frequencies
+        word_freq = Counter(filtered_tokens)
+        
+        # Get the most common words
+        common_words = word_freq.most_common(20)
+        
+        # Extract technical keywords (programming languages, frameworks, etc.)
+        tech_keywords = [
+            "python", "javascript", "java", "c++", "c#", "ruby", "php", "swift", 
+            "kotlin", "go", "rust", "typescript", "html", "css", "sql", "nosql",
+            "react", "angular", "vue", "node.js", "django", "flask", "spring", 
+            "express", "tensorflow", "pytorch", "pandas", "numpy", "scikit-learn",
+            "machine learning", "deep learning", "ai", "artificial intelligence",
+            "data science", "aws", "azure", "gcp", "docker", "kubernetes", "devops"
+        ]
+        
+        # Extract keywords from the text
+        keywords = []
+        for word, _ in common_words:
+            if word in tech_keywords:
+                keywords.append(word)
+        
+        # Add any tech keywords that appear in the text but might not be in the most common words
+        for keyword in tech_keywords:
+            if keyword in resume_text.lower() and keyword not in keywords:
+                keywords.append(keyword)
+        
+        # If no keywords were found, add some default ones based on the text
+        if not keywords:
+            # Simple pattern matching for common tech terms
+            if "python" in resume_text.lower():
+                keywords.append("python")
+            if "javascript" in resume_text.lower():
+                keywords.append("javascript")
+            if "react" in resume_text.lower():
+                keywords.append("react")
+            if "node.js" in resume_text.lower() or "node" in resume_text.lower():
+                keywords.append("node.js")
+            if "tensorflow" in resume_text.lower():
+                keywords.append("tensorflow")
+            if "machine learning" in resume_text.lower():
+                keywords.append("machine learning")
+        
+        return keywords
+        
+    except Exception as e:
+        logging.error(f"Error extracting resume keywords with NLP: {str(e)}")
+        # Fallback to simple pattern matching if NLTK fails
+        keywords = []
+        if "python" in resume_text.lower():
+            keywords.append("python")
+        if "javascript" in resume_text.lower():
+            keywords.append("javascript")
+        if "react" in resume_text.lower():
+            keywords.append("react")
+        if "node.js" in resume_text.lower() or "node" in resume_text.lower():
+            keywords.append("node.js")
+        if "tensorflow" in resume_text.lower():
+            keywords.append("tensorflow")
+        if "machine learning" in resume_text.lower():
+            keywords.append("machine learning")
+        return keywords
+
+def extract_resume_keywords_with_gemini(resume_text):
     """Extract keywords from resume text using Gemini."""
     try:
         # Truncate text if it's very long to fit Gemini's input limits

@@ -2,6 +2,7 @@ import os
 import sys
 import pytest
 import json
+from unittest.mock import patch, MagicMock
 from flask import Flask
 from werkzeug.datastructures import FileStorage
 from io import BytesIO
@@ -17,85 +18,185 @@ def client():
     with app.test_client() as client:
         yield client
 
-def test_extract_text_from_pdf():
-    # Create a simple PDF-like content for testing
-    # Note: This is a mock PDF structure and won't actually work with real PDF parsing
-    # In a real test, you would use a real PDF file
-    pdf_content = b"%PDF-1.4\nThis is test content"
-    
-    # Create a file-like object
-    pdf_file = BytesIO(pdf_content)
-    pdf_file.name = "test.pdf"
-    
-    # For a real test, you would use:
-    # with open('path/to/test.pdf', 'rb') as pdf_file:
-    #     text, error = extract_text_from_pdf(pdf_file)
-    
-    # Since we can't create a real PDF in this test, we'll just verify the function exists
-    assert callable(extract_text_from_pdf)
+@pytest.fixture
+def mock_pdf_reader():
+    with patch('app.PdfReader') as mock_reader_class:
+        mock_reader = MagicMock()
+        mock_reader_class.return_value = mock_reader
+        
+        # Mock pages
+        page1 = MagicMock()
+        page1.extract_text.return_value = "Page 1 content"
+        page2 = MagicMock()
+        page2.extract_text.return_value = "Page 2 content"
+        mock_reader.pages = [page1, page2]
+        
+        yield mock_reader
 
-def test_extract_text_from_docx():
-    # Similar to PDF test, we'd need a real DOCX file for proper testing
-    docx_content = b"PK\x03\x04\x14\x00\x00\x00\x08\x00This is test content"
-    
-    docx_file = BytesIO(docx_content)
-    docx_file.name = "test.docx"
-    
-    # Verify the function exists
-    assert callable(extract_text_from_docx)
+@pytest.fixture
+def mock_docx_document():
+    with patch('app.Document') as mock_document_class:
+        mock_document = MagicMock()
+        mock_document_class.return_value = mock_document
+        
+        # Mock paragraphs
+        paragraph1 = MagicMock()
+        paragraph1.text = "Paragraph 1 content"
+        paragraph2 = MagicMock()
+        paragraph2.text = "Paragraph 2 content"
+        mock_document.paragraphs = [paragraph1, paragraph2]
+        
+        yield mock_document
 
-def test_analyze_resume():
-    # Test with a sample resume text
-    sample_resume = """
-    JOHN DOE
-    Software Engineer
-    123 Main Street, San Francisco, CA 94105
-    john.doe@email.com | (555) 123-4567
+@pytest.fixture
+def mock_genai_model():
+    with patch('app.model.generate_content') as mock_generate:
+        mock_response = MagicMock()
+        mock_response.text = json.dumps({
+            "score": 75,
+            "sub_scores": {
+                "Keyword Optimization": 15,
+                "Action Verbs": 12,
+                "Measurable Achievements": 10,
+                "Clarity and Conciseness": 12,
+                "Professional Tone": 8,
+                "Section Completeness": 8,
+                "Length": 7,
+                "Format Indicators": 3
+            },
+            "comments": {
+                "Keyword Optimization": "Good use of industry keywords",
+                "Action Verbs": "Strong action verbs used"
+            },
+            "overall_assessment": "Good resume with some areas for improvement"
+        })
+        mock_generate.return_value = mock_response
+        yield mock_generate
+
+def test_extract_text_from_pdf(mock_pdf_reader):
+    # Create a test PDF file
+    pdf_file = BytesIO(b'%PDF-1.4\nTest PDF content')
+    pdf_file.name = 'test.pdf'
     
-    SUMMARY
-    Experienced software engineer with 5+ years of expertise in web development.
+    # Execute
+    text, error = extract_text_from_pdf(pdf_file)
     
-    EXPERIENCE
-    Senior Software Engineer, TechCorp Inc.
-    January 2020 - Present
-    • Led development of the company's flagship product
+    # Assert
+    assert error is None
+    assert text == "Page 1 contentPage 2 content"
+
+def test_extract_text_from_pdf_error():
+    # Setup - no mock, so it will raise an exception
+    pdf_file = BytesIO(b'Invalid PDF content')
+    pdf_file.name = 'test.pdf'
     
-    EDUCATION
-    Bachelor of Science in Computer Science
-    University of California, Berkeley
+    # Execute
+    with patch('app.PdfReader', side_effect=Exception("PDF Error")):
+        text, error = extract_text_from_pdf(pdf_file)
     
-    SKILLS
-    Programming Languages: JavaScript, Python, TypeScript, HTML/CSS
-    """
+    # Assert
+    assert text is None
+    assert error is not None
+
+def test_extract_text_from_docx(mock_docx_document):
+    # Create a test DOCX file
+    docx_file = BytesIO(b'PK\x03\x04\x14\x00\x00\x00\x08\x00Test DOCX content')
+    docx_file.name = 'test.docx'
     
-    # This is a simplified test since we can't actually call the Gemini API
-    # In a real test environment, you would mock the API response
-    assert callable(analyze_resume)
+    # Execute
+    text, error = extract_text_from_docx(docx_file)
+    
+    # Assert
+    assert error is None
+    assert text == "Paragraph 1 content\nParagraph 2 content\n"
+
+def test_extract_text_from_docx_error():
+    # Setup - no mock, so it will raise an exception
+    docx_file = BytesIO(b'Invalid DOCX content')
+    docx_file.name = 'test.docx'
+    
+    # Execute
+    with patch('app.Document', side_effect=Exception("DOCX Error")):
+        text, error = extract_text_from_docx(docx_file)
+    
+    # Assert
+    assert text is None
+    assert error is not None
+
+def test_analyze_resume(mock_genai_model):
+    # Execute
+    result = analyze_resume("Sample resume text")
+    
+    # Assert
+    assert mock_genai_model.called
+    assert result["score"] == 75
+    assert "sub_scores" in result
+    assert "comments" in result
+
+def test_analyze_resume_json_error():
+    # Setup
+    with patch('app.model.generate_content') as mock_generate:
+        mock_response = MagicMock()
+        mock_response.text = "Invalid JSON response"
+        mock_generate.return_value = mock_response
+        
+        # Execute
+        result = analyze_resume("Sample resume text")
+        
+        # Assert
+        assert "error" in result
+
+def test_analyze_endpoint_success(client, mock_pdf_reader, mock_genai_model):
+    # Create a test PDF file
+    pdf_content = b'%PDF-1.4\nTest PDF content'
+    
+    # Execute
+    response = client.post(
+        '/api/analyze',
+        data={'file': (BytesIO(pdf_content), 'test.pdf')},
+        content_type='multipart/form-data'
+    )
+    
+    # Assert
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert "score" in data
+    assert "sub_scores" in data
 
 def test_analyze_endpoint_no_file(client):
+    # Execute
     response = client.post('/api/analyze')
+    
+    # Assert
     assert response.status_code == 400
     data = json.loads(response.data)
-    assert 'error' in data
-    assert 'No file uploaded' in data['error']
+    assert "error" in data
+    assert "No file uploaded" in data["error"]
 
 def test_analyze_endpoint_empty_filename(client):
-    response = client.post('/api/analyze', data={
-        'file': (BytesIO(b''), '')
-    })
+    # Execute
+    response = client.post(
+        '/api/analyze',
+        data={'file': (BytesIO(b''), '')},
+        content_type='multipart/form-data'
+    )
+    
+    # Assert
     assert response.status_code == 400
     data = json.loads(response.data)
-    assert 'error' in data
-    assert 'No file selected' in data['error']
+    assert "error" in data
+    assert "No file selected" in data["error"]
 
 def test_analyze_endpoint_unsupported_format(client):
-    response = client.post('/api/analyze', data={
-        'file': (BytesIO(b'test content'), 'test.txt')
-    }, content_type='multipart/form-data')
+    # Execute
+    response = client.post(
+        '/api/analyze',
+        data={'file': (BytesIO(b'Test content'), 'test.txt')},
+        content_type='multipart/form-data'
+    )
+    
+    # Assert
     assert response.status_code == 400
     data = json.loads(response.data)
-    assert 'error' in data
-    assert 'Unsupported file format' in data['error']
-
-# For a complete test, you would need to create actual PDF and DOCX files
-# and test the full flow with mocked Gemini API responses
+    assert "error" in data
+    assert "Unsupported file format" in data["error"]

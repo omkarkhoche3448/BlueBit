@@ -274,3 +274,27 @@ def test_analyze_endpoint_analysis_error(client, mock_pdf_reader):
         assert response.status_code == 500
         data = json.loads(response.data)
         assert "error" in data
+
+@patch('utils.resume_parser.extract_text_from_pdf')
+@patch('utils.resume_parser.extract_text_from_docx')
+def test_extract_text_from_file(mock_extract_docx, mock_extract_pdf):
+    # Setup
+    mock_extract_pdf.return_value = ("PDF content", None)
+    mock_extract_docx.return_value = ("DOCX content", None)
+    
+    # Test PDF extraction
+    text, error = extract_text_from_file("test.pdf")
+    assert text == "PDF content"
+    assert error is None
+    mock_extract_pdf.assert_called_once_with("test.pdf")
+    
+    # Test DOCX extraction
+    text, error = extract_text_from_file("test.docx")
+    assert text == "DOCX content"
+    assert error is None
+    mock_extract_docx.assert_called_once_with("test.docx")
+    
+    # Test unsupported format
+    text, error = extract_text_from_file("test.txt")
+    assert text is None
+    assert "Unsupported file format" in error

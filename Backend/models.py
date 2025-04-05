@@ -84,6 +84,7 @@ class JobApplication(Base):
     date_applied = Column(String)
     notes = Column(String)
     
+    # Make sure this exists and points to the User model
     user = relationship("User", back_populates="applications")
     job = relationship("Job")
 
@@ -101,5 +102,5 @@ class Payment(Base):
     user = relationship("User", back_populates="payments")
     
     # Add these relationships to your User class
-    applications = relationship("JobApplication", back_populates="user", cascade="all, delete-orphan")
+    applications = relationship("JobApplication", back_populates="user")
     payments = relationship("Payment", back_populates="user", cascade="all, delete-orphan")

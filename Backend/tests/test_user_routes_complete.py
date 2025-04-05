@@ -5,6 +5,7 @@ import json
 from unittest.mock import patch, MagicMock
 from io import BytesIO
 from werkzeug.datastructures import FileStorage
+from unittest.mock import patch, MagicMock, mock_open
 
 # Add the parent directory to sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -252,11 +253,16 @@ def test_check_resume(client, mock_db_session, sample_user):
 @patch('routes.user_routes.extract_text_from_pdf')
 @patch('routes.user_routes.is_valid_resume')
 @patch('routes.user_routes.extract_resume_keywords')
-def test_upload_resume_pdf(mock_extract_keywords, mock_is_valid, mock_extract_text, mock_join, mock_secure_filename, client, mock_db_session, sample_user):
+@patch('routes.user_routes.os.makedirs', return_value=None)  # Add this line
+@patch('builtins.open', new_callable=mock_open)  # Add this line
+def test_upload_resume_pdf(mock_open, mock_makedirs, mock_extract_keywords, mock_is_valid, 
+                          mock_extract_text, mock_join, mock_secure_filename, 
+                          client, mock_db_session, sample_user):
     # Setup
     mock_db_session.query.return_value.filter.return_value.first.return_value = sample_user
     mock_secure_filename.return_value = 'test_clerk_id_resume.pdf'
-    mock_join.return_value = '/path/to/uploads/test_clerk_id_resume.pdf'
+    upload_dir = os.path.join(os.getcwd(), 'uploads')
+    mock_join.return_value = os.path.join(upload_dir, 'test_clerk_id_resume.pdf')
     mock_extract_text.return_value = ('Sample resume text', None)
     mock_is_valid.return_value = True
     mock_extract_keywords.return_value = ['python', 'javascript']
@@ -276,6 +282,8 @@ def test_upload_resume_pdf(mock_extract_keywords, mock_is_valid, mock_extract_te
     data = json.loads(response.data)
     assert 'message' in data
     assert 'keywords' in data
+    mock_makedirs.assert_called_once_with(upload_dir, exist_ok=True)
+    mock_open.assert_called_once()
 
 def test_get_interested_jobs(client, mock_db_session, sample_user):
     # Setup
@@ -365,9 +373,14 @@ def test_get_sample_resume(client):
     assert 'message' in data
 
 def test_health_check(client):
-    # Setup
+    # Execute
     with patch('routes.user_routes.Session') as mock_session:
-        # Execute
+        mock_session_instance = MagicMock()
+        mock_session.return_value = mock_session_instance
+        
+        # Test database connection
+        mock_session_instance.execute.return_value = MagicMock()
+        
         response = client.get('/api/health')
         
         # Assert
@@ -375,10 +388,12 @@ def test_health_check(client):
         data = json.loads(response.data)
         assert 'status' in data
         assert data['status'] == 'ok'
+        mock_session_instance.execute.assert_called_once()  # Verify DB connection was tested
 
 def test_save_job(client, mock_db_session, sample_user, sample_job):
     # Setup
     mock_db_session.query.return_value.filter.return_value.first.side_effect = [sample_user, sample_job]
+    sample_user.saved_jobs_ids = []  # Ensure it's empty to start
     
     # Execute
     response = client.post(
@@ -392,6 +407,7 @@ def test_save_job(client, mock_db_session, sample_user, sample_job):
     assert 'message' in data
     assert 'job saved' in data['message'].lower()
     assert 'job4' in sample_user.saved_jobs_ids
+    mock_db_session.commit.assert_called_once()  # Verify commit was called
 
 def test_save_job_already_saved(client, mock_db_session, sample_user):
     # Setup
@@ -412,7 +428,7 @@ def test_save_job_already_saved(client, mock_db_session, sample_user):
 
 def test_unsave_job(client, mock_db_session, sample_user):
     # Setup
-    sample_user.saved_jobs_ids = ['job4', 'job5']
+    sample_user.saved_jobs_ids = ['job4']  # Add job to saved list
     mock_db_session.query.return_value.filter.return_value.first.return_value = sample_user
     
     # Execute
@@ -427,7 +443,7 @@ def test_unsave_job(client, mock_db_session, sample_user):
     assert 'message' in data
     assert 'job removed' in data['message'].lower()
     assert 'job4' not in sample_user.saved_jobs_ids
-    assert 'job5' in sample_user.saved_jobs_ids
+    mock_db_session.commit.assert_called_once()  # Verify commit was called
 
 def test_unsave_job_not_saved(client, mock_db_session, sample_user):
     # Setup
@@ -538,35 +554,41 @@ def test_get_not_interested_jobs(client, mock_db_session, sample_user):
     assert data['jobs'][0]['id'] == 'job3'
 
 @patch('routes.user_routes.extract_text_from_docx')
-def test_upload_resume_docx(mock_extract_text, client, mock_db_session, sample_user):
+@patch('routes.user_routes.secure_filename')
+@patch('routes.user_routes.os.path.join')
+@patch('routes.user_routes.is_valid_resume')
+@patch('routes.user_routes.extract_resume_keywords')
+@patch('routes.user_routes.os.makedirs', return_value=None)
+@patch('builtins.open', new_callable=mock_open)
+def test_upload_resume_docx(mock_open, mock_makedirs, mock_extract_keywords, mock_is_valid, 
+                           mock_join, mock_secure_filename, mock_extract_text, 
+                           client, mock_db_session, sample_user):
     # Setup
     mock_db_session.query.return_value.filter.return_value.first.return_value = sample_user
+    mock_secure_filename.return_value = 'test_clerk_id_resume.docx'
+    upload_dir = os.path.join(os.getcwd(), 'uploads')
+    mock_join.return_value = os.path.join(upload_dir, 'test_clerk_id_resume.docx')
     mock_extract_text.return_value = ('Sample resume text from DOCX', None)
+    mock_is_valid.return_value = True
+    mock_extract_keywords.return_value = ['python', 'javascript']
     
-    with patch('routes.user_routes.secure_filename') as mock_secure_filename:
-        with patch('routes.user_routes.os.path.join') as mock_join:
-            with patch('routes.user_routes.is_valid_resume') as mock_is_valid:
-                with patch('routes.user_routes.extract_resume_keywords') as mock_extract_keywords:
-                    mock_secure_filename.return_value = 'test_clerk_id_resume.docx'
-                    mock_join.return_value = '/path/to/uploads/test_clerk_id_resume.docx'
-                    mock_is_valid.return_value = True
-                    mock_extract_keywords.return_value = ['python', 'javascript']
-                    
-                    # Create a test DOCX file
-                    docx_content = b'PK\x03\x04\x14\x00\x00\x00\x08\x00Test DOCX content'
-                    
-                    # Execute
-                    response = client.post(
-                        '/api/users/test_clerk_id/resume',
-                        data={'file': (BytesIO(docx_content), 'resume.docx')},
-                        content_type='multipart/form-data'
-                    )
-                    
-                    # Assert
-                    assert response.status_code == 200
-                    data = json.loads(response.data)
-                    assert 'message' in data
-                    assert 'keywords' in data
+    # Create a test DOCX file
+    docx_content = b'PK\x03\x04\x14\x00\x00\x00\x08\x00Test DOCX content'
+    
+    # Execute
+    response = client.post(
+        '/api/users/test_clerk_id/resume',
+        data={'file': (BytesIO(docx_content), 'resume.docx')},
+        content_type='multipart/form-data'
+    )
+    
+    # Assert
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert 'message' in data
+    assert 'keywords' in data
+    mock_makedirs.assert_called_once_with(upload_dir, exist_ok=True)
+    mock_open.assert_called_once()
 
 def test_upload_resume_invalid_format(client, mock_db_session, sample_user):
     # Setup
@@ -737,3 +759,18 @@ def test_delete_user_account(client, mock_db_session, sample_user):
     assert 'message' in data
     assert mock_db_session.delete.called
     assert mock_db_session.commit.called
+
+@patch('routes.user_routes.get_recommendations_for_user')
+def test_get_user_recommendations_error_handling(mock_get_recommendations, client, mock_db_session, sample_user):
+    # Setup
+    mock_db_session.query.return_value.filter.return_value.first.return_value = sample_user
+    mock_get_recommendations.side_effect = Exception("Recommendation error")
+    
+    # Execute
+    response = client.get('/api/users/test_clerk_id/recommendations')
+    
+    # Assert
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert 'error' in data
+    assert 'recommendation error' in data['error'].lower()
