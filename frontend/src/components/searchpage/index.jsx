@@ -50,8 +50,8 @@ function SearchHeader({
         </form>
   
         {!loading && (
-          <div className="mt-3 flex items-center justify-between text-sm text-gray-500">
-            <span>{jobs?.length} jobs found</span>
+          <div className="mt-3 flex items-center justify-end text-sm text-gray-500">
+            {/* <span>{jobs?.length} jobs found</span> */}
             <div className="flex items-center">
               <span className="mr-2">Sort by:</span>
               <SortDropdown
@@ -99,7 +99,7 @@ function SortDropdown({ sortBy, onSortChange }) {
         <div>
           <button
             type="button"
-            className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-100 focus:ring-blue-500"
+            className="inline-flex justify-center w-full rounded-md border border-gray-200 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
             id="options-menu"
             aria-expanded={isOpen}
             aria-haspopup="true"
@@ -111,9 +111,8 @@ function SortDropdown({ sortBy, onSortChange }) {
             <ChevronDown className="-mr-1 ml-2 h-5 w-5" aria-hidden="true" />
           </button>
         </div>
-
         {isOpen && (
-          <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+          <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md bg-white border border-gray-200 shadow-sm focus:outline-none z-10">
             <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
               <button
                 className={`${
@@ -201,11 +200,3 @@ function FilterBadge({ label }) {
 }
 
 export { MobileFiltersToggle, SearchHeader, SortDropdown, AppliedFilters, FilterBadge };
-
-// export default {
-//   MobileFiltersToggle,
-//   SearchHeader,
-//   SortDropdown,
-//   AppliedFilters,
-//   FilterBadge
-// };

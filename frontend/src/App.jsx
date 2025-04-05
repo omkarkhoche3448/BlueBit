@@ -227,10 +227,10 @@ function App() {
             />
 
             {/* Dedicated error routes */}
-            {/* <Route path="/error" element={<NotFoundPage />} /> */}
-
+            <Route path="/error" element={<NotFoundPage />} />
+            
             {/* Catch-all route for both signed-in and signed-out users */}
-            {/* <Route
+            <Route
               path="*"
               element={
                 <>
@@ -242,7 +242,7 @@ function App() {
                   </SignedOut>
                 </>
               }
-            /> */}
+            />
           </Routes>
           <SignedIn>
             <HelpButton />

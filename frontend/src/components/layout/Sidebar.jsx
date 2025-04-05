@@ -19,8 +19,6 @@ import { toast } from "react-hot-toast";
 import SettingsModal from "../common/SettingsModal";
 import { fetchSavedJobs, fetchLikedJobs } from "../../slices/jobsSlice";
 import PaymentService from '../../services/paymentService';
-import  ConfirmationModal  from "../common/ConfirmationModal";
-
 
 function Sidebar() {
   const { user } = useUser();
