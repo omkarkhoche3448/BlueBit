@@ -557,3 +557,31 @@ def register_user_routes(app):
             'resumeText': sample_resume,
             'message': 'This is a sample resume for testing. Please upload your actual resume in ProFind.'
         })
+    
+    @app.route('/api/users/<string:clerk_id>', methods=['DELETE'])
+    def delete_user(clerk_id):
+        session = Session()
+        try:
+            # Find the user
+            user = session.query(User).filter(User.clerk_id == clerk_id).first()
+            
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+            
+            # Delete the user
+            session.delete(user)
+            session.commit()
+            
+            return jsonify({
+                'message': 'User account successfully deleted',
+                'clerk_id': clerk_id
+            })
+        
+        except Exception as e:
+            session.rollback()
+            logging.error(f"Error deleting user account: {str(e)}")
+            return jsonify({'error': f'Failed to delete user account: {str(e)}'}), 500
+        finally:
+            session.close()
+    
+    
