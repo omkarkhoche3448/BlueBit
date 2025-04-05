@@ -420,28 +420,6 @@ const SettingsModal = ({ isOpen, onClose }) => {
                       </button>
                     )}
                   </div>
-
-                  {isPro && (
-                    <div className="mt-3 pt-3 border-t border-green-200">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">
-                        Pro Benefits:
-                      </h4>
-                      <ul className="text-xs text-gray-600 space-y-1">
-                        <li className="flex items-center">
-                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500 mr-2"></span>
-                          Unlimited job applications
-                        </li>
-                        <li className="flex items-center">
-                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500 mr-2"></span>
-                          Priority support
-                        </li>
-                        <li className="flex items-center">
-                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500 mr-2"></span>
-                          Early access to new jobs
-                        </li>
-                      </ul>
-                    </div>
-                  )}
                 </div>
               </div>
             )}

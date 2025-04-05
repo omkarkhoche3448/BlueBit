@@ -108,7 +108,7 @@ function RecommendationsPage() {
             </button>
             <div>
               <a
-                href="/preferences"
+                href="/edit-preferences"
                 className="mt-2 inline-block text-sm font-medium text-blue-600 hover:text-blue-800"
               >
                 Update your preferences
