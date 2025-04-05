@@ -25,7 +25,9 @@ import {
 } from "lucide-react";
 import { saveJob, removeJob, updateJobInterest } from "../../slices/jobsSlice";
 import { useUser } from "@clerk/clerk-react";
-import { useProStatusContext } from "../../contexts/ProStatusContext"; // We'll create this context
+import { useProStatusContext } from "../../contexts/ProStatusContext";
+import PaymentService from "../../services/paymentService";
+import { toast } from "react-hot-toast";
 
 const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 
@@ -35,14 +37,54 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
   const { user, isSignedIn } = useUser();
   const dispatch = useDispatch();
   const savedJobs = useSelector((state) => state.jobs.savedJobs || []);
-  const isSaved = Array.isArray(savedJobs) && savedJobs.some((savedJob) => savedJob.id === job.id);
-  const { isPro } = useProStatusContext(); // Use the context instead of the hook directly
-  
-  // State for tracking user's interest in this job
+  const isSaved =
+    Array.isArray(savedJobs) &&
+    savedJobs.some((savedJob) => savedJob.id === job.id);
+  const { isPro, refreshProStatus } = useProStatusContext();
+
   const [isInterested, setIsInterested] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
+  // Add payment handler function inside the component
+
+  const handlePayment = async () => {
+    try {
+      if (!user) return;
+
+      setIsProcessingPayment(true);
+      setTimeout(() => {
+        setShowProModal(false);
+      }, 1000);
+
+      await PaymentService.initiatePayment(
+        user.id,
+        user.primaryEmailAddress.emailAddress,
+        user.fullName
+      );
+
+      // Refresh pro status after successful payment
+      await refreshProStatus();
+
+      toast.success("Payment successful! Pro features activated.", {
+        duration: 4000,
+        position: "top-center",
+        icon: "🎉",
+        onClose: () => {
+          window.location.reload();
+        },
+      });
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast.error(`Payment failed: ${error.message}`, {
+        duration: 4000,
+        position: "top-center",
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
   // Fix the useEffect - remove the nested useEffect
   useEffect(() => {
     console.log("JobCard mounted with job:", job?.id);
@@ -52,20 +94,28 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
     return () => {
       console.log("JobCard unmounted:", job?.id);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn, user?.id, job?.id]);
 
   const fetchJobInterest = async () => {
     if (!job?.id) return; // Prevent fetching if job ID is undefined
     try {
-      console.log(`Fetching job interest for user ${user.id} and job ${job.id}`);
-      const response = await fetch(`${API_URL_BACKEND}/users/${user.id}/job-interest/${job.id}`);
+      console.log(
+        `Fetching job interest for user ${user.id} and job ${job.id}`
+      );
+      const response = await fetch(
+        `${API_URL_BACKEND}/users/${user.id}/job-interest/${job.id}`
+      );
       if (response.ok) {
         const data = await response.json();
         console.log("Fetched job interest data:", data);
         setIsInterested(data.interest);
       } else {
-        console.error("Failed to fetch job interest:", response.status, response.statusText);
+        console.error(
+          "Failed to fetch job interest:",
+          response.status,
+          response.statusText
+        );
       }
     } catch (err) {
       console.error("Error fetching job interest:", err);
@@ -75,21 +125,21 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
   const handleSaveJob = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     console.log("Save job button clicked for job:", job.id);
-    
+
     if (!isSignedIn) {
       console.log("User is not signed in. Showing Pro modal.");
       setShowProModal(true);
       return;
     }
-    
+
     if (!isPro) {
       console.log("Non-pro user clicked save. Showing upgrade modal.");
       setShowProModal(true);
       return;
     }
-    
+
     try {
       setIsLoading(true); // Add loading state
       if (isSaved) {
@@ -114,41 +164,43 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
   const handleJobInterest = async (interested, e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     console.log("Setting job interest for job:", job.id, "to", interested);
-    
+
     if (!isSignedIn) {
       setShowProModal(true);
       return;
     }
-    
+
     if (!isPro) {
       setShowProModal(true);
       return;
     }
-    
+
     // Optimistically update UI first for better responsiveness
     const previousInterest = isInterested;
     const newInterestValue = isInterested === interested ? null : interested;
     setIsInterested(newInterestValue);
-    
+
     // If marking as not interested and onNotInterested prop exists, call it immediately
     if (newInterestValue === false && onNotInterested) {
       onNotInterested(job.id);
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       console.log(`Setting interest for job ${job.id} to ${newInterestValue}`);
-      
+
       // Dispatch the updateJobInterest action
-      await dispatch(updateJobInterest({
-        userId: user.id,
-        jobId: job.id,
-        interest: newInterestValue
-      })).unwrap();
-      
+      await dispatch(
+        updateJobInterest({
+          userId: user.id,
+          jobId: job.id,
+          interest: newInterestValue,
+        })
+      ).unwrap();
+
       console.log("Successfully updated job interest for job:", job.id);
     } catch (err) {
       // Revert to previous state if request fails
@@ -163,13 +215,10 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
   const handleShare = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    // Note: Share functionality is available to all users (including non-pro),
-    // so we don't check for isPro here
-    
+
     // Get the job URL
     const jobUrl = job.job_url_direct || job.job_url || window.location.href;
-    
+
     // Implement share functionality
     if (navigator.share) {
       navigator.share({
@@ -179,7 +228,8 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
       });
     } else {
       // Copy to clipboard as fallback
-      navigator.clipboard.writeText(jobUrl)
+      navigator.clipboard
+        .writeText(jobUrl)
         .then(() => {
           alert("Job link copied to clipboard!");
         })
@@ -193,28 +243,36 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
   // Pro upgrade modal
   const ProUpgradeModal = () => {
     if (!showProModal) return null;
-    
+
     return (
-      <div className="fixed inset-0 bg-transapernt bg-opacity-10 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowProModal(false)}>
-        <div className="bg-white p-6 rounded-lg border border-gray-200  max-w-md w-full" onClick={e => e.stopPropagation()}>
+      <div
+        className="fixed inset-0 bg-transapernt bg-opacity-10 backdrop-blur-sm flex items-center justify-center z-50"
+        onClick={() => setShowProModal(false)}
+      >
+        <div
+          className="bg-white p-6 rounded-lg border border-gray-200 max-w-md w-full"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Pro Feature</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Pro Feature
+            </h3>
             <div className="bg-blue-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
               <Lock className="h-8 w-8 text-blue-500" />
             </div>
             <p className="text-gray-600 mb-4">
-              Upgrade to Pro to unlock this feature and enjoy unlimited access to job saving, liking and more premium features.
+              Upgrade to Pro to unlock this feature and enjoy unlimited access
+              to job saving, liking and more premium features.
             </p>
-            <Link 
-              to="/pricing" 
-              className="block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors duration-200"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowProModal(false);
-              }}
+            <button
+              className={`block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors duration-200 ${
+                isProcessingPayment ? "opacity-70 cursor-not-allowed" : ""
+              }`}
+              onClick={handlePayment}
+              disabled={isProcessingPayment}
             >
-              Try for 1 Month
-            </Link>
+              {isProcessingPayment ? "Processing..." : "Try for 1 Month"}
+            </button>
             <button
               className="mt-3 text-sm text-gray-500 hover:text-gray-700"
               onClick={() => setShowProModal(false)}
@@ -349,27 +407,34 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
 
   return (
     <div
-      className={`block cursor-pointer ${isRecommended ? "animate-fadeIn" : ""}`}
+      className={`block cursor-pointer ${
+        isRecommended ? "animate-fadeIn" : ""
+      }`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
       onClick={(e) => {
-        window.open(job.job_url_direct || job.job_url, '_blank', 'noopener,noreferrer');
+        window.open(
+          job.job_url_direct || job.job_url,
+          "_blank",
+          "noopener,noreferrer"
+        );
       }}
       key={job.id}
     >
-      <div className={`bg-white rounded-xl duration-200 overflow-hidden border ${
-        isRecommended 
-          ? "border-amber-300" 
-          : "border-gray-200"
-      }`}>
+      <div
+        className={`bg-white rounded-xl duration-200 overflow-hidden border ${
+          isRecommended ? "border-amber-300" : "border-gray-200"
+        }`}
+      >
         {isRecommended && (
           <div className="bg-gradient-to-r from-amber-100 to-amber-50 px-4 py-1 border-b border-amber-200">
             <span className="text-xs font-medium text-amber-800 flex items-center">
-              <Building className="h-3 w-3 mr-1 text-amber-500" /> Recommended for you
+              <Building className="h-3 w-3 mr-1 text-amber-500" /> Recommended
+              for you
             </span>
           </div>
         )}
-        
+
         <div className="p-4">
           <div className="flex items-start">
             {/* Company Logo */}
@@ -610,10 +675,14 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
                 isSaved
                   ? "text-blue-600 bg-blue-50"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-              } transition-all duration-200 transform hover:scale-110 ${!isPro ? "opacity-60" : ""}`}
+              } transition-all duration-200 transform hover:scale-110 ${
+                !isPro ? "opacity-60" : ""
+              }`}
               title={isPro ? (isSaved ? "Unsave" : "Save") : "Pro Feature"}
             >
-              {!isPro && <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />}
+              {!isPro && (
+                <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />
+              )}
               <Bookmark
                 className="h-4 w-4"
                 fill={isSaved ? "currentColor" : "none"}
@@ -626,10 +695,14 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
                 isInterested === true
                   ? "text-green-600 bg-green-50"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-              } transition-all duration-200 transform hover:scale-110 ${!isPro ? "opacity-60" : ""}`}
+              } transition-all duration-200 transform hover:scale-110 ${
+                !isPro ? "opacity-60" : ""
+              }`}
               title={isPro ? "Interested" : "Pro Feature"}
             >
-              {!isPro && <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />}
+              {!isPro && (
+                <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />
+              )}
               <ThumbsUp
                 className={`h-4 w-4 ${isLoading ? "opacity-50" : ""}`}
                 fill={isInterested === true ? "currentColor" : "none"}
@@ -642,10 +715,14 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
                 isInterested === false
                   ? "text-red-600 bg-red-50"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-              } transition-all duration-200 transform hover:scale-110 ${isInterested === false ? "animate-pulse" : ""} ${!isPro ? "opacity-60" : ""}`}
+              } transition-all duration-200 transform hover:scale-110 ${
+                isInterested === false ? "animate-pulse" : ""
+              } ${!isPro ? "opacity-60" : ""}`}
               title={isPro ? "Not for me" : "Pro Feature"}
             >
-              {!isPro && <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />}
+              {!isPro && (
+                <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />
+              )}
               <ThumbsDown
                 className={`h-4 w-4 ${isLoading ? "opacity-50" : ""}`}
                 fill={isInterested === false ? "currentColor" : "none"}
@@ -680,7 +757,7 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
           </div>
         </div>
       </div>
-      
+
       {/* Pro Upgrade Modal */}
       <ProUpgradeModal />
     </div>
