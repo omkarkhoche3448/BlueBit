@@ -19,6 +19,7 @@ import { toast } from "react-hot-toast";
 import SettingsModal from "../common/SettingsModal";
 import { fetchSavedJobs, fetchLikedJobs } from "../../slices/jobsSlice";
 import PaymentService from '../../services/paymentService';
+import  ConfirmationModal  from "../common/ConfirmationModal";
 
 
 function Sidebar() {
@@ -71,7 +72,7 @@ function Sidebar() {
     try {
       if (!user) return;
       
-      const result = await PaymentService.initiatePayment(
+      await PaymentService.initiatePayment(
         user.id,
         user.primaryEmailAddress.emailAddress,
         user.fullName
@@ -178,37 +179,33 @@ function Sidebar() {
         </div>
 
         {/* Membership Section */}
-        <div className="p-5 border-b border-gray-200">
-          <h3 className="text-gray-700 mb-3 font-medium text-sm uppercase tracking-wide">Membership</h3>
+        <div className="p-4 border-b border-gray-200">
+          <h3 className="text-gray-700 mb-2 text-sm">Membership</h3>
           <div
             onClick={!isPro ? handlePayment : undefined}
-            className={`flex items-center justify-between text-sm py-4 px-4 rounded-lg transition-all duration-300 ${
+            className={`flex items-center justify-between p-3 rounded-lg ${
               isPro
-                ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border border-green-100"
-                : "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-800 border border-blue-100 cursor-pointer hover:bg-blue-100"
+                ? "bg-blue-50/30 text-gray-600 border border-blue-100"
+                : "bg-blue-50/30 text-gray-600 border border-blue-100 cursor-pointer hover:bg-blue-50/50"
             }`}
           >
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center justify-center w-4 h-4 rounded-lg bg-gradient-to-r from-gray-50 to-blue-50">
-                <Briefcase
-                  className={`h-4 w-4 ${
-                    isPro ? "text-emerald-600" : "text-blue-600"
-                  }`}
-                />
-              </div>
-              <span className={`font-medium text-[12px] tracking-wide ${
-                isPro ? "text-emerald-700" : "text-gray-700"
-              }`}>
+            <div className="flex items-center gap-2">
+              <Briefcase
+                className={`h-4 w-4 ${
+                  isPro ? "text-blue-600/70" : "text-blue-600/70"
+                }`}
+              />
+              <span className="text-sm">
                 {isPro ? "Pro Membership" : "Upgrade to Premium"}
               </span>
             </div>
             {!isPro ? (
               <div className="flex items-center">
-                <span className="font-semibold text-indigo-600 mr-1">₹100</span>
-                <ChevronRight className="h-4 w-4 text-indigo-400" />
+                <span className="text-gray-600 font-medium">₹100</span>
+                <ChevronRight className="h-4 w-4 ml-1 text-blue-600/70" />
               </div>
             ) : (
-              <span className="text-xs px-2 py-1 bg-green-200 text-green-800 rounded-full font-medium">
+              <span className="text-xs px-2 py-1 bg-blue-100/50 text-gray-700 rounded-full">
                 Active
               </span>
             )}
@@ -232,7 +229,7 @@ function Sidebar() {
               className="text-sm text-gray-700 hover:text-red-600 flex items-center p-3 hover:bg-red-50 rounded-md transition-colors cursor-pointer mt-2"
             >
               <LogOut className="h-4 w-4 mr-3 text-gray-500" />
-              Sign Out
+              Quick sign out
             </button>
           </div>
         </div>

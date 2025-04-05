@@ -134,7 +134,7 @@ function RecommendedJobs() {
   // If recommendations array is empty, show enhanced interaction message
   if (!isLoading && recommendations.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6 border border-gray-100 w-full mx-auto">
+      <div className="bg-white rounded-lg  p-4 mb-6 border border-gray-100 w-full mx-auto">
         <div className="text-center">
           {/* Desktop version - hidden on small screens */}
           <div className="hidden md:block bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-4">
@@ -239,7 +239,7 @@ function RecommendedJobs() {
         {hasPrev && (
           <button
             onClick={handlePrev}
-            className="absolute -left-3 top-1/2 transform -translate-y-1/2 bg-white shadow-md rounded-full w-7 h-7 flex items-center justify-center border border-gray-200 text-gray-600 hover:text-gray-900 z-10"
+            className="absolute -left-3 top-1/2 transform -translate-y-1/2 bg-white  rounded-full w-7 h-7 flex items-center justify-center border border-gray-200 text-gray-600 hover:text-gray-900 z-10"
             aria-label="Previous jobs"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -260,7 +260,7 @@ function RecommendedJobs() {
         {hasNext && (
           <button
             onClick={handleNext}
-            className="absolute -right-3 top-1/2 transform -translate-y-1/2 bg-white shadow-md rounded-full w-7 h-7 flex items-center justify-center border border-gray-200 text-gray-600 hover:text-gray-900 z-10"
+            className="absolute -right-3 top-1/2 transform -translate-y-1/2 bg-white  rounded-full w-7 h-7 flex items-center justify-center border border-gray-200 text-gray-600 hover:text-gray-900 z-10"
             aria-label="Next jobs"
           >
             <ChevronRight className="w-4 h-4" />
@@ -309,7 +309,7 @@ function JobCard({ job }) {
   return (
     <div className="flex-shrink-0 w-[220px] group">
       {/* Card with hover effect */}
-      <div className="rounded-lg border border-gray-100 bg-white shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden h-full">
+      <div className="rounded-lg border border-gray-100 bg-white  hover: transition-all duration-200 overflow-hidden h-full">
         {/* Company header with logo and time */}
         <div className="flex items-center justify-between p-3 border-b border-gray-50">
           <div className="w-10 h-10 rounded-md bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden">

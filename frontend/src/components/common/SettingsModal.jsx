@@ -10,15 +10,19 @@ import {
   Download,
   HelpCircle,
   FileUp,
+  LogOut,
 } from "lucide-react";
 import { useProStatusContext } from "../../contexts/ProStatusContext";
 import { useNavigate } from "react-router-dom";
 import PreferencesService from "../../services/PreferencesService";
 import PaymentService from '../../services/paymentService';
+import UserService from '../../services/UserService';
 import { toast } from "react-hot-toast";
+import ConfirmationModal from "./ConfirmationModal";
+import SignOutConfirmationModal from "./SignOutConfirmationModal";
 
 function formatDate(date) {
-  if (!date) return '';
+  if (!date) return "";
   const dateObject = new Date(date);
   const year = dateObject.getFullYear();
   const month = dateObject.getMonth() + 1;
@@ -27,19 +31,27 @@ function formatDate(date) {
   const minutes = dateObject.getMinutes();
   const seconds = dateObject.getSeconds();
 
-  const formattedDate = `${month < 10 ? '0' : ''}${month}/${day < 10 ? '0' : ''}${day}/${year} ${hours < 10 ? '0' : ''}${hours}:${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  const formattedDate = `${month < 10 ? "0" : ""}${month}/${
+    day < 10 ? "0" : ""
+  }${day}/${year} ${hours < 10 ? "0" : ""}${hours}:${
+    minutes < 10 ? "0" : ""
+  }${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
 
   return formattedDate;
 }
 
 const SettingsModal = ({ isOpen, onClose }) => {
-  const { openUserProfile } = useClerk();
+  const { openUserProfile, signOut } = useClerk();
   const { user } = useUser();
   const navigate = useNavigate();
   const { isPro, expiryDate, refreshProStatus } = useProStatusContext();
   const [activeTab, setActiveTab] = useState("account");
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [showSignOutConfirmation, setShowSignOutConfirmation] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [preferences, setPreferences] = useState({
     jobPreferences: [],
     culturalPreferences: [],
@@ -53,7 +65,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
   const handlePayment = async () => {
     try {
       if (!user) {
-        console.error('No user found');
+        console.error("No user found");
         return;
       }
 
@@ -74,7 +86,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
           onClose: () => window.location.reload()
         });
       } else {
-        throw new Error(result.message || 'Payment failed');
+        throw new Error(result.message || "Payment failed");
       }
     } catch (error) {
       console.error('Payment error:', error);
@@ -87,7 +99,6 @@ const SettingsModal = ({ isOpen, onClose }) => {
     }
   };
 
-  // Handle profile update via Clerk
   const handleProfileUpdate = () => {
     openUserProfile();
     onClose();
@@ -108,13 +119,61 @@ const SettingsModal = ({ isOpen, onClose }) => {
     onClose();
   };
 
-  // make an api call to fetch the user preferences and show them in preference tab 
+  const handleSignOut = async () => {
+    try {
+      setIsSigningOut(true);
+      await signOut();
+      onClose();
+    } catch (error) {
+      console.error("Error signing out:", error);
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+
+    try {
+      setIsDeleting(true);
+      
+      // Add a console log to debug
+      console.log(`Attempting to delete account for user: ${user.id}`);
+      
+      const success = await UserService.deleteAccount(user.id);
+
+      if (success) {
+        // Show success toast
+        toast.success("Account successfully deleted", {
+          duration: 3000,
+        });
+        
+        // Sign out the user after successful deletion
+        await signOut();
+        onClose();
+      } else {
+        throw new Error("Failed to delete account");
+      }
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      
+      // Use toast instead of alert for better UX
+      toast.error(`Failed to delete account: ${error.message || "Unknown error"}`, {
+        duration: 4000,
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirmation(false);
+    }
+  };
+
+  // make an api call to fetch the user preferences and show them in preference tab
   const fetchUserPreferences = async () => {
     if (!user) {
       console.log("No user found, cannot fetch preferences");
       return;
     }
-    
+
     console.log("Fetching preferences for user:", user.id);
     setIsLoading(true);
     try {
@@ -183,28 +242,34 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
       // Convert data to JSON string with proper formatting
       const jsonString = JSON.stringify(userData, null, 2);
-      
+
       // Create blob and download link
-      const blob = new Blob([jsonString], { type: 'application/json' });
+      const blob = new Blob([jsonString], { type: "application/json" });
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      
+      const link = document.createElement("a");
+
       // Set filename with user's name and current date
-      const date = new Date().toISOString().split('T')[0];
-      const userName = `${user.firstName || ''}${user.lastName ? '_' + user.lastName : ''}`.toLowerCase().replace(/\s+/g, '_');
-      const fileName = userName ? `${userName}_data_${date}.json` : `user_data_${date}.json`;
-      
+      const date = new Date().toISOString().split("T")[0];
+      const userName = `${user.firstName || ""}${
+        user.lastName ? "_" + user.lastName : ""
+      }`
+        .toLowerCase()
+        .replace(/\s+/g, "_");
+      const fileName = userName
+        ? `${userName}_data_${date}.json`
+        : `user_data_${date}.json`;
+
       link.download = fileName;
       link.href = url;
       document.body.appendChild(link);
       link.click();
-      
+
       // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error exporting data:', error);
-      alert('Failed to export data. Please try again.');
+      console.error("Error exporting data:", error);
+      alert("Failed to export data. Please try again.");
     } finally {
       setIsExporting(false);
     }
@@ -235,7 +300,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <nav className="space-y-1">
               <button
                 onClick={() => handleTabChange("account")}
-                className={`w-full text-left px-3 py-2 rounded-md text-xs font-medium flex items-center transition-colors ${
+                className={`w-full text-left px-3 py-2 rounded-md text-xs md:text-base font-medium flex items-center transition-colors ${
                   activeTab === "account"
                     ? "bg-blue-100 text-blue-800"
                     : "text-gray-700 hover:bg-gray-100"
@@ -247,7 +312,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
               <button
                 onClick={() => handleTabChange("preferences")}
-                className={`w-full text-left px-3 py-2 rounded-md text-xs font-medium flex items-center transition-colors ${
+                className={`w-full text-left px-3 py-2 rounded-md text-xs md:text-base font-medium flex items-center transition-colors ${
                   activeTab === "preferences"
                     ? "bg-blue-100 text-blue-800"
                     : "text-gray-700 hover:bg-gray-100"
@@ -259,7 +324,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
               <button
                 onClick={() => handleTabChange("resume")}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium flex items-center transition-colors ${
+                className={`w-full text-left px-3 py-2 rounded-md text-xs md:text-base font-medium flex items-center transition-colors ${
                   activeTab === "resume"
                     ? "bg-blue-100 text-blue-800"
                     : "text-gray-700 hover:bg-gray-100"
@@ -271,7 +336,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
               <button
                 onClick={() => handleTabChange("subscription")}
-                className={`w-full text-left px-3 py-2 rounded-md text-xs font-medium flex items-center transition-colors ${
+                className={`w-full text-left px-3 py-2 rounded-md text-xs md:text-base font-medium flex items-center transition-colors ${
                   activeTab === "subscription"
                     ? "bg-blue-100 text-blue-800"
                     : "text-gray-700 hover:bg-gray-100"
@@ -283,7 +348,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
               <button
                 onClick={() => handleTabChange("notifications")}
-                className={`w-full text-left px-3 py-2 rounded-md text-xs font-medium flex items-center transition-colors ${
+                className={`w-full text-left px-3 py-2 rounded-md text-xs md:text-base font-medium flex items-center transition-colors ${
                   activeTab === "notifications"
                     ? "bg-blue-100 text-blue-800"
                     : "text-gray-700 hover:bg-gray-100"
@@ -292,7 +357,6 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 <Bell className="h-4 w-4 mr-2" />
                 Notifications
               </button>
-
             </nav>
           </div>
 
@@ -327,7 +391,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                     </div>
                   </button>
 
-                  <button 
+                  <button
                     onClick={handleExportData}
                     disabled={isExporting}
                     className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-colors group"
@@ -338,7 +402,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                       </div>
                       <div className="text-left">
                         <h4 className="font-medium text-gray-800">
-                          {isExporting ? 'Exporting...' : 'Export Data'}
+                          {isExporting ? "Exporting..." : "Export Data"}
                         </h4>
                         <p className="text-xs text-gray-500">
                           Download your account data
@@ -346,6 +410,48 @@ const SettingsModal = ({ isOpen, onClose }) => {
                       </div>
                     </div>
                     <div className="text-gray-400 group-hover:text-green-500 transition-colors">
+                      →
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => setShowSignOutConfirmation(true)}
+                    className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-red-300 hover:bg-red-50 transition-colors group"
+                  >
+                    <div className="flex items-center">
+                      <div className="p-2 rounded-md bg-red-100 text-red-600 mr-3 group-hover:bg-red-200 transition-colors">
+                        <LogOut className="h-5 w-5" />
+                      </div>
+                      <div className="text-left">
+                        <h4 className="font-medium text-gray-800">Sign Out</h4>
+                        <p className="text-xs text-gray-500">
+                          Log out of your account
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-gray-400 group-hover:text-red-500 transition-colors">
+                      →
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => setShowDeleteConfirmation(true)}
+                    className="w-full flex items-center justify-between p-3 rounded-lg border border-red-200 hover:border-red-400 hover:bg-red-50 transition-colors group"
+                  >
+                    <div className="flex items-center">
+                      <div className="p-2 rounded-md bg-red-100 text-red-600 mr-3 group-hover:bg-red-200 transition-colors">
+                        <Shield className="h-5 w-5" />
+                      </div>
+                      <div className="text-left">
+                        <h4 className="font-medium text-red-600">
+                          Delete Account
+                        </h4>
+                        <p className="text-xs text-gray-500">
+                          Permanently delete your account and all data
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-gray-400 group-hover:text-red-500 transition-colors">
                       →
                     </div>
                   </button>
@@ -384,7 +490,8 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
                   <div className="py-2 px-1 md:p-4 bg-blue-50 rounded-lg">
                     <p className="text-xs md:text-sm text-blue-700">
-                      Keep your resume up to date to increase your chances of finding the perfect job match.
+                      Keep your resume up to date to increase your chances of
+                      finding the perfect job match.
                     </p>
                   </div>
                 </div>
@@ -426,7 +533,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                         disabled={isLoading}
                         className="px-3 py-1 text-xs font-medium rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {isLoading ? 'Processing...' : 'Upgrade'}
+                        {isLoading ? "Processing..." : "Upgrade"}
                       </button>
                     )}
                   </div>
@@ -446,31 +553,40 @@ const SettingsModal = ({ isOpen, onClose }) => {
                   </div>
                 ) : hasExistingPreferences ? (
                   <div className="space-y-3">
-                    {Object.entries(preferences).map(([key, values]) => 
+                    {Object.entries(preferences).map(([key, values]) =>
                       values.length > 0 ? (
-                        <div key={key} className="border border-gray-200 rounded-md p-3">
+                        <div
+                          key={key}
+                          className="border border-gray-200 rounded-md p-3"
+                        >
                           <h4 className="text-sm font-medium text-gray-700 mb-1 capitalize">
-                            {key.replace('Preferences', '')}
+                            {key.replace("Preferences", "")}
                           </h4>
                           <div className="flex flex-wrap gap-1">
                             {values.map((item, index) => (
-                              <span key={index} className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-md">
+                              <span
+                                key={index}
+                                className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-md"
+                              >
                                 {item}
                               </span>
                             ))}
                           </div>
                         </div>
                       ) : (
-                        <div key={key} className="border border-gray-200 rounded-md p-3">
+                        <div
+                          key={key}
+                          className="border border-gray-200 rounded-md p-3"
+                        >
                           <h4 className="text-sm font-medium text-gray-700 mb-1 capitalize">
-                            {key.replace('Preferences', '')}
+                            {key.replace("Preferences", "")}
                           </h4>
                           <p className="text-gray-500">Not selected</p>
                         </div>
                       )
                     )}
-                    
-                    <button 
+
+                    <button
                       onClick={handlePreferencesClick}
                       className="mt-3 w-full py-2 px-4 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
                     >
@@ -479,8 +595,11 @@ const SettingsModal = ({ isOpen, onClose }) => {
                   </div>
                 ) : (
                   <div className="text-center py-6">
-                    <p className="text-gray-500 mb-3">No preferences set yet. Please select your preferences to get personalized job recommendations.</p>
-                    <button 
+                    <p className="text-gray-500 mb-3">
+                      No preferences set yet. Please select your preferences to
+                      get personalized job recommendations.
+                    </p>
+                    <button
                       onClick={handlePreferencesClick}
                       className="py-2 px-4 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
                     >
@@ -553,7 +672,6 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 </div>
               </div>
             )}
-
           </div>
         </div>
 
@@ -563,6 +681,24 @@ const SettingsModal = ({ isOpen, onClose }) => {
           Need help? Contact support
         </div>
       </div>
+      {/* Delete Account Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirmation}
+        onClose={() => setShowDeleteConfirmation(false)}
+        title="Delete Account"
+        message="Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data including saved jobs, preferences, and resume information."
+        confirmText="Delete Account"
+        loadingText="Deleting..."
+        onConfirm={handleDeleteAccount}
+        isLoading={isDeleting}
+      />
+
+      <SignOutConfirmationModal
+        isOpen={showSignOutConfirmation}
+        onClose={() => setShowSignOutConfirmation(false)}
+        onSignOut={handleSignOut}
+        isLoading={isSigningOut}
+      />
     </div>
   );
 };

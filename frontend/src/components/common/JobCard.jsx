@@ -195,8 +195,8 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
     if (!showProModal) return null;
     
     return (
-      <div className="fixed inset-0 bg-white bg-opacity-20 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowProModal(false)}>
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-xl max-w-md w-full" onClick={e => e.stopPropagation()}>
+      <div className="fixed inset-0 bg-transapernt bg-opacity-10 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowProModal(false)}>
+        <div className="bg-white p-6 rounded-lg border border-gray-200  max-w-md w-full" onClick={e => e.stopPropagation()}>
           <div className="text-center">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Pro Feature</h3>
             <div className="bg-blue-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
@@ -357,7 +357,7 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
       }}
       key={job.id}
     >
-      <div className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden border ${
+      <div className={`bg-white rounded-xl duration-200 overflow-hidden border ${
         isRecommended 
           ? "border-amber-300" 
           : "border-gray-200"
