@@ -130,14 +130,14 @@ function HomePage() {
   return (
     <div className="space-y-6 max-w-[600px]">
       {/* Welcome Section */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-2">
           Welcome, {user?.fullName || "User"}!
         </h1>
         <p className="text-gray-600 mb-4">
           Find your next opportunity with these tools:
         </p>
-        <div className="grid grid-cols-2 gap-3 md:flex md:flex-wrap md:gap-2">
+        <div className="grid grid-cols-2 gap-3 md:flex md:flex-wrap md:gap-3">
           <button className="px-4 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors flex items-center justify-center cursor-pointer">
             Jobs Search
           </button>
@@ -154,7 +154,7 @@ function HomePage() {
       </div>
 
       {/* Search Section */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <form
           onSubmit={handleSearch}
           className="flex flex-col gap-3 md:flex-row md:items-center"

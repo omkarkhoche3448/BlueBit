@@ -18,6 +18,7 @@ import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import SettingsModal from "../common/SettingsModal";
 import { fetchSavedJobs, fetchLikedJobs } from "../../slices/jobsSlice";
+import PaymentService from '../../services/paymentService';
 
 
 function Sidebar() {
@@ -64,6 +65,25 @@ function Sidebar() {
   const copyClerkId = () => {
     navigator.clipboard.writeText(user?.id || "");
     toast.success("Clerk ID copied to clipboard!");
+  };
+
+  const handlePayment = async () => {
+    try {
+      if (!user) return;
+      
+      const result = await PaymentService.initiatePayment(
+        user.id,
+        user.primaryEmailAddress.emailAddress,
+        user.fullName
+      );
+      
+      alert('Payment successful! Pro features activated.');
+      // You might want to refresh the pro status here or redirect the user
+      
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Payment failed: ' + error.message);
+    }
   };
 
   return (
@@ -149,12 +169,12 @@ function Sidebar() {
         {/* Membership Section */}
         <div className="p-5 border-b border-gray-200">
           <h3 className="text-gray-700 mb-3 font-medium text-sm uppercase tracking-wide">Membership</h3>
-          <Link
-            to="/"
+          <div
+            onClick={!isPro ? handlePayment : undefined}
             className={`flex items-center justify-between text-sm py-4 px-4 rounded-lg transition-all duration-300 ${
               isPro
                 ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 border border-green-100"
-                : "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-800 border border-blue-100"
+                : "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-800 border border-blue-100 cursor-pointer hover:bg-blue-100"
             }`}
           >
             <div className="flex items-center space-x-3">
@@ -181,7 +201,7 @@ function Sidebar() {
                 Active
               </span>
             )}
-          </Link>
+          </div>
         </div>
 
         {/* Settings & Help Section */}
