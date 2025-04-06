@@ -129,30 +129,45 @@ def register_user_job_interaction_routes(app):
                 
             user = session.query(User).filter(User.clerk_id == user_id).first()
             if not user:
-                return jsonify({'error': 'User not found'}), 404
+                # Create a new user if not found
+                user = User(
+                    clerk_id=user_id,
+                    saved_jobs_ids=[]
+                )
+                session.add(user)
             
-            # Initialize saved jobs if None
+            # Ensure saved_jobs_ids is a list (not None)
             if user.saved_jobs_ids is None:
                 user.saved_jobs_ids = []
-                
+            
+            # Ensure we're working with a list even if it's stored differently
+            saved_jobs = list(user.saved_jobs_ids) if user.saved_jobs_ids else []
+            print(f"Current saved jobs for user {user_id}: {saved_jobs}")
+            
             # Handle bookmark action
-            if action == 'add' and item_id not in user.saved_jobs_ids:
-                user.saved_jobs_ids.append(item_id)
-                message = 'Item added to bookmarks'
-            elif action == 'remove' and item_id in user.saved_jobs_ids:
-                user.saved_jobs_ids.remove(item_id)
-                message = 'Item removed from bookmarks'
+            if action == 'add' and item_id not in saved_jobs:
+                saved_jobs.append(item_id)
+                message = f'Item {item_id} added to bookmarks'
+                print(f"Added job {item_id} to bookmarks. New list: {saved_jobs}")
+            elif action == 'remove' and item_id in saved_jobs:
+                saved_jobs.remove(item_id)
+                message = f'Item {item_id} removed from bookmarks'
+                print(f"Removed job {item_id} from bookmarks. New list: {saved_jobs}")
             else:
                 message = 'No changes made to bookmarks'
-                
+                print(f"No changes made to bookmarks list: {saved_jobs}")
+            
+            # Update user's saved_jobs_ids with the modified list
+            user.saved_jobs_ids = saved_jobs
             session.commit()
             
             return jsonify({
                 'message': message,
-                'bookmarks': user.saved_jobs_ids
+                'bookmarks': saved_jobs
             })
         except Exception as e:
             session.rollback()
+            print(f"Error in manage_user_bookmarks: {str(e)}")
             return jsonify({'error': str(e)}), 500
         finally:
             session.close()
@@ -171,46 +186,56 @@ def register_user_job_interaction_routes(app):
             user = session.query(User).filter(User.clerk_id == user_id).first()
             if not user:
                 print(f"User not found: {user_id}")
-                return jsonify({'error': 'User not found'}), 404
+                return jsonify([])  # Return empty list instead of error
             
             # Get the saved job IDs and log them
             bookmark_ids = user.saved_jobs_ids if user.saved_jobs_ids is not None else []
+            
+            # Ensure bookmark_ids is always a list
+            if isinstance(bookmark_ids, str):
+                try:
+                    import json
+                    bookmark_ids = json.loads(bookmark_ids)
+                except:
+                    bookmark_ids = []
+            
             print(f"User {user_id} has {len(bookmark_ids)} bookmarked jobs: {bookmark_ids}")
             
             # Fetch the actual job objects for these IDs
             bookmarked_jobs = []
-            if bookmark_ids:
+            if bookmark_ids and len(bookmark_ids) > 0:
                 # Convert all IDs to strings for consistent comparison
                 string_bookmark_ids = [str(id) for id in bookmark_ids]
                 
-                # Query jobs directly with the IDs
-                for job_id in string_bookmark_ids:
-                    job = session.query(Job).filter(Job.id == job_id).first()
-                    if job:
-                        job_dict_data = {
-                            'id': job.id,
-                            'title': job.title,
-                            'company': job.company,
-                            'location': job.location,
-                            'job_type': job.job_type,
-                            'salary_min': job.salary_min,
-                            'salary_max': job.salary_max,
-                            'salary_currency': job.salary_currency,
-                            'salary_period': job.salary_period,
-                            'description': job.description,
-                            'date_posted': job.date_posted.isoformat() if job.date_posted else None,
-                            'job_url': job.job_url,
-                            'job_url_direct': job.job_url_direct,
-                            'company_url': job.company_url,
-                            'company_logo': job.company_logo,
-                            'skills': job.skills,
-                            'experience_level': job.experience_level,
-                            'education_level': job.education_level,
-                            'remote': job.remote
-                        }
-                        bookmarked_jobs.append(job_dict_data)
-                    else:
-                        print(f"Job ID {job_id} not found in database")
+                # Query jobs directly with the IDs to get all matching jobs at once
+                jobs = session.query(Job).filter(Job.id.in_(string_bookmark_ids)).all()
+                print(f"Found {len(jobs)} jobs for the {len(string_bookmark_ids)} bookmark IDs")
+                
+                for job in jobs:
+                    job_dict_data = {
+                        'id': job.id,
+                        'title': job.title,
+                        'company': job.company,
+                        'location': job.location,
+                        'job_type': job.job_type,
+                        'min_amount': job.min_amount,
+                        'max_amount': job.max_amount,
+                        'currency': job.currency,
+                        'interval': job.interval,
+                        'description': job.description,
+                        'date_posted': job.date_posted.isoformat() if job.date_posted else None,
+                        'job_url': job.job_url,
+                        'job_url_direct': job.job_url_direct,
+                        'company_logo': job.company_logo,
+                        'is_remote': job.is_remote
+                    }
+                    bookmarked_jobs.append(job_dict_data)
+                
+                # Check for any missing jobs
+                found_job_ids = [job.id for job in jobs]
+                missing_job_ids = [job_id for job_id in string_bookmark_ids if job_id not in found_job_ids]
+                if missing_job_ids:
+                    print(f"Some job IDs were not found in the database: {missing_job_ids}")
             
             print(f"Returning {len(bookmarked_jobs)} bookmarked jobs")
             return jsonify(bookmarked_jobs)

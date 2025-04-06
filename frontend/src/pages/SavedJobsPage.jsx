@@ -3,40 +3,39 @@ import { useSelector, useDispatch } from "react-redux"
 import { fetchSavedJobs } from "../slices/jobsSlice"
 import JobCard from "../components/common/JobCard"
 import { Bookmark } from "lucide-react"
-import { AutoSizer, List } from 'react-virtualized'
 import MobileNavigation from "../components/common/MobileNavigation"
-import { useUser } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react"
+import { toast } from "react-hot-toast"
 
 function SavedJobsPage() {
   const dispatch = useDispatch()
+  const { user } = useUser()
   const savedJobs = useSelector((state) => state.jobs.savedJobs || [])
-  const savedJobsStatus = useSelector((state) => state.jobs.savedJobsStatus);
-  const {user} = useUser();
-  const [isLoading, setIsLoading] = useState(false);
+  const status = useSelector((state) => state.jobs.savedJobsStatus)
+  const error = useSelector((state) => state.jobs.savedJobsError)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    if (user?.id) {
-      // Only set local loading state if we don't have any saved jobs yet
-      if (savedJobs.length === 0) {
-        setIsLoading(true);
+    const loadSavedJobs = async () => {
+      if (user?.id) {
+        setIsLoading(true)
+        try {
+          await dispatch(fetchSavedJobs(user.id)).unwrap()
+          console.log("Saved jobs loaded successfully")
+        } catch (err) {
+          console.error("Failed to load saved jobs:", err)
+          toast.error("Failed to load saved jobs. Please try again.")
+        } finally {
+          setIsLoading(false)
+        }
       }
-      
-      console.log(`Fetching saved jobs for user ${user.id} in SavedJobsPage`);
-      dispatch(fetchSavedJobs(user.id))
-        .unwrap()
-        .then(jobs => {
-          console.log(`Successfully fetched ${jobs.length} saved jobs`);
-        })
-        .catch(error => {
-          console.error("Error fetching saved jobs:", error);
-        })
-        .finally(() => setIsLoading(false));
     }
-  }, [dispatch, user?.id]);
+    
+    loadSavedJobs()
+  }, [dispatch, user?.id])
 
   // Calculate the correct count safely
-  const jobCount = Array.isArray(savedJobs) ? savedJobs.length : 0;
-  const isLoadingData = isLoading || savedJobsStatus === "loading";
+  const jobCount = Array.isArray(savedJobs) ? savedJobs.length : 0
 
   return (
     <div className="space-y-4 sm:space-y-6 px-4 sm:px-6 max-w-7xl mx-auto pb-16 sm:pb-0">
@@ -46,13 +45,24 @@ function SavedJobsPage() {
           Saved Jobs
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          {isLoadingData && jobCount === 0 ? "Loading..." : `${jobCount} ${jobCount === 1 ? "job" : "jobs"} saved`}
+          {isLoading ? "Loading..." : `${jobCount} ${jobCount === 1 ? "job" : "jobs"} saved`}
         </p>
       </div>
 
-      {isLoadingData && jobCount === 0 ? (
+      {isLoading ? (
         <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8 text-center">
           <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">Loading saved jobs...</h3>
+        </div>
+      ) : error ? (
+        <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8 text-center text-red-600">
+          <h3 className="text-base sm:text-lg font-medium mb-2">Error loading saved jobs</h3>
+          <p>{error}</p>
+          <button 
+            onClick={() => dispatch(fetchSavedJobs(user?.id))}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Try Again
+          </button>
         </div>
       ) : jobCount === 0 ? (
         <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8 text-center">
@@ -66,31 +76,16 @@ function SavedJobsPage() {
           </a>
         </div>
       ) : (
-        <div className="h-[calc(100vh-250px)]"> {/* Adjusted height to account for mobile nav */}
-          <AutoSizer>
-            {({ height, width }) => (
-              <List
-                height={height}
-                width={width}
-                rowCount={Array.isArray(savedJobs) ? savedJobs.length : 0}
-                rowHeight={250} // Adjusted height to accommodate margin
-                rowRenderer={({ index, style }) => {
-                  const job = savedJobs[index]
-                  return (
-                    <div style={{ ...style, marginBottom: '16px' }}> {/* Added margin bottom for gap between job cards */}
-                      {job ? <JobCard key={job.id} job={job} /> : null} {/* Ensure job is defined */}
-                    </div>
-                  )
-                }}
-              />
-            )}
-          </AutoSizer>
+        <div className="space-y-4">
+          {savedJobs.map((job) => (
+            <JobCard key={job.id} job={job} />
+          ))}
         </div>
       )}
       
       <MobileNavigation />
     </div>
-  );
+  )
 }
 
 export default SavedJobsPage

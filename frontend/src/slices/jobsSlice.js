@@ -70,7 +70,6 @@ export const fetchJobById = createAsyncThunk("jobs/fetchJobById", async (jobId, 
 // Async thunk for saving a job
 export const saveJob = createAsyncThunk("jobs/saveJob", async ({ job, userId }, { rejectWithValue }) => {
   try {
-    console.log(`Saving job ${job.id} for user ${userId}`);
     const response = await fetch(`${API_URL_BACKEND}/users/${userId}/bookmarks`, {
       method: "POST",
       headers: {
@@ -87,8 +86,11 @@ export const saveJob = createAsyncThunk("jobs/saveJob", async ({ job, userId }, 
       return rejectWithValue(errorData.error || "Failed to save job");
     }
 
-    // Return the job that was saved
-    return job;
+    const data = await response.json();
+    console.log("Save job response:", data);
+    
+    // Return the job that was saved along with the updated bookmarks list
+    return { job, bookmarks: data.bookmarks };
   } catch (error) {
     console.error("Error in saveJob thunk:", error);
     return rejectWithValue(error.message || "Failed to save job");
@@ -98,7 +100,6 @@ export const saveJob = createAsyncThunk("jobs/saveJob", async ({ job, userId }, 
 // Async thunk for removing a saved job
 export const removeJob = createAsyncThunk("jobs/removeJob", async ({ job, userId }, { rejectWithValue }) => {
   try {
-    console.log(`Removing job ${job.id} for user ${userId}`);
     const response = await fetch(`${API_URL_BACKEND}/users/${userId}/bookmarks`, {
       method: "POST",
       headers: {
@@ -115,8 +116,11 @@ export const removeJob = createAsyncThunk("jobs/removeJob", async ({ job, userId
       return rejectWithValue(errorData.error || "Failed to remove job");
     }
 
-    // Return the job that was removed
-    return job;
+    const data = await response.json();
+    console.log("Remove job response:", data);
+    
+    // Return the job that was removed along with the updated bookmarks list
+    return { job, bookmarks: data.bookmarks };
   } catch (error) {
     console.error("Error in removeJob thunk:", error);
     return rejectWithValue(error.message || "Failed to remove job");
@@ -139,7 +143,7 @@ export const fetchSavedJobs = createAsyncThunk(
       
       const data = await response.json();
       console.log(`Received ${data.length} saved jobs for user ${userId}`);
-      return data;
+      return data || [];  // Ensure we always return an array
     } catch (error) {
       console.error("Error in fetchSavedJobs thunk:", error);
       return rejectWithValue(error.message);
@@ -214,7 +218,8 @@ const jobsSlice = createSlice({
     savedJobs: [],
     likedJobs: [],
     savedJobsStatus: "idle",
-    savedJobsError: null
+    savedJobsError: null,
+    status: "idle"
   },
   reducers: {
     clearErrors: (state) => {
@@ -315,9 +320,11 @@ const jobsSlice = createSlice({
             state.savedJobs = [];
           }
           // Check if job already exists to avoid duplicates
-          if (!state.savedJobs.some(job => job.id === action.payload.id)) {
-            state.savedJobs.push(action.payload);
+          if (!state.savedJobs.some(job => job.id === action.payload.job.id)) {
+            state.savedJobs.push(action.payload.job);
           }
+          // Log the state for debugging
+          console.log(`Job ${action.payload.job.id} saved. Total saved jobs: ${state.savedJobs.length}`);
         })
         .addCase(saveJob.rejected, (state, action) => {
           state.status = "failed";
@@ -330,7 +337,8 @@ const jobsSlice = createSlice({
           state.status = "succeeded";
           // Check if savedJobs exists before filtering
           if (state.savedJobs) {
-            state.savedJobs = state.savedJobs.filter(job => job.id !== action.payload.id);
+            state.savedJobs = state.savedJobs.filter(job => job.id !== action.payload.job.id);
+            console.log(`Job ${action.payload.job.id} removed. Total saved jobs: ${state.savedJobs.length}`);
           }
         })
         .addCase(removeJob.rejected, (state, action) => {
@@ -368,6 +376,18 @@ const jobsSlice = createSlice({
         else {
           state.likedJobs = state.likedJobs.filter(job => job.id !== jobId);
         }
+      })
+      // Add cases for fetchSavedJobs
+      .addCase(fetchSavedJobs.pending, (state) => {
+        state.savedJobsStatus = "loading";
+      })
+      .addCase(fetchSavedJobs.fulfilled, (state, action) => {
+        state.savedJobsStatus = "succeeded";
+        state.savedJobs = action.payload || [];
+      })
+      .addCase(fetchSavedJobs.rejected, (state, action) => {
+        state.savedJobsStatus = "failed";
+        state.savedJobsError = action.payload;
       });
   },
 });

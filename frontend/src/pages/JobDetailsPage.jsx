@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { useSelector, useDispatch } from "react-redux"
 import { fetchJobById, saveJob, removeJob, applyToJob } from "../slices/jobsSlice"
@@ -16,12 +16,20 @@ import {
   Users,
   ChevronLeft,
 } from "lucide-react"
+import { useUser } from "@clerk/clerk-react"
 
 function JobDetailsPage() {
   const { id } = useParams()
   const dispatch = useDispatch()
   const { currentJob, loading, error, savedJobs } = useSelector((state) => state.jobs)
-  const isSaved = savedJobs.some((job) => job.id === id)
+  const { user, isSignedIn } = useUser()
+  const [isSaving, setIsSaving] = useState(false)
+  
+  // Use useMemo to compute isSaved to avoid unnecessary re-renders
+  const isSaved = useMemo(() => {
+    return Array.isArray(savedJobs) && 
+      savedJobs.some((job) => job.id === id)
+  }, [savedJobs, id])
 
   useEffect(() => {
     if (id) {
@@ -29,13 +37,24 @@ function JobDetailsPage() {
     }
   }, [dispatch, id])
 
-  const handleSaveJob = () => {
-    if (currentJob) {
-      if (isSaved) {
-        dispatch(removeJob(currentJob))
-      } else {
-        dispatch(saveJob(currentJob))
+  const handleSaveJob = async () => {
+    if (currentJob && isSignedIn && user?.id) {
+      setIsSaving(true)
+      try {
+        if (isSaved) {
+          await dispatch(removeJob({ job: currentJob, userId: user.id })).unwrap()
+          toast.success("Job removed from saved jobs")
+        } else {
+          await dispatch(saveJob({ job: currentJob, userId: user.id })).unwrap()
+          toast.success("Job saved successfully")
+        }
+      } catch (error) {
+        toast.error("Failed to update saved job status")
+      } finally {
+        setIsSaving(false)
       }
+    } else if (!isSignedIn) {
+      toast.error("Please sign in to save jobs")
     }
   }
 

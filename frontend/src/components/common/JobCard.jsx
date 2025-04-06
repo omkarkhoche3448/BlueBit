@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo } from "react";
+import React, { useState, useEffect, useCallback, memo, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -37,9 +37,9 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
   const { user, isSignedIn } = useUser();
   const dispatch = useDispatch();
   const savedJobs = useSelector((state) => state.jobs.savedJobs || []);
-  const isSaved =
-    Array.isArray(savedJobs) &&
-    savedJobs.some((savedJob) => savedJob.id === job.id);
+  const isSaved = useMemo(() => {
+    return Array.isArray(savedJobs) && savedJobs.some((savedJob) => savedJob.id === job.id);
+  }, [savedJobs, job.id]);
   const { isPro, refreshProStatus } = useProStatusContext();
 
   const [isInterested, setIsInterested] = useState(null);
@@ -126,37 +126,29 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
     e.preventDefault();
     e.stopPropagation();
 
-    console.log("Save job button clicked for job:", job.id);
-
     if (!isSignedIn) {
-      console.log("User is not signed in. Showing Pro modal.");
       setShowProModal(true);
       return;
     }
 
     if (!isPro) {
-      console.log("Non-pro user clicked save. Showing upgrade modal.");
       setShowProModal(true);
       return;
     }
 
     try {
-      setIsLoading(true); // Add loading state
+      setIsLoading(true);
       if (isSaved) {
-        console.log("Removing job from saved:", job.id);
+        // Remove job from database
         await dispatch(removeJob({ job, userId: user.id })).unwrap();
-        console.log("Job removed successfully");
       } else {
-        console.log("Saving job:", job.id);
+        // Save job to database
         await dispatch(saveJob({ job, userId: user.id })).unwrap();
-        console.log("Job saved successfully");
       }
     } catch (error) {
-      console.error("Error saving job:", error);
-      // Show error to user
-      alert("Failed to save job. Please try again.");
+      toast.error("Failed to save job. Please try again.");
     } finally {
-      setIsLoading(false); // Reset loading state
+      setIsLoading(false);
     }
   };
 
@@ -677,8 +669,9 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
               } transition-all duration-200 transform hover:scale-110 ${
                 !isPro ? "opacity-60" : ""
-              }`}
+              } ${isLoading ? "animate-pulse" : ""}`}
               title={isPro ? (isSaved ? "Unsave" : "Save") : "Pro Feature"}
+              disabled={isLoading}
             >
               {!isPro && (
                 <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />
