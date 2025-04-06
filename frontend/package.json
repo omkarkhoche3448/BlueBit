@@ -24,6 +24,7 @@
     "react-hot-toast": "^2.5.2",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.4.0",
+    "react-scroll": "^1.9.3",
     "react-to-pdf": "^1.0.1",
     "react-toastify": "^11.0.5",
     "react-virtualized": "^9.22.6",

@@ -24,6 +24,7 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import { useClerk } from "@clerk/clerk-react";
+import { Link as ScrollLink } from "react-scroll";
 
 // Lazy load components that aren't needed immediately
 const SignIn = lazy(() =>
@@ -463,31 +464,47 @@ export default function LandingPage() {
                   Handjobs
                 </span>
               </motion.div>
-              <div className="hidden md:ml-8 md:flex md:space-x-8">
-                <a
-                  href="#features"
-                  className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+              <div className="hidden md:ml-6 md:flex md:space-x-8">
+                <ScrollLink
+                  to="features"
+                  spy={true}
+                  smooth={true}
+                  offset={-70} // Adjust this value based on your header height
+                  duration={800}
+                  className="cursor-pointer text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 text-sm font-medium"
                 >
                   Features
-                </a>
-                <a
-                  href="#howItWorks"
-                  className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+                </ScrollLink>
+                <ScrollLink
+                  to="howItWorks"
+                  spy={true}
+                  smooth={true}
+                  offset={-70}
+                  duration={800}
+                  className="cursor-pointer text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 text-sm font-medium"
                 >
                   How It Works
-                </a>
-                <a
-                  href="#testimonials"
-                  className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+                </ScrollLink>
+                <ScrollLink
+                  to="testimonials"
+                  spy={true}
+                  smooth={true}
+                  offset={-70}
+                  duration={800}
+                  className="cursor-pointer text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 text-sm font-medium"
                 >
                   Testimonials
-                </a>
-                <a
-                  href="#pricing"
-                  className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+                </ScrollLink>
+                <ScrollLink
+                  to="pricing"
+                  spy={true}
+                  smooth={true}
+                  offset={-70}
+                  duration={800}
+                  className="cursor-pointer text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 text-sm font-medium"
                 >
                   Pricing
-                </a>
+                </ScrollLink>
               </div>
             </div>
             <div className="hidden md:flex items-center space-x-4">
@@ -532,34 +549,50 @@ export default function LandingPage() {
               transition={{ duration: 0.3 }}
             >
               <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white shadow-lg border-b border-gray-200">
-                <a
-                  href="#features"
-                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-                  onClick={() => handleMobileNavClick("features")}
+                <ScrollLink
+                  to="features"
+                  spy={true}
+                  smooth={true}
+                  offset={-70}
+                  duration={800}
+                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setIsMenuOpen(false)} // Close mobile menu after click
                 >
                   Features
-                </a>
-                <a
-                  href="#howItWorks"
-                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-                  onClick={() => handleMobileNavClick("howItWorks")}
+                </ScrollLink>
+                <ScrollLink
+                  to="howItWorks"
+                  spy={true}
+                  smooth={true}
+                  offset={-70}
+                  duration={800}
+                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   How It Works
-                </a>
-                <a
-                  href="#testimonials"
-                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-                  onClick={() => handleMobileNavClick("testimonials")}
+                </ScrollLink>
+                <ScrollLink
+                  to="testimonials"
+                  spy={true}
+                  smooth={true}
+                  offset={-70}
+                  duration={800}
+                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   Testimonials
-                </a>
-                <a
-                  href="#pricing"
-                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-                  onClick={() => handleMobileNavClick("pricing")}
+                </ScrollLink>
+                <ScrollLink
+                  to="pricing"
+                  spy={true}
+                  smooth={true}
+                  offset={-70}
+                  duration={800}
+                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   Pricing
-                </a>
+                </ScrollLink>
                 <div className="flex items-center space-x-4 ml-3">
                 {/* Enable Sign In and Sign Up buttons */}
                 <button
@@ -1042,7 +1075,7 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Section - Updated */}
-      <section className="py-12">
+      <section  id="pricing" className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="text-center mb-12">
