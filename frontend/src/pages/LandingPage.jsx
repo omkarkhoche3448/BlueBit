@@ -119,6 +119,14 @@ export default function LandingPage() {
       },
     },
   };
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
   const partners = [
     {
       name: "LinkedIn",
@@ -456,11 +464,12 @@ export default function LandingPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5 }}
+                onClick={scrollToTop}
               >
-                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center mr-2">
+                <div className="cursor-pointer h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center mr-2">
                   <Briefcase className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
-                <span className="text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
+                <span className="cursor-pointer text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
                   Handjobs
                 </span>
               </motion.div>
