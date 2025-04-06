@@ -19,6 +19,7 @@ import ResumeParserPage from "./pages/ResumeParserPage";
 import ResumeCreater from "./pages/ResumeCreater";
 import PreferencesPage from "./pages/PreferencesPage";
 import ResumeUploadPage from "./pages/ResumeUploadPage";
+import BetterResumeCreater from "./pages/BetterResumeCreater";
 import NotFoundPage from "./pages/NotFoundPage";
 import Layout from "./components/layout/Layout";
 import SavedJobsPage from "./pages/SavedJobsPage";
@@ -175,6 +176,14 @@ function App() {
 
             <Route
               path="/resume-upload"
+              element={
+                <SignedIn>
+                  <ResumeUploadPage />
+                </SignedIn>
+              }
+            />
+            <Route
+              path="/BetterResumeCreater"
               element={
                 <SignedIn>
                   <ResumeUploadPage />
