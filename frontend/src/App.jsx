@@ -24,6 +24,7 @@ import Layout from "./components/layout/Layout";
 import SavedJobsPage from "./pages/SavedJobsPage";
 import SearchPage from "./pages/SearchPage";
 import LandingPage from "./pages/LandingPage";
+import BetterResumeCreater from "./pages/BetterResumeCreater";
 import RecommendationsPage from "./pages/RecommendationsPage";
 import { ProStatusProvider } from "./contexts/ProStatusContext";
 import LikedJobsPage from "./pages/LikedJobsPage";
@@ -178,6 +179,14 @@ function App() {
               element={
                 <SignedIn>
                   <ResumeUploadPage />
+                </SignedIn>
+              }
+            />
+            <Route
+              path="/betterresumecreater"
+              element={
+                <SignedIn>
+                  <BetterResumeCreater />
                 </SignedIn>
               }
             />
