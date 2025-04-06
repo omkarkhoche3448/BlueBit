@@ -1236,8 +1236,8 @@ export default function LandingPage() {
                 name: "Mihir Pande",
                 position: "Software Engineer",
                 photo: "https://i.pravatar.cc/150?img=10",
-                linkedin: "#",
-                instagram: "#",
+                linkedin: "https://linkedin.com/in/meeheer123",
+                instagram: "https://www.instagram.com/mihir.py",
               },
               {
                 name: "Soham Mhatre",
