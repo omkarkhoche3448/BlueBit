@@ -268,6 +268,16 @@ class RecommendationEngine:
                 except:
                     resume_keywords = []
             
+            # Check if user has any preferences
+            has_preferences = bool(preferences and isinstance(preferences, dict) and 
+                                  (preferences.get('jobType') or preferences.get('location') or 
+                                   preferences.get('isRemote') is not None or preferences.get('minSalary')))
+            
+            # If user has no likes AND no resume keywords AND no preferences, return empty list
+            if not interested_jobs and not resume_keywords and not has_preferences:
+                logging.info(f"User {user_id} has no likes, resume keywords, or preferences - no content recommendations possible")
+                return []
+            
             # If user has liked jobs, use them for content-based recommendations
             if interested_jobs:
                 # If user has an embedding, use it for recommendations
@@ -378,13 +388,14 @@ class RecommendationEngine:
                             (filtered_jobs['max_amount'].notnull() & (filtered_jobs['max_amount'] >= min_salary))
                         ]
                 
-                # Apply resume keyword matching if available
+                # Apply resume keyword matching if available - with higher weight
                 if resume_keywords:
-                    # Create a score column for keyword matches
+                    # Create a score column for keyword matches with higher weight
                     filtered_jobs['keyword_score'] = filtered_jobs.apply(
-                        lambda job: sum(1 for keyword in resume_keywords 
-                                      if keyword.lower() in str(job['description']).lower() 
-                                      or keyword.lower() in str(job['title']).lower()),
+                        lambda job: sum(2 for keyword in resume_keywords 
+                                      if keyword.lower() in str(job['description']).lower()) +
+                                   sum(3 for keyword in resume_keywords 
+                                      if keyword.lower() in str(job['title']).lower()),
                         axis=1
                     )
                     
@@ -524,15 +535,11 @@ class RecommendationEngine:
     def get_hybrid_recommendations(self, user_id, top_n=20):
         """Generate hybrid recommendations combining content-based, collaborative filtering, and diversity"""
         try:
-            # Get recommendations from both approaches
-            content_recs = self.get_content_based_recommendations(user_id, top_n=top_n)
-            collab_recs = self.get_collaborative_recommendations(user_id, top_n=top_n)
-            
             session = Session()
             user = session.query(User).filter(User.clerk_id == user_id).first()
             
             if not user:
-                return content_recs
+                return []
             
             # Get user interactions
             interested_jobs = user.interested_job_ids
@@ -550,18 +557,71 @@ class RecommendationEngine:
                 except:
                     not_interested_jobs = []
             
+            # Check if user has resume keywords or preferences
+            resume_keywords = user.resume_keywords
+            if isinstance(resume_keywords, str):
+                try:
+                    resume_keywords = json.loads(resume_keywords)
+                except:
+                    resume_keywords = []
+            
+            preferences = user.preferences or {}
+            has_preferences = bool(preferences and isinstance(preferences, dict) and 
+                                  (preferences.get('jobType') or preferences.get('location') or 
+                                   preferences.get('isRemote') is not None or preferences.get('minSalary')))
+            
+            # If user has no likes AND no resume keywords AND no preferences, return empty list
+            if not interested_jobs and not resume_keywords and not has_preferences:
+                logging.info(f"User {user_id} has no likes, resume keywords, or preferences - no recommendations possible")
+                session.close()
+                return []
+            
+            # Get recommendations from both approaches
+            content_recs = self.get_content_based_recommendations(user_id, top_n=top_n) or []
+            collab_recs = self.get_collaborative_recommendations(user_id, top_n=top_n) or []
+            
             interacted_jobs = interested_jobs + not_interested_jobs if not_interested_jobs else interested_jobs
             
-            # Determine weights based on user history
+            # Determine weights based on user history and profile
             if len(interested_jobs) > 5:  # User has significant history
-                collab_weight = 0.7
-                content_weight = 0.3
-            else:  # New user with little history
+                collab_weight = 0.6
+                content_weight = 0.4
+            elif resume_keywords or has_preferences:  # User has resume or preferences but few likes
+                collab_weight = 0.2
+                content_weight = 0.8
+            else:  # New user with little history and no resume/preferences
                 collab_weight = 0.3
                 content_weight = 0.7
             
             # Vectorized scoring for hybrid recommendations
             all_job_ids = list(set(content_recs + collab_recs))
+            
+            # If no recommendations from either method, return empty list
+            if not all_job_ids:
+                logging.info(f"No recommendations available for user {user_id}")
+                session.close()
+                return []
+            
+            # Determine weights based on user history and profile
+            if len(interested_jobs) > 5:  # User has significant history
+                collab_weight = 0.6
+                content_weight = 0.4
+            elif resume_keywords or has_preferences:  # User has resume or preferences but few likes
+                collab_weight = 0.2
+                content_weight = 0.8
+            else:  # New user with little history and no resume/preferences
+                collab_weight = 0.3
+                content_weight = 0.7
+            
+            # Vectorized scoring for hybrid recommendations
+            all_job_ids = list(set(content_recs + collab_recs))
+            
+            # If no recommendations from either method, return empty list
+            if not all_job_ids:
+                logging.info(f"No recommendations available for user {user_id}")
+                session.close()
+                return []
+                
             job_scores = np.zeros(len(all_job_ids))
             job_id_to_idx = {job_id: idx for idx, job_id in enumerate(all_job_ids)}
             
@@ -596,12 +656,17 @@ class RecommendationEngine:
                 remaining_slots = top_n - len(hybrid_recs)
                 for cluster in range(len(self.job_clusters)):
                     if cluster not in represented_clusters and remaining_slots > 0:
-                        # Find a job from this cluster that user hasn't interacted with
-                        for job_id in self.job_clusters[cluster]:
-                            if job_id not in interacted_jobs and job_id not in hybrid_recs:
-                                hybrid_recs.append(job_id)
-                                remaining_slots -= 1
+                        # Find jobs from this cluster that the user hasn't interacted with
+                        cluster_jobs = [
+                            job_id for job_id in self.job_clusters[cluster]
+                            if job_id not in interacted_jobs and job_id not in hybrid_recs
+                        ]
+                        # Add jobs from this cluster until slots are filled
+                        for job_id in cluster_jobs:
+                            if remaining_slots <= 0:
                                 break
+                            hybrid_recs.append(job_id)
+                            remaining_slots -= 1
             
             # Add trending jobs if we still need more recommendations
             if len(hybrid_recs) < top_n and self.trending_jobs:
@@ -768,7 +833,6 @@ def get_recommendations_for_user(user_id, count=20):
             
             # Convert to list of dictionaries
             job_list = [{c.name: getattr(job, c.name) for c in job.__table__.columns} for job in jobs]
-            
             # Calculate matching score for each job
             job_list = calculate_matching_scores(job_list, user)
             
@@ -825,7 +889,7 @@ def get_recommendations_for_user(user_id, count=20):
             jobs = session.query(Job).filter(Job.id.in_(display_ids)).all()
             
             # Convert to list of dictionaries
-            job_list = [{c.name: getattr(job, c.name) for c in job.__table__.columns} for job in jobs]
+            job_list = [{c.name: getattr(job, c.name) for job in job.__table__.columns} for job in jobs]
             
             # Get fresh user object for matching score calculation
             user = session.query(User).filter(User.clerk_id == user_id).first()

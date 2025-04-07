@@ -1,0 +1,39 @@
+name: Job Recommendation Service Scheduler
+
+on:
+  schedule:
+    # Run daily at 1:00 AM UTC for job scraping
+    - cron: '0 1 * * *'
+    # Run daily at 2:00 AM UTC for recommendation processing
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allow manual triggering
+
+jobs:
+  scrape-jobs:
+    name: Scrape Jobs
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 1 * * *'
+    
+    steps:
+      - name: Trigger job scraping endpoint
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: ${{ secrets.API_ENDPOINT }}/api/scrape-jobs
+          method: 'POST'
+          headers: '{"X-API-Key": "${{ secrets.API_SECRET_KEY }}"}'
+          timeout: 300000
+
+  process-recommendations:
+    name: Process Recommendations
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 * * *'
+    
+    steps:
+      - name: Trigger recommendation processing endpoint
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: ${{ secrets.API_ENDPOINT }}/api/process-recommendations
+          method: 'POST'
+          headers: '{"X-API-Key": "${{ secrets.API_SECRET_KEY }}"}'
+          timeout: 300000
