@@ -5,7 +5,7 @@ import mobilenotFoundImage from "../assets/404.png";
 
 const NotFoundPage = () => {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f9e4c7]/50 ">
+    <div className="min-h-screen flex flex-col items-center justify-center md:md:bg-[#f9e4c7]/50 bg-[#f9e4c7] ">
       <div className="text-center">
         <div className="">
           <div className="flex justify-center items-center mb-4">
