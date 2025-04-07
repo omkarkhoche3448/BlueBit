@@ -217,53 +217,53 @@ const SettingsModal = ({ isOpen, onClose }) => {
       fetchUserPreferences();
     }
   };
-
   const handleExportData = async () => {
     if (!user) return;
-
     try {
       setIsExporting(true);
-      // Collect all user data
-      const userData = {
-        personalInfo: {
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.primaryEmailAddress?.emailAddress,
-          createdAt: user.createdAt,
-          lastSignInAt: user.lastSignInAt,
+      
+      // Create obfuscated data structure with simplified but understandable names
+      const obfuscatedData = {
+        profile: {  // instead of personalInfo
+          fname: user.firstName,
+          lname: user.lastName,
+          mail: user.primaryEmailAddress?.emailAddress,
+          created: user.createdAt,
+          lastLogin: user.lastSignInAt,
         },
-        preferences: preferences,
-        subscriptionStatus: {
-          isPro: isPro,
-          expiryDate: expiryDate,
+        prefs: {  // instead of preferences
+          jobs: preferences.jobPreferences,
+          culture: preferences.culturalPreferences,
+          countries: preferences.countryPreferences,
+          work: preferences.workPreferences,
+          types: preferences.jobTypePreferences,
+          companies: preferences.companyPreferences,
         },
-        exportDate: new Date().toISOString(),
+        sub: {  // instead of subscriptionStatus
+          premium: isPro,
+          expiry: expiryDate,
+        },
+        timestamp: new Date().toISOString(),  // instead of exportDate
       };
-
+      
       // Convert data to JSON string with proper formatting
-      const jsonString = JSON.stringify(userData, null, 2);
-
+      const jsonString = JSON.stringify(obfuscatedData, null, 2);
+      
       // Create blob and download link
       const blob = new Blob([jsonString], { type: "application/json" });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
-
-      // Set filename with user's name and current date
+      
+      // Set filename with obfuscated user identifier and current date
       const date = new Date().toISOString().split("T")[0];
-      const userName = `${user.firstName || ""}${
-        user.lastName ? "_" + user.lastName : ""
-      }`
-        .toLowerCase()
-        .replace(/\s+/g, "_");
-      const fileName = userName
-        ? `${userName}_data_${date}.json`
-        : `user_data_${date}.json`;
-
+      const userIdentifier = Math.random().toString(36).substring(2, 8);
+      const fileName = `user_${userIdentifier}_${date}.json`;
+      
       link.download = fileName;
       link.href = url;
       document.body.appendChild(link);
       link.click();
-
+      
       // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
@@ -274,7 +274,6 @@ const SettingsModal = ({ isOpen, onClose }) => {
       setIsExporting(false);
     }
   };
-
   if (!isOpen) return null;
 
   return (
