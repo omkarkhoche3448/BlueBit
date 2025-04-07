@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -25,35 +25,52 @@ function SearchPage() {
 
   const [searchInput, setSearchInput] = useState("");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const initialLoad = useRef(true);
+  const searchTimeout = useRef(null);
 
-  // Parse search params from URL - Memoize URL parsing logic
+  // Unified search param handler
+  useEffect(() => {
+    if (initialLoad.current) {
+      initialLoad.current = false;
+      return;
+    }
+
+    // Clear any existing timeout
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+
+    // Debounce the search execution
+    searchTimeout.current = setTimeout(() => {
+      const searchParams = new URLSearchParams(location.search);
+      const currentQuery = searchParams.get("q") || "";
+      
+      if (currentQuery !== filters.searchTerm) {
+        dispatch(fetchJobs()); // Replace with actual job fetch action
+      }
+    }, 300);
+    
+    return () => clearTimeout(searchTimeout.current);
+  }, [location.search, filters.searchTerm, dispatch]);
+
+  // Update URL sync effect
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
-    
-    // Handle search term
     const query = searchParams.get("q") || "";
-    if (query && query !== filters.searchTerm) {
-      dispatch(setSearchTerm(query));
-    }
     setSearchInput(query);
-    
-    // Handle company filter
-    const company = searchParams.get("company") || "";
-    if (company && company !== filters.company) {
-      dispatch(setCompany(company));
-    }
-  }, [location.search, dispatch, filters.searchTerm, filters.company]);
+    dispatch(setSearchTerm(query));
+  }, [location.search, dispatch]);
 
   // Memoize search params with useMemo
   const currentSearchParams = useMemo(() => {
     return new URLSearchParams(location.search);
   }, [location.search]);
 
-  // Handle search form submission with useCallback
+  // Simplified search handler
   const handleSearch = useCallback((e) => {
     e.preventDefault();
+    const searchParams = new URLSearchParams(location.search);
     
-    const searchParams = new URLSearchParams(currentSearchParams);
     if (searchInput) {
       searchParams.set("q", searchInput);
     } else {
@@ -64,9 +81,7 @@ function SearchPage() {
       pathname: "/search",
       search: searchParams.toString(),
     });
-    
-    dispatch(setSearchTerm(searchInput));
-  }, [searchInput, currentSearchParams, navigate, dispatch]);
+  }, [searchInput, navigate, location.search]);
 
   // Handle sort change with useCallback
   const handleSortChange = useCallback((e) => {

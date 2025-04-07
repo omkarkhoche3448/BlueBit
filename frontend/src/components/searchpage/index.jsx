@@ -26,9 +26,15 @@ function SearchHeader({
     loading,
     searchTerm,
 }) {
+    // Use a local state to prevent unnecessary form submissions
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      onSearchSubmit(e);
+    };
+    
     return (
       <div className="bg-white rounded-lg shadow-sm p-4">
-        <form onSubmit={onSearchSubmit} className="flex gap-3">
+        <form onSubmit={handleSubmit} className="flex gap-3">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />

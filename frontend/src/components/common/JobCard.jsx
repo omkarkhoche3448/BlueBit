@@ -85,40 +85,46 @@ const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
       setIsProcessingPayment(false);
     }
   };
-  // Fix the useEffect - remove the nested useEffect
+  // Add abort controller for API calls
+  const abortController = useMemo(() => new AbortController(), [job.id]);
+
   useEffect(() => {
     console.log("JobCard mounted with job:", job?.id);
-    if (isSignedIn && user?.id && job?.id) {
-      fetchJobInterest();
-    }
+    
+    const fetchData = async () => {
+      if (isSignedIn && user?.id && job?.id) {
+        await fetchJobInterest();
+      }
+    };
+
+    // Add cleanup function
     return () => {
-      console.log("JobCard unmounted:", job?.id);
+      console.log("JobCard cleanup:", job?.id);
+      abortController.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSignedIn, user?.id, job?.id]);
+  }, [isSignedIn, user?.id, job.id]); // Remove spread operator from job.id
 
   const fetchJobInterest = async () => {
-    if (!job?.id) return; // Prevent fetching if job ID is undefined
+    if (!job?.id) return;
+    
     try {
-      console.log(
-        `Fetching job interest for user ${user.id} and job ${job.id}`
-      );
+      console.log(`Fetching job interest for user ${user.id} and job ${job.id}`);
       const response = await fetch(
-        `${API_URL_BACKEND}/users/${user.id}/job-interest/${job.id}`
+        `${API_URL_BACKEND}/users/${user.id}/job-interest/${job.id}`,
+        { signal: abortController.signal } // Add abort signal
       );
-      if (response.ok) {
+      
+      // Add component mounted check
+      if (!abortController.signal.aborted && response.ok) {
         const data = await response.json();
         console.log("Fetched job interest data:", data);
         setIsInterested(data.interest);
-      } else {
-        console.error(
-          "Failed to fetch job interest:",
-          response.status,
-          response.statusText
-        );
       }
     } catch (err) {
-      console.error("Error fetching job interest:", err);
+      if (err.name !== 'AbortError') {
+        console.error("Error fetching job interest:", err);
+      }
     }
   };
 
