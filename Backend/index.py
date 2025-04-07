@@ -7,6 +7,7 @@ DATABASE_URL = "postgresql://u9jp4ii7me8i14:pfa0c4247d74009ded7923ad12f768fb8838
 # Index creation queries
 queries = [
     "CREATE EXTENSION IF NOT EXISTS pg_trgm;",
+    "CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;",
     "CREATE INDEX IF NOT EXISTS idx_job_type ON jobs (job_type);",
     "CREATE INDEX IF NOT EXISTS idx_location ON jobs (location);",
     "CREATE INDEX IF NOT EXISTS idx_company ON jobs (company);",

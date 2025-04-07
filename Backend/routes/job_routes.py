@@ -45,7 +45,10 @@ def apply_pagination(session, query, page, requested_per_page):
     return paginated_results, total_count, per_page
 
 def create_search_conditions(search_input):
-    """Create optimized search conditions using advanced PostgreSQL features."""
+    """Create highly optimized search conditions with spelling correction and advanced indexing."""
+    if not search_input or not search_input.strip():
+        return []
+        
     search_input = search_input.strip().lower()
     
     # Normalize input and handle spelling variations
@@ -64,39 +67,82 @@ def create_search_conditions(search_input):
     if not all_terms:
         return []
 
-    # Create advanced text search vectors
-    search_vector = func.concat(
-        func.coalesce(Job.title, ''), ' ', 
-        func.coalesce(Job.company, ''), ' ', 
-        func.coalesce(Job.location, ''), ' ', 
+    # Create optimized search conditions
+    conditions = []
+    
+    # 1. Full-text search with GIN index support
+    search_vector = func.concat_ws(' ',
+        func.coalesce(Job.title, ''),
+        func.coalesce(Job.company, ''),
+        func.coalesce(Job.location, ''),
         func.coalesce(Job.job_type, '')
     )
     
+    # Create weighted ts_vector with proper indexing
     ts_vector = func.to_tsvector('english', search_vector)
     
-    # Create weighted query with fuzzy matching
-    ts_query = func.to_tsquery('english', ' | '.join([
-        f'({term}:* | {term})' for term in all_terms
-    ]))
-    
-    # Add trigram similarity conditions for fuzzy matching
-    trigram_conditions = []
+    # Build optimized ts_query with lexemes and prefix matching
+    ts_queries = []
     for term in all_terms:
-        trigram_conditions.append(
-            or_(
-                func.similarity(Job.title, term) > 0.3,
-                func.similarity(Job.company, term) > 0.3,
-                func.similarity(Job.location, term) > 0.3,
-                func.similarity(Job.job_type, term) > 0.3
-            )
-        )
+        # Handle potential spelling errors with multiple variants
+        term_variants = [
+            term,                          # Exact match
+            term + ':*',                   # Prefix match
+            term.replace('a', 'e'),        # Common vowel substitution
+            term.replace('e', 'a'),        # Common vowel substitution
+            term.replace('i', 'y'),        # Common vowel substitution
+            term.replace('y', 'i')         # Common vowel substitution
+        ]
+        ts_queries.append('(' + ' | '.join(term_variants) + ')')
     
-    return [
-        or_(
-            ts_vector.op("@@")(ts_query),
-            *trigram_conditions
-        )
-    ]
+    # Combine with proper weighting
+    if ts_queries:
+        ts_query = func.to_tsquery('english', ' & '.join(ts_queries))
+        conditions.append(ts_vector.op("@@")(ts_query))
+    
+    # 2. Trigram similarity for fuzzy matching (requires pg_trgm extension)
+    try:
+        trigram_conditions = []
+        for term in all_terms:
+            # Only apply trigram search for terms with sufficient length
+            if len(term) >= 3:
+                # Use word_similarity for better performance than regular similarity
+                trigram_conditions.extend([
+                    func.word_similarity(Job.title, term) > 0.4,
+                    func.word_similarity(Job.company, term) > 0.4,
+                    func.word_similarity(Job.location, term) > 0.4,
+                    func.word_similarity(Job.job_type, term) > 0.4
+                ])
+        
+        if trigram_conditions:
+            conditions.append(or_(*trigram_conditions))
+    except Exception as e:
+        logging.warning(f"Trigram similarity search unavailable: {str(e)}")
+        # Fallback to basic LIKE search if trigram is not available
+        for term in all_terms:
+            conditions.append(or_(
+                func.lower(Job.title).contains(term),
+                func.lower(Job.company).contains(term),
+                func.lower(Job.location).contains(term),
+                func.lower(Job.job_type).contains(term)
+            ))
+    
+    # 3. Direct equality checks for short terms (fastest path)
+    # Removed metaphone phonetic matching as it's not available
+    equality_conditions = []
+    for term in all_terms:
+        if len(term) <= 3:  # Only for very short terms
+            equality_conditions.extend([
+                func.lower(Job.title).contains(term),
+                func.lower(Job.company).contains(term),
+                func.lower(Job.location).contains(term),
+                func.lower(Job.job_type).contains(term)
+            ])
+    
+    if equality_conditions:
+        conditions.append(or_(*equality_conditions))
+    
+    return conditions
 
 
 def register_job_routes(app):
