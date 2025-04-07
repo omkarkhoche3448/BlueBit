@@ -50,9 +50,9 @@ function Header() {
   const navLinks = [
     { to: "/home", label: "Jobs", icon: Briefcase, active: isHomePage },
     { to: "/search", label: "Search Jobs", icon: Search, active: isSearchPage },
-    { to: "/resume-parser", label: "Resume Analyzer", icon: MessageSquare },
     { to: "/create-resume", label: "Create Resume", icon: Bell },
     { to: "/recommendations", label: "Recommend Jobs", icon: Award },
+    { to: "/resume-parser", label: "Resume Analyzer", icon: MessageSquare },
   ];
 
   const getLinkClasses = (isActive) =>

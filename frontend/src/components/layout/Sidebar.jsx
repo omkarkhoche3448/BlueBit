@@ -167,7 +167,7 @@ function Sidebar() {
                 <Heart className="h-5 w-5" />
               </div>
               <span className="text-xl font-semibold text-gray-800 mt-1">
-                {likedJobsCount}
+                {isLoadingSavedJobs ? "..." : likedJobsCount} 
               </span>
               <span className="mt-1 text-xs text-blue-600 group-hover:text-blue-800 group-hover:underline">
                 Liked Jobs
