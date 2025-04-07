@@ -30,6 +30,9 @@ def process_chrome_extension_form():
             
             if not user:
                 return jsonify({"success": False, "error": "User not found"}), 404
+            
+            if not user.is_pro:
+                return jsonify({"success": False, "error": "Become a pro user to activate AI extension !"}), 403
                 
             if user.autofill_limit <= 0:
                 return jsonify({"success": False, "error": "Autofill limit reached"}), 403
