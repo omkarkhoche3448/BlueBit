@@ -5,6 +5,8 @@ import JobCard from "./JobCard";
 import { useLocation } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 import { useProStatusContext } from "../../contexts/ProStatusContext";
+import { handleClearFilters } from "../common/SearchFilters";
+import { useFilters } from "../../contexts/FiltersContext";
 
 const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 
@@ -15,6 +17,7 @@ function JobList() {
   const location = useLocation();
   const { user, isSignedIn } = useUser();
   const { isPro } = useProStatusContext();
+  const { clearFilters } = useFilters();
 
   const [notInterestedJobs, setNotInterestedJobs] = useState({});
   const [jobsToHide, setJobsToHide] = useState(new Set());
@@ -35,6 +38,7 @@ function JobList() {
       per_page: jobsPerPage
     }));
   }, [dispatch, isPro, filters, pagination.page]);
+
   // Handle marking a job as not interested
   const handleNotInterested = (jobId) => {
     // Create a timer to hide the job after 5 seconds
@@ -154,9 +158,7 @@ function JobList() {
           Try adjusting your search filters or try again later.
         </p>
         <button
-          onClick={() => {
-            dispatch(fetchJobs({ page: 1, per_page: pagination.per_page }));
-          }}
+          onClick={() => handleClearFilters(dispatch, pagination, clearFilters)}
           className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           Clear filters

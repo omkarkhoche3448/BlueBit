@@ -1,8 +1,19 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { useFilters } from "../../contexts/FiltersContext";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchJobs, setPage } from "../../slices/jobsSlice";
+
+// Export the clear filters function separately
+export const handleClearFilters = (dispatch, pagination, clearFilters) => {
+  clearFilters();
+  dispatch(setPage(1));
+  dispatch(fetchJobs({
+    filters: {},
+    page: 1,
+    per_page: pagination.per_page
+  }));
+};
 
 function SearchFilters() {
   const dispatch = useDispatch();
@@ -65,28 +76,22 @@ function SearchFilters() {
   };
   
   // Function to handle filter application and trigger job search
-  const applyFilters = () => {
-    // Reset to first page when applying new filters
-    dispatch(setPage(1));
-    
-    // Dispatch the fetchJobs action with selected filters and pagination
-    dispatch(fetchJobs({
-      filters: selectedFilters,
-      page: 1, // Reset to first page
-      per_page: pagination.per_page
-    }));
-  };
+  const applyFilters = useCallback(() => {
+    const debounceTimer = setTimeout(() => {
+      dispatch(setPage(1));
+      dispatch(fetchJobs({
+        filters: selectedFilters,
+        page: 1,
+        per_page: pagination.per_page
+      }));
+    }, 900);
+
+    return () => clearTimeout(debounceTimer);
+  }, [dispatch, selectedFilters, pagination.per_page]);
   
-  // Clear filters and reset jobs search
-  const handleClearFilters = () => {
-    clearFilters();
-    dispatch(setPage(1));
-    dispatch(setSearchTerm(''));  // Add this line
-    dispatch(fetchJobs({
-      filters: {},
-      page: 1,
-      per_page: pagination.per_page
-    }));
+  // Clear filters and reset jobs search - use the exported function
+  const handleClearFiltersLocal = () => {
+    handleClearFilters(dispatch, pagination, clearFilters);
   };
 
   return (
@@ -231,7 +236,7 @@ function SearchFilters() {
       {/* Action Buttons */}
       <div className="p-4 flex gap-2">
         <button
-          onClick={handleClearFilters}
+          onClick={handleClearFiltersLocal}
           className="flex-1 py-2 px-4 border border-gray-300 rounded-md text-gray-700 text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           Clear All

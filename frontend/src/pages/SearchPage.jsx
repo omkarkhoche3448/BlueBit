@@ -100,9 +100,31 @@ function SearchPage() {
   }, [dispatch, navigate]);
 
   // Memoize searchInput change handler
+  // Unified debounced search handler
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      const searchParams = new URLSearchParams(location.search);
+      const currentQuery = searchParams.get("q") || "";
+      
+      if (currentQuery !== filters.searchTerm) {
+        dispatch(fetchJobs());
+      }
+    }, 500);
+
+    return () => clearTimeout(debounceTimer);
+  }, [location.search, filters.searchTerm, dispatch]);
+
+  // Update URL with debounce
   const handleSearchInputChange = useCallback((e) => {
     setSearchInput(e.target.value);
-  }, []);
+    const debounceTimer = setTimeout(() => {
+      const searchParams = new URLSearchParams(location.search);
+      searchParams.set("q", e.target.value);
+      navigate({ pathname: "/search", search: searchParams.toString() });
+    }, 500);
+
+    return () => clearTimeout(debounceTimer);
+  }, [navigate, location.search]);
 
   // Add useEffect to clear filters when component unmounts
   useEffect(() => {
