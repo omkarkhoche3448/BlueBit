@@ -11,7 +11,7 @@ import {
   Award,
   Settings,
 } from "lucide-react";
-import Logo from "../../assets/PlatformLogo.webp";
+import Logo from "../../assets/Logo2.png";
 import { UserButton } from "@clerk/clerk-react";
 import { useClerk } from "@clerk/clerk-react";
 import SettingsModal from "../common/SettingsModal";
@@ -56,7 +56,7 @@ function Header() {
   ];
 
   const getLinkClasses = (isActive) =>
-    `flex items-center px-1 pt-1 text-sm font-medium ${
+    `flex items-center px-1 pt-1 text-sm md:text-[15px] font-medium ${
       isActive
         ? "text-blue-600 border-b-2 border-blue-600"
         : "text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -69,11 +69,11 @@ function Header() {
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center">
               <Link to="/" className="flex-shrink-0">
-                <img src={Logo} className="w-48 h-9" alt="Logo" />
+                <img src={Logo} className="w-fit h-10 md:mr-36" alt="Logo" />
               </Link>
 
               {/* Desktop Navigation */}
-              <div className="hidden md:flex ml-3 space-x-6">
+              <div className="hidden md:flex ml-3 space-x-6 ">
                 {navLinks.map((link) => (
                   <Link
                     key={link.to}
