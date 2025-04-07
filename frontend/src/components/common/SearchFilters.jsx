@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { useFilters } from "../../contexts/FiltersContext";
 import { useDispatch, useSelector } from "react-redux";
@@ -65,17 +65,18 @@ function SearchFilters() {
   };
   
   // Function to handle filter application and trigger job search
-  const applyFilters = () => {
-    // Reset to first page when applying new filters
-    dispatch(setPage(1));
-    
-    // Dispatch the fetchJobs action with selected filters and pagination
-    dispatch(fetchJobs({
-      filters: selectedFilters,
-      page: 1, // Reset to first page
-      per_page: pagination.per_page
-    }));
-  };
+  const applyFilters = useCallback(() => {
+    const debounceTimer = setTimeout(() => {
+      dispatch(setPage(1));
+      dispatch(fetchJobs({
+        filters: selectedFilters,
+        page: 1,
+        per_page: pagination.per_page
+      }));
+    }, 900);
+
+    return () => clearTimeout(debounceTimer);
+  }, [dispatch, selectedFilters, pagination.per_page]);
   
   // Clear filters and reset jobs search
   const handleClearFilters = () => {
