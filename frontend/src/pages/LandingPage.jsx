@@ -25,6 +25,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 import { useClerk } from "@clerk/clerk-react";
 import { Link as ScrollLink } from "react-scroll";
+import Logo from "../assets/Logo4.png";
 
 // Lazy load components that aren't needed immediately
 const SignIn = lazy(() =>
@@ -123,7 +124,7 @@ export default function LandingPage() {
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
-      behavior: 'smooth'
+      behavior: "smooth",
     });
   };
 
@@ -466,12 +467,7 @@ export default function LandingPage() {
                 transition={{ duration: 0.5 }}
                 onClick={scrollToTop}
               >
-                <div className="cursor-pointer h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center mr-2">
-                  <Briefcase className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                </div>
-                <span className="cursor-pointer text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-                  KaamDekho
-                </span>
+                <img src={Logo} alt="Logo" className="h-12 w-fit mr-2" />
               </motion.div>
               <div className="hidden md:ml-6 md:flex md:space-x-8">
                 <ScrollLink
@@ -603,20 +599,20 @@ export default function LandingPage() {
                   Pricing
                 </ScrollLink>
                 <div className="flex items-center space-x-4 ml-3">
-                {/* Enable Sign In and Sign Up buttons */}
-                <button
-                  onClick={() => setShowSignIn(true)}
-                  className="px-4 py-2 text-sm font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50"
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => setShowSignUp(true)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                >
-                  Sign Up
-                </button>
-              </div>
+                  {/* Enable Sign In and Sign Up buttons */}
+                  <button
+                    onClick={() => setShowSignIn(true)}
+                    className="px-4 py-2 text-sm font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={() => setShowSignUp(true)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                  >
+                    Sign Up
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}
@@ -719,10 +715,7 @@ export default function LandingPage() {
                         {/* Header */}
                         <div className="flex items-center justify-between mb-6">
                           <div className="flex items-center space-x-2">
-                            <div className="h-8 w-8 rounded-md bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
-                              <Briefcase className="h-5 w-5 text-white" />
-                            </div>
-                            <span className="font-bold text-lg">KaamDekho</span>
+                          <img src={Logo} alt="Logo" className="h-8 w-fit" />
                           </div>
                           <div className="flex items-center space-x-3">
                             <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
@@ -1084,11 +1077,13 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Section - Updated */}
-      <section  id="pricing" className="py-12">
+      <section id="pricing" className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="text-center mb-12">
-            <h2 className="text-xl font-semibold text-blue-600">Simple Pricing</h2>
+            <h2 className="text-xl font-semibold text-blue-600">
+              Simple Pricing
+            </h2>
             <h3 className="mt-2 text-3xl sm:text-4xl font-bold text-gray-900">
               Choose the plan that's right for you
             </h3>
@@ -1098,7 +1093,11 @@ export default function LandingPage() {
           </div>
 
           {/* Plans container */}
-          <div className={isMobile ? "py-2 overflow-x-auto pb-8 hide-scrollbar" : ""}>
+          <div
+            className={
+              isMobile ? "py-2 overflow-x-auto pb-8 hide-scrollbar" : ""
+            }
+          >
             <div
               className={
                 isMobile
@@ -1125,7 +1124,9 @@ export default function LandingPage() {
                     </div>
                   )}
                   <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      {plan.name}
+                    </h3>
                     <div className="mt-4 flex items-baseline">
                       <span className="text-3xl font-extrabold tracking-tight text-gray-900">
                         {plan.monthlyPrice}
@@ -1136,8 +1137,7 @@ export default function LandingPage() {
                         </span>
                       )}
                     </div>
-                    
-                    
+
                     {plan.offer && (
                       <div className="mt-2 text-sm text-green-600 font-medium">
                         {plan.offer}
@@ -1267,7 +1267,8 @@ export default function LandingPage() {
               The People Behind the Vision
             </p>
             <p className="mt-4 max-w-2xl text-lg sm:text-xl text-gray-500 mx-auto">
-              Our dedicated team works tirelessly to bring you the best experience.
+              Our dedicated team works tirelessly to bring you the best
+              experience.
             </p>
           </div>
 
@@ -1277,7 +1278,8 @@ export default function LandingPage() {
               {
                 name: "Mihir Pande",
                 position: "Software Engineer",
-                photo: "https://avatars.githubusercontent.com/u/127537487?s=400&u=8e1785c20771a1f829ecfe95cf188907e3d42b89&v=4",
+                photo:
+                  "https://avatars.githubusercontent.com/u/127537487?s=400&u=8e1785c20771a1f829ecfe95cf188907e3d42b89&v=4",
                 linkedin: "https://linkedin.com/in/meeheer123",
                 instagram: "https://www.instagram.com/mihir.py",
               },
@@ -1312,7 +1314,9 @@ export default function LandingPage() {
                   alt={member.name}
                   className="w-24 h-24 mx-auto rounded-full mb-4"
                 />
-                <h3 className="text-lg font-bold text-gray-900">{member.name}</h3>
+                <h3 className="text-lg font-bold text-gray-900">
+                  {member.name}
+                </h3>
                 <p className="text-sm text-gray-500">{member.position}</p>
                 <div className="mt-4 flex justify-center space-x-4">
                   <a
@@ -1432,48 +1436,48 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section - Optimized for mobile */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-purple-600 py-16 rounded-xl">
-          <div className="text-center">
-            <motion.h2
-              className="text-2xl sm:text-3xl font-extrabold text-white sm:text-4xl"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-            >
-              <span className="block">Ready to simplify your job search?</span>
-              <span className="block mt-2">Get early access today.</span>
-            </motion.h2>
-            <motion.p
-              className="mt-4 text-base sm:text-lg leading-6 text-blue-100"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              viewport={{ once: true }}
-            >
-              Join thousands of job seekers who are already saving time and
-              finding better opportunities.
-            </motion.p>
-            <motion.div
-              className="mt-8 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              viewport={{ once: true }}
-            >
-              <div className="inline-flex rounded-md shadow">
-                <motion.a
-                  href="#"
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50"
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Get Started
-                </motion.a>
-              </div>
-            </motion.div>
-          </div>
-        </section>
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-purple-600 py-16 rounded-xl">
+        <div className="text-center">
+          <motion.h2
+            className="text-2xl sm:text-3xl font-extrabold text-white sm:text-4xl"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            viewport={{ once: true }}
+          >
+            <span className="block">Ready to simplify your job search?</span>
+            <span className="block mt-2">Get early access today.</span>
+          </motion.h2>
+          <motion.p
+            className="mt-4 text-base sm:text-lg leading-6 text-blue-100"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            viewport={{ once: true }}
+          >
+            Join thousands of job seekers who are already saving time and
+            finding better opportunities.
+          </motion.p>
+          <motion.div
+            className="mt-8 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            viewport={{ once: true }}
+          >
+            <div className="inline-flex rounded-md shadow">
+              <motion.a
+                href="#"
+                className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Get Started
+              </motion.a>
+            </div>
+          </motion.div>
+        </div>
+      </section>
 
       {/* Footer - Optimized for mobile */}
       <footer className="bg-white">
