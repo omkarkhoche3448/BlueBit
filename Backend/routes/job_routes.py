@@ -45,55 +45,59 @@ def apply_pagination(session, query, page, requested_per_page):
     return paginated_results, total_count, per_page
 
 def create_search_conditions(search_input):
-    """Create optimized search conditions based on user input, excluding description field."""
-    # Clean up the search input
+    """Create optimized search conditions using advanced PostgreSQL features."""
     search_input = search_input.strip().lower()
     
-    # Common stopwords to ignore when searching
-    stopwords = {'and', 'or', 'the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'with'}
+    # Normalize input and handle spelling variations
+    search_input = re.sub(r'[^a-z0-9\s\-]', '', search_input)  # Remove special chars
     
-    # Check for exact phrase search (enclosed in quotes) - compile regex once
-    exact_phrase_pattern = re.compile(r'"([^"]+)"')
-    exact_phrases = exact_phrase_pattern.findall(search_input)
-    
-    # Remove exact phrases from the main search string to process other terms
+    # Extract exact phrases using regex
+    exact_phrases = re.findall(r'"([^"]+)"', search_input)
     for phrase in exact_phrases:
         search_input = search_input.replace(f'"{phrase}"', '')
     
-    # Split remaining search terms
-    individual_terms = [term.strip() for term in search_input.split() if term.strip() and term.strip().lower() not in stopwords]
+    # Process remaining terms with advanced stemming
+    individual_terms = [term.strip() for term in search_input.split() if term.strip()]
     
-    # Combine exact phrases back with individual terms
-    all_search_terms = exact_phrases + individual_terms
+    # Combine all search terms with different matching strategies
+    all_terms = exact_phrases + individual_terms
+    if not all_terms:
+        return []
+
+    # Create advanced text search vectors
+    search_vector = func.concat(
+        func.coalesce(Job.title, ''), ' ', 
+        func.coalesce(Job.company, ''), ' ', 
+        func.coalesce(Job.location, ''), ' ', 
+        func.coalesce(Job.job_type, '')
+    )
     
-    # Create a single combined condition for all search terms
-    search_conditions = []
+    ts_vector = func.to_tsvector('english', search_vector)
     
-    # Handle exact phrases (must match exactly)
-    for phrase in exact_phrases:
-        phrase_pattern = f"%{phrase}%"
-        # Search only in title, company, location, and job_type, not in description
-        phrase_condition = or_(
-            Job.title.ilike(phrase_pattern),
-            Job.company.ilike(phrase_pattern),
-            Job.location.ilike(phrase_pattern),
-            Job.job_type.ilike(phrase_pattern)
+    # Create weighted query with fuzzy matching
+    ts_query = func.to_tsquery('english', ' | '.join([
+        f'({term}:* | {term})' for term in all_terms
+    ]))
+    
+    # Add trigram similarity conditions for fuzzy matching
+    trigram_conditions = []
+    for term in all_terms:
+        trigram_conditions.append(
+            or_(
+                func.similarity(Job.title, term) > 0.3,
+                func.similarity(Job.company, term) > 0.3,
+                func.similarity(Job.location, term) > 0.3,
+                func.similarity(Job.job_type, term) > 0.3
+            )
         )
-        search_conditions.append(phrase_condition)
     
-    # Handle individual terms
-    for term in individual_terms:
-        term_pattern = f"%{term}%"
-        # Search only in title, company, location, and job_type, not in description
-        term_condition = or_(
-            Job.title.ilike(term_pattern),
-            Job.company.ilike(term_pattern),
-            Job.location.ilike(term_pattern),
-            Job.job_type.ilike(term_pattern)
+    return [
+        or_(
+            ts_vector.op("@@")(ts_query),
+            *trigram_conditions
         )
-        search_conditions.append(term_condition)
-        
-    return search_conditions
+    ]
+
 
 def register_job_routes(app):
     @app.route('/api/search-jobs', methods=['GET', 'POST'])

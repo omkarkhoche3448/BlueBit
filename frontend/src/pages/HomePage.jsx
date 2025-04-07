@@ -190,6 +190,20 @@ function HomePage() {
       <JobList />
     </div>
   );
+
+  // Add useEffect to clear filters when component mounts
+  useEffect(() => {
+    dispatch(clearFilters());
+    dispatch(setSearchTerm(''));
+  }, [dispatch]);
+
+  // Add cleanup to clear filters when unmounting
+  useEffect(() => {
+    return () => {
+      dispatch(clearFilters());
+      dispatch(setSearchTerm(''));
+    };
+  }, [dispatch]);
 }
 
 export default HomePage;

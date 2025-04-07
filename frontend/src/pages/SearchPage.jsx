@@ -104,6 +104,14 @@ function SearchPage() {
     setSearchInput(e.target.value);
   }, []);
 
+  // Add useEffect to clear filters when component unmounts
+  useEffect(() => {
+    return () => {
+      dispatch(clearFilters());
+      dispatch(setSearchTerm(''));
+    };
+  }, [dispatch]);
+
   return (
     <div className="flex flex-col md:flex-row md:gap-6 md:p-4 max-w-7xl mx-auto">
       {/* Mobile Filters Toggle - Enhanced styling */}

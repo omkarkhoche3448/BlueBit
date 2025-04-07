@@ -81,8 +81,9 @@ function SearchFilters() {
   const handleClearFilters = () => {
     clearFilters();
     dispatch(setPage(1));
+    dispatch(setSearchTerm(''));  // Add this line
     dispatch(fetchJobs({
-      filters: {}, // Empty filters
+      filters: {},
       page: 1,
       per_page: pagination.per_page
     }));
