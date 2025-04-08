@@ -10,7 +10,7 @@ logging.basicConfig(
 )
 
 # Database connection string
-NEON_CONNECTION_STRING = os.getenv("DATABASE_URL")
+NEON_CONNECTION_STRING = "cockroachdb://mihir:w0z0M4_TVJH0b42wxSnbaw@kaamdekho-9992.j77.aws-ap-south-1.cockroachlabs.cloud:26257/defaultdb?sslmode=verify-full"
 
 def export_db_to_csv():
     """Export all tables in the database to CSV files."""

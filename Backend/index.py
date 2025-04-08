@@ -2,7 +2,7 @@ import psycopg2
 from psycopg2 import sql
 import os
 # Database connection parameters
-DATABASE_URL = os.getenv('DATABASE_URL')
+DATABASE_URL = "postgresql://mihir:w0z0M4_TVJH0b42wxSnbaw@kaamdekho-9992.j77.aws-ap-south-1.cockroachlabs.cloud:26257/defaultdb?sslmode=verify-full"
 
 # Index creation queries
 queries = [
