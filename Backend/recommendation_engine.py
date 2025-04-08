@@ -124,6 +124,9 @@ class RecommendationEngine:
             # Create a copy to avoid modifying the original
             trending_df = jobs_df.copy()
             
+            # Filter out jobs with null descriptions
+            trending_df = trending_df[trending_df['description'].notna()]
+            
             # Calculate trending score based on recency
             current_date = datetime.now().date()
             
@@ -138,6 +141,28 @@ class RecommendationEngine:
                     lambda x: max(0, 1 - (x / 30)) if x <= 30 else 0
                 )
                 
+                # Add engagement factors to trending score
+                if 'application_count' in trending_df.columns and 'view_count' in trending_df.columns:
+                    trending_df['engagement_score'] = (
+                        trending_df['application_count'] * 0.7 + 
+                        trending_df['view_count'] * 0.3
+                    )
+                    trending_df['recency_score'] = trending_df['recency_score'] * 0.6 + trending_df['engagement_score'] * 0.4
+                else:
+                    trending_df['engagement_score'] = 0  # Create a default engagement score
+                
+                # Prioritize jobs with complete profiles
+                # (No need to check description anymore since we filtered for that)
+                trending_df['completeness_score'] = trending_df.apply(
+                    lambda x: 1 if all(pd.notnull(x[field]) for field in ['company', 'location']) else 0,
+                    axis=1
+                )
+                
+                trending_df = trending_df.sort_values(
+                    ['completeness_score', 'recency_score', 'engagement_score'], 
+                    ascending=[False, False, False]
+                )
+                
                 # Sort by recency score
                 trending_df = trending_df.sort_values('recency_score', ascending=False)
                 
@@ -146,7 +171,7 @@ class RecommendationEngine:
             else:
                 self.trending_jobs = []
                 
-            logging.info(f"Identified {len(self.trending_jobs)} trending jobs")
+            logging.info(f"Identified {len(self.trending_jobs)} trending jobs with descriptions")
         except Exception as e:
             logging.error(f"Error identifying trending jobs: {str(e)}")
             self.trending_jobs = []
@@ -268,15 +293,41 @@ class RecommendationEngine:
                 except:
                     resume_keywords = []
             
-            # Check if user has any preferences
-            has_preferences = bool(preferences and isinstance(preferences, dict) and 
-                                  (preferences.get('jobType') or preferences.get('location') or 
-                                   preferences.get('isRemote') is not None or preferences.get('minSalary')))
+            # Improved preference check
+            has_preferences = bool(preferences and isinstance(preferences, dict) and len(preferences) > 0)
             
-            # If user has no likes AND no resume keywords AND no preferences, return empty list
-            if not interested_jobs and not resume_keywords and not has_preferences:
-                logging.info(f"User {user_id} has no likes, resume keywords, or preferences - no content recommendations possible")
-                return []
+            # Fixed check
+            if not any([interested_jobs, resume_keywords, has_preferences]):
+                logging.info(f"User {user_id} has no signals - using trending job fallback")
+                
+                # Get trending or popular jobs as fallback
+                fallback_jobs = []
+                
+                # Use trending jobs if available
+                if self.trending_jobs:
+                    fallback_jobs = self.trending_jobs[:top_n]
+                    logging.info(f"Providing {len(fallback_jobs)} trending jobs as fallback for user {user_id}")
+                
+                # If no trending jobs, get most recent jobs
+                if not fallback_jobs and hasattr(self, 'jobs_df') and 'date_posted' in self.jobs_df.columns:
+                    recent_jobs = self.jobs_df.sort_values('date_posted', ascending=False)['id'].tolist()[:top_n]
+                    fallback_jobs = recent_jobs
+                    logging.info(f"Providing {len(fallback_jobs)} recent jobs as fallback for user {user_id}")
+                
+                # If still no jobs, get jobs from diverse clusters
+                if not fallback_jobs and self.job_clusters:
+                    for cluster in self.job_clusters.values():
+                        fallback_jobs.extend(cluster[:5])  # Get a few jobs from each cluster
+                    fallback_jobs = list(dict.fromkeys(fallback_jobs))[:top_n]  # Remove duplicates
+                    logging.info(f"Providing {len(fallback_jobs)} diverse jobs as fallback for user {user_id}")
+                
+                # If still nothing, get any jobs
+                if not fallback_jobs and hasattr(self, 'jobs_df'):
+                    fallback_jobs = self.jobs_df['id'].tolist()[:top_n]
+                    logging.info(f"Providing {len(fallback_jobs)} random jobs as last fallback for user {user_id}")
+                
+                session.close()
+                return fallback_jobs
             
             # If user has liked jobs, use them for content-based recommendations
             if interested_jobs:
@@ -415,6 +466,17 @@ class RecommendationEngine:
                 
                 recommended_job_ids = filtered_jobs['id'].head(top_n).tolist()
                 
+                # Add debug logging
+                logging.debug(f"Prefs filtered to {len(filtered_jobs)} jobs | "
+                             f"Keywords: {len(resume_keywords)} | "
+                             f"Trending available: {bool(self.trending_jobs)}")
+                
+                # If no matches, try relaxing filters
+                if len(recommended_job_ids) < top_n//2:  # If less than half found
+                    logging.info("Insufficient matches - applying fallback strategy")
+                    # Expand search with relaxed preferences
+                    return self._fallback_recommendations(user, top_n)
+                
                 # If we don't have enough recommendations, add trending jobs
                 if len(recommended_job_ids) < top_n and self.trending_jobs:
                     additional_jobs = [job_id for job_id in self.trending_jobs 
@@ -430,6 +492,50 @@ class RecommendationEngine:
         finally:
             session.close()
     
+    def _fallback_recommendations(self, user, top_n):
+        """Fallback when primary methods fail"""
+        try:
+            # Return a mix of trending and diverse jobs
+            universal_recommendations = []
+            reason = "No user preferences, keywords, or liked jobs available"
+            
+            # Add some trending jobs if available
+            if self.trending_jobs:
+                universal_recommendations.extend(self.trending_jobs[:top_n//2])
+                logging.info(f"Added {len(universal_recommendations)} trending jobs to fallback recommendations")
+                    
+            # Add jobs from different clusters for diversity
+            if self.job_clusters and len(universal_recommendations) < top_n:
+                cluster_count = 0
+                for cluster in self.job_clusters.values():
+                    if len(universal_recommendations) < top_n:
+                        # Take a few jobs from each cluster
+                        cluster_jobs = [j for j in cluster[:3] if j not in universal_recommendations]
+                        universal_recommendations.extend(cluster_jobs)
+                        cluster_count += 1
+                logging.info(f"Added jobs from {cluster_count} clusters for diversity")
+            
+            # If still not enough, add most recent jobs
+            if len(universal_recommendations) < top_n and hasattr(self, 'jobs_df') and 'date_posted' in self.jobs_df.columns:
+                recent_jobs = self.jobs_df.sort_values('date_posted', ascending=False)['id'].tolist()
+                additional = [j for j in recent_jobs if j not in universal_recommendations]
+                universal_recommendations.extend(additional[:top_n - len(universal_recommendations)])
+                logging.info(f"Added recent jobs to reach {len(universal_recommendations)} recommendations total")
+            
+            # Return unique recommendations up to requested count
+            final_recs = list(dict.fromkeys(universal_recommendations))[:top_n]
+            logging.info(f"Returning {len(final_recs)} fallback recommendations with reason: {reason}")
+            return final_recs
+                
+        except Exception as e:
+            logging.error(f"Fallback failed: {str(e)}")
+            # Ultimate fallback - just return trending or any jobs we have
+            if self.trending_jobs:
+                return self.trending_jobs[:top_n]
+            elif hasattr(self, 'jobs_df'):
+                return self.jobs_df['id'].tolist()[:top_n]
+            return []  # Empty only if absolutely nothing else is available
+
     def get_collaborative_recommendations(self, user_id, top_n=20):
         """Generate collaborative filtering recommendations for a user"""
         session = Session()
@@ -570,11 +676,38 @@ class RecommendationEngine:
                                   (preferences.get('jobType') or preferences.get('location') or 
                                    preferences.get('isRemote') is not None or preferences.get('minSalary')))
             
-            # If user has no likes AND no resume keywords AND no preferences, return empty list
-            if not interested_jobs and not resume_keywords and not has_preferences:
-                logging.info(f"User {user_id} has no likes, resume keywords, or preferences - no recommendations possible")
+            # Fixed check - use trending jobs fallback
+            if not any([interested_jobs, resume_keywords, has_preferences]):
+                logging.info(f"User {user_id} has no signals - using trending job fallback")
+                
+                # Get trending or popular jobs as fallback
+                fallback_jobs = []
+                
+                # Use trending jobs if available
+                if self.trending_jobs:
+                    fallback_jobs = self.trending_jobs[:top_n]
+                    logging.info(f"Providing {len(fallback_jobs)} trending jobs as fallback for user {user_id}")
+                
+                # If no trending jobs, get most recent jobs
+                if not fallback_jobs and hasattr(self, 'jobs_df') and 'date_posted' in self.jobs_df.columns:
+                    recent_jobs = self.jobs_df.sort_values('date_posted', ascending=False)['id'].tolist()[:top_n]
+                    fallback_jobs = recent_jobs
+                    logging.info(f"Providing {len(fallback_jobs)} recent jobs as fallback for user {user_id}")
+                
+                # If still no jobs, get jobs from diverse clusters
+                if not fallback_jobs and self.job_clusters:
+                    for cluster in self.job_clusters.values():
+                        fallback_jobs.extend(cluster[:5])  # Get a few jobs from each cluster
+                    fallback_jobs = list(dict.fromkeys(fallback_jobs))[:top_n]  # Remove duplicates
+                    logging.info(f"Providing {len(fallback_jobs)} diverse jobs as fallback for user {user_id}")
+                
+                # If still nothing, get any jobs
+                if not fallback_jobs and hasattr(self, 'jobs_df'):
+                    fallback_jobs = self.jobs_df['id'].tolist()[:top_n]
+                    logging.info(f"Providing {len(fallback_jobs)} random jobs as last fallback for user {user_id}")
+                
                 session.close()
-                return []
+                return fallback_jobs
             
             # Get recommendations from both approaches
             content_recs = self.get_content_based_recommendations(user_id, top_n=top_n) or []
@@ -832,7 +965,7 @@ def get_recommendations_for_user(user_id, count=20):
             jobs = session.query(Job).filter(Job.id.in_(recommended_job_ids)).all()
             
             # Convert to list of dictionaries
-            job_list = [{c.name: getattr(job, c.name) for c in job.__table__.columns} for job in jobs]
+            job_list = [{c.name: getattr(job, c.name) for job in job.__table__.columns} for job in jobs]
             # Calculate matching score for each job
             job_list = calculate_matching_scores(job_list, user)
             

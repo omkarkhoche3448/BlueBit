@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 # Load environment variables
-load_dotenv(dotenv_path="./.env")
+load_dotenv()
 
 # Set up SQLAlchemy with Neon PostgreSQL
 # Update this line to use NEON_CONNECTION_STRING from .env
