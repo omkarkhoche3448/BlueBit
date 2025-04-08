@@ -1,39 +1,163 @@
-name: Job Recommendation Service Scheduler
+name: BlueBit Scheduled Tasks
 
 on:
   schedule:
-    # Run daily at 1:00 AM UTC for job scraping
-    - cron: '0 1 * * *'
-    # Run daily at 2:00 AM UTC for recommendation processing
-    - cron: '0 2 * * *'
+    - cron: '30 18 * * *'  # 12 AM IST (6:30 PM UTC)
+    - cron: '30 21 * * *'  # 3 AM IST (9:30 PM UTC) 
+    - cron: '30 0 * * *'   # 6 AM IST (12:30 AM UTC)
+    - cron: '30 12 * * *'  # 6 PM IST (12:30 PM UTC)
+  
+  # Allow manual trigger for testing
   workflow_dispatch:
-    # Allow manual triggering
+    inputs:
+      task:
+        description: 'Task to run (recommendations, scrape-jobs, clear-data, all)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - recommendations
+          - scrape-jobs
+          - clear-data
+          - all
 
 jobs:
-  scrape-jobs:
-    name: Scrape Jobs
+  check-schedule:
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 1 * * *'
-    
+    outputs:
+      should_run_recommendations: ${{ steps.check-time.outputs.should_run_recommendations }}
+      should_run_scrape: ${{ steps.check-time.outputs.should_run_scrape }}
+      should_run_clear_data: ${{ steps.check-time.outputs.should_run_clear_data }}
     steps:
-      - name: Trigger job scraping endpoint
-        uses: fjogeleit/http-request-action@v1
-        with:
-          url: ${{ secrets.API_ENDPOINT }}/api/scrape-jobs
-          method: 'POST'
-          headers: '{"X-API-Key": "${{ secrets.API_SECRET_KEY }}"}'
-          timeout: 300000
+      - name: Check current time
+        id: check-time
+        run: |
+          # Get current hour in UTC
+          CURRENT_HOUR=$(date -u +%H)
+          CURRENT_MINUTE=$(date -u +%M)
+          SCHEDULE="${CURRENT_HOUR}:${CURRENT_MINUTE}"
+          echo "Current UTC time: $SCHEDULE"
 
-  process-recommendations:
-    name: Process Recommendations
+          # Set outputs based on time or manual trigger
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ github.event.inputs.task }}" == "recommendations" || "${{ github.event.inputs.task }}" == "all" ]]; then
+              echo "should_run_recommendations=true" >> $GITHUB_OUTPUT
+            else
+              echo "should_run_recommendations=false" >> $GITHUB_OUTPUT
+            fi
+            
+            if [[ "${{ github.event.inputs.task }}" == "scrape-jobs" || "${{ github.event.inputs.task }}" == "all" ]]; then
+              echo "should_run_scrape=true" >> $GITHUB_OUTPUT
+            else
+              echo "should_run_scrape=false" >> $GITHUB_OUTPUT
+            fi
+            
+            if [[ "${{ github.event.inputs.task }}" == "clear-data" || "${{ github.event.inputs.task }}" == "all" ]]; then
+              echo "should_run_clear_data=true" >> $GITHUB_OUTPUT
+            else
+              echo "should_run_clear_data=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            # For scheduled runs
+            if [[ "$CURRENT_HOUR" == "00" && "$CURRENT_MINUTE" == "30" || "$CURRENT_HOUR" == "12" && "$CURRENT_MINUTE" == "30" ]]; then
+              echo "should_run_recommendations=true" >> $GITHUB_OUTPUT
+            else
+              echo "should_run_recommendations=false" >> $GITHUB_OUTPUT
+            fi
+            
+            if [[ "$CURRENT_HOUR" == "21" && "$CURRENT_MINUTE" == "30" ]]; then
+              echo "should_run_scrape=true" >> $GITHUB_OUTPUT
+            else
+              echo "should_run_scrape=false" >> $GITHUB_OUTPUT
+            fi
+            
+            if [[ "$CURRENT_HOUR" == "18" && "$CURRENT_MINUTE" == "30" ]]; then
+              echo "should_run_clear_data=true" >> $GITHUB_OUTPUT
+            else
+              echo "should_run_clear_data=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+  update-recommendations:
+    needs: check-schedule
+    if: needs.check-schedule.outputs.should_run_recommendations == 'true'
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 2 * * *'
-    
     steps:
-      - name: Trigger recommendation processing endpoint
-        uses: fjogeleit/http-request-action@v1
-        with:
-          url: ${{ secrets.API_ENDPOINT }}/api/process-recommendations
-          method: 'POST'
-          headers: '{"X-API-Key": "${{ secrets.API_SECRET_KEY }}"}'
-          timeout: 300000
+      - name: Update Recommendations
+        env:
+          API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
+          API_URL: ${{ secrets.API_URL || 'https://bluebit-backend.onrender.com' }}
+        run: |
+          echo "Starting recommendations update process..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST $API_URL/api/process-recommendations \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: $API_SECRET_KEY")
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          echo "Response body: $BODY"
+          echo "HTTP status code: $HTTP_CODE"
+          
+          if [[ $HTTP_CODE -ge 200 && $HTTP_CODE -lt 300 ]]; then
+            echo "✅ Successfully updated recommendations"
+          else
+            echo "❌ Failed to update recommendations"
+            exit 1
+          fi
+
+  scrape-jobs:
+    needs: check-schedule
+    if: needs.check-schedule.outputs.should_run_scrape == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scrape Jobs
+        env:
+          API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
+          API_URL: ${{ secrets.API_URL || 'https://bluebit-backend.onrender.com' }}
+        run: |
+          echo "Starting job scraping process..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST $API_URL/api/scrape-jobs \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: $API_SECRET_KEY")
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          echo "Response body: $BODY"
+          echo "HTTP status code: $HTTP_CODE"
+          
+          if [[ $HTTP_CODE -ge 200 && $HTTP_CODE -lt 300 ]]; then
+            echo "✅ Successfully scraped jobs"
+          else
+            echo "❌ Failed to scrape jobs"
+            exit 1
+          fi
+
+  clear-stale-data:
+    needs: check-schedule
+    if: needs.check-schedule.outputs.should_run_clear_data == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clear Stale Data
+        env:
+          API_SECRET_KEY: ${{ secrets.API_SECRET_KEY }}
+          API_URL: ${{ secrets.API_URL || 'https://bluebit-backend.onrender.com' }}
+        run: |
+          echo "Starting data cleanup process..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST $API_URL/api/maintenance/clear-data \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: $API_SECRET_KEY")
+          
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          echo "Response body: $BODY"
+          echo "HTTP status code: $HTTP_CODE"
+          
+          if [[ $HTTP_CODE -ge 200 && $HTTP_CODE -lt 300 ]]; then
+            echo "✅ Successfully cleared stale data"
+          else
+            echo "❌ Failed to clear stale data"
+            exit 1
+          fi

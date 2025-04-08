@@ -907,26 +907,10 @@ class RecommendationEngine:
             logging.error(f"Error initializing recommendation model: {str(e)}")
             return False
 
-    def schedule_recommendation_updates(self, interval_hours=0.01):# Recommendaton system time
-        """Schedule periodic updates of the recommendation model"""
-        def update_job():
-            logging.info("Running scheduled recommendation model update")
-            self.initialize_model()
-        
-        # Schedule the job to run at the specified interval
-        schedule.every(interval_hours).hours.do(update_job)
-        
-        # Run the scheduler in a separate thread
-        def run_scheduler():
-            while True:
-                schedule.run_pending()
-                time.sleep(60)  # Check every minute
-        
-        scheduler_thread = threading.Thread(target=run_scheduler)
-        scheduler_thread.daemon = True
-        scheduler_thread.start()
-        
-        logging.info(f"Scheduled recommendation updates every {interval_hours} hour(s)")
+    def update_recommendations_once(self):
+        """Update recommendations once without scheduling"""
+        logging.info("Running one-time recommendation model update")
+        return self.initialize_model()
 
 # Create a global instance of the recommendation engine
 recommendation_engine = RecommendationEngine()
@@ -935,7 +919,7 @@ def init_recommendation_engine():
     """Initialize the recommendation engine"""
     logging.info("Initializing recommendation engine...")
     recommendation_engine.initialize_model()
-    recommendation_engine.schedule_recommendation_updates()
+    # Don't automatically start the scheduler - only start when API endpoint is called
 
 # Function to get recommendations for a user
 def get_recommendations_for_user(user_id, count=20):
@@ -964,8 +948,14 @@ def get_recommendations_for_user(user_id, count=20):
             # Get the job details for these IDs
             jobs = session.query(Job).filter(Job.id.in_(recommended_job_ids)).all()
             
-            # Convert to list of dictionaries
-            job_list = [{c.name: getattr(job, c.name) for job in job.__table__.columns} for job in jobs]
+            # Convert to list of dictionaries - FIXED
+            job_list = []
+            for job in jobs:
+                job_dict = {}
+                for column in job.__table__.columns:
+                    job_dict[column.name] = getattr(job, column.name)
+                job_list.append(job_dict)
+            
             # Calculate matching score for each job
             job_list = calculate_matching_scores(job_list, user)
             
@@ -1021,8 +1011,13 @@ def get_recommendations_for_user(user_id, count=20):
             display_ids = recommendation_ids[:count] if recommendation_ids else []
             jobs = session.query(Job).filter(Job.id.in_(display_ids)).all()
             
-            # Convert to list of dictionaries
-            job_list = [{c.name: getattr(job, c.name) for job in job.__table__.columns} for job in jobs]
+            # Convert to list of dictionaries - FIXED
+            job_list = []
+            for job in jobs:
+                job_dict = {}
+                for column in job.__table__.columns:
+                    job_dict[column.name] = getattr(job, column.name)
+                job_list.append(job_dict)
             
             # Get fresh user object for matching score calculation
             user = session.query(User).filter(User.clerk_id == user_id).first()

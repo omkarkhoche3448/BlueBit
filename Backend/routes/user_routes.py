@@ -583,5 +583,63 @@ def register_user_routes(app):
             return jsonify({'error': f'Failed to delete user account: {str(e)}'}), 500
         finally:
             session.close()
-    
-    
+
+    @app.route('/api/maintenance/clear-data', methods=['POST'])
+    def clear_stale_data():
+        """
+        Maintenance endpoint to:
+        1. Update expired pro users (set is_pro to False)
+        2. Delete jobs that haven't been updated in 30+ days
+        """
+        session = Session()
+        try:
+            # Get current date for comparison
+            today = datetime.now().date()
+            
+            # Track statistics for response
+            updated_users_count = 0
+            deleted_jobs_count = 0
+            
+            # 1. Update expired pro users
+            expired_pro_users = session.query(User).filter(
+                User.is_pro == True,
+                User.pro_expiration_date < today
+            ).all()
+            
+            for user in expired_pro_users:
+                user.is_pro = False
+                updated_users_count += 1
+                logging.info(f"User {user.clerk_id} pro status expired and set to False")
+            
+            # 2. Find and delete stale jobs (older than 30 days)
+            thirty_days_ago = today - datetime.timedelta(days=30)
+            stale_jobs = session.query(Job).filter(
+                Job.date_posted < thirty_days_ago
+            ).all()
+            
+            # Store job IDs before deletion for reporting
+            stale_job_ids = [job.id for job in stale_jobs]
+            
+            # Delete the stale jobs
+            for job in stale_jobs:
+                session.delete(job)
+                deleted_jobs_count += 1
+            
+            # Commit all changes
+            session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Maintenance completed successfully',
+                'expired_pro_users_count': updated_users_count,
+                'deleted_jobs_count': deleted_jobs_count,
+                'timestamp': datetime.now().isoformat()
+            })
+            
+        except Exception as e:
+            session.rollback()
+            logging.error(f"Error during maintenance clean-up: {str(e)}")
+            return jsonify({'error': f'Maintenance failed: {str(e)}'}), 500
+        finally:
+            session.close()
+
