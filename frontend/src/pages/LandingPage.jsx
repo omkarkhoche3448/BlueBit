@@ -26,7 +26,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { useClerk } from "@clerk/clerk-react";
 import { Link as ScrollLink } from "react-scroll";
 import Logo from "../assets/Logo4.png";
-import { Team } from "../components/landing";
+import  Team  from "../components/landing/Team";
 
 // Lazy load components that aren't needed immediately
 const SignIn = lazy(() =>

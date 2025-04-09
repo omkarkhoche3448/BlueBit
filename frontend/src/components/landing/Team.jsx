@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { ArrowRight, Linkedin, Instagram, Mail, X } from "lucide-react";
 
-export default function TeamSection() {
+export default function Team() {
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
