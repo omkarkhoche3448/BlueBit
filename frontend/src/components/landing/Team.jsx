@@ -243,7 +243,7 @@ function TeamMemberDetailModal({ member, onClose }) {
       style={{animation: 'fadeIn 0.3s ease-out forwards'}}
     >
       <div
-        className="relative bg-white rounded-2xl overflow-hidden max-w-lg w-full shadow-2xl"
+        className="relative bg-white rounded-2xl overflow-hidden max-w-xl w-full shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         style={{animation: 'zoomIn 0.3s ease-out forwards'}}
       >
@@ -326,7 +326,7 @@ const teamMembers = [
   {
     name: "Soham Mhatre",
     position: "Product Manager",
-    photo: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=800&q=80",
+    photo: "https://avatars.githubusercontent.com/u/150317894?v=4",
     bio: "Soham is a visionary product manager with a keen eye for market trends and user needs. His strategic thinking helps shape our product roadmap and ensures we deliver value to our customers.",
     linkedin: "#",
     instagram: "#",
@@ -344,7 +344,7 @@ const teamMembers = [
   {
     name: "Manthan Barhate",
     position: "Data Scientist",
-    photo: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80",
+    photo: "https://avatars.githubusercontent.com/u/142141808?v=4",
     bio: "Manthan is a data scientist who excels at uncovering insights from complex datasets. His analytical skills drive our data-informed decisions and help us continuously improve our products.",
     linkedin: "#",
     instagram: "#",

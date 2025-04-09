@@ -1263,8 +1263,8 @@ export default function LandingPage() {
       {/* Contact Section */}
 
       {/* CTA Section - Optimized for mobile */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-purple-600 py-16 rounded-xl">
-        <div className="text-center">
+      <section className="max-w-7xl mx-auto  px-4 rounded-xl md:mt-4">
+        <div className="text-center bg-gradient-to-r from-blue-600 to-purple-600 px-4 lg:px-8 py-12 rounded-2xl">
           <motion.h2
             className="text-2xl sm:text-3xl font-extrabold text-white sm:text-4xl"
             initial={{ opacity: 0, y: 20 }}
