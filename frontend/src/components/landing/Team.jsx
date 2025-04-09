@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { ArrowRight, Linkedin, Instagram, Mail, X } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function Team() {
   const [hoveredIndex, setHoveredIndex] = useState(null);
@@ -34,47 +35,96 @@ export default function Team() {
     setSelectedMember(member);
   };
 
+  // Animation variants
+  const sectionVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { 
+        when: "beforeChildren",
+        staggerChildren: 0.1,
+        duration: 0.6
+      }
+    }
+  };
+
+  const headerVariants = {
+    hidden: { opacity: 0, y: -20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.7, ease: "easeOut" }
+    }
+  };
+
+  const memberCardVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: (i) => ({ 
+      opacity: 1, 
+      y: 0,
+      transition: { 
+        duration: 0.5, 
+        ease: "easeOut",
+        delay: i * 0.1
+      }
+    })
+  };
+
+  const decorVariants = {
+    hidden: { opacity: 0, scale: 0.9 },
+    visible: { 
+      opacity: 1, 
+      scale: 1,
+      transition: { duration: 1.2, ease: "easeOut" }
+    }
+  };
+
   return (
-    <section className="py-20 overflow-hidden relative bg-gradient-to-b from-white via-blue-50/30 to-white">
+    <motion.section 
+      className="py-20 overflow-hidden relative bg-gradient-to-b from-white via-blue-50/30 to-white"
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, amount: 0.2 }}
+      variants={sectionVariants}
+    >
       {/* Decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <motion.div 
+        className="absolute inset-0 overflow-hidden pointer-events-none"
+        variants={decorVariants}
+      >
         <div className="absolute top-0 right-0 w-[400px] h-[400px] md:w-[800px] md:h-[800px] bg-blue-100/20 rounded-full blur-3xl -translate-y-1/3 translate-x-1/3"></div>
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] md:w-[600px] md:h-[600px] bg-indigo-100/30 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3"></div>
-      </div>
+      </motion.div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative" ref={containerRef} onMouseMove={handleMouseMove}>
         <div className="relative z-10">
           {/* Section Header */}
-          <div className="text-center max-w-3xl mx-auto mb-16 md:mb-20">
-            <div className="opacity-0 animate-[fadeIn_0.7s_ease-out_forwards]">
-              <h2 className="text-4xl sm:text-5xl font-bold mb-6">
-                <span className="inline-block bg-clip-text text-transparent bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-600">
-                  Our Talented Team
-                </span>
-              </h2>
-              <div className="h-1 w-20 bg-gradient-to-r from-blue-600 to-purple-600 mx-auto mb-4 rounded-full"></div>
-              <p className="text-gray-600 text-lg">
-                The brilliant minds behind our success
-              </p>
-            </div>
-          </div>
+          <motion.div 
+            className="text-center max-w-3xl mx-auto mb-16 md:mb-20"
+            variants={headerVariants}
+          >
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6">
+              <span className="inline-block bg-clip-text text-transparent bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-600">
+                Our Talented Team
+              </span>
+            </h2>
+            <div className="h-1 w-20 bg-gradient-to-r from-blue-600 to-purple-600 mx-auto mb-4 rounded-full"></div>
+            <p className="text-gray-600 text-lg">
+              The brilliant minds behind our success
+            </p>
+          </motion.div>
 
           {/* Team members grid - works for both mobile and desktop */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             {teamMembers.map((member, idx) => {
               const isHovered = hoveredIndex === idx;
-              const delayStyle = {
-                animationDelay: `${idx * 0.1}s`
-              };
               
               return (
-                <div
+                <motion.div
                   key={idx}
-                  className="group relative z-10 h-full opacity-0"
-                  style={{
-                    animation: 'fadeInUp 0.5s ease-out forwards',
-                    ...delayStyle
-                  }}
+                  className="group relative z-10 h-full"
+                  variants={memberCardVariants}
+                  custom={idx}
                   onClick={() => handleSelectMember(member)}
                 >
                   <div
@@ -101,7 +151,7 @@ export default function Team() {
                           
                           {/* Gradient overlay */}
                           <div 
-                            className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100  group-hover:scale-105 transition-transform duration-700"
+                            className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-transform duration-700"
                           />
                           
                           {/* Social icons that appear on hover - hidden on mobile */}
@@ -170,7 +220,7 @@ export default function Team() {
                       )}
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>
@@ -184,37 +234,7 @@ export default function Team() {
           onClose={() => setSelectedMember(null)} 
         />
       )}
-      
-      {/* Add CSS keyframes */}
-      <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        
-        @keyframes fadeInUp {
-          from { 
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to { 
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        @keyframes zoomIn {
-          from {
-            opacity: 0;
-            transform: scale(0.9);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-      `}</style>
-    </section>
+    </motion.section>
   );
 }
 
@@ -236,16 +256,33 @@ function TeamMemberDetailModal({ member, onClose }) {
     };
   }, [onClose]);
 
+  const backdropVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.3 } }
+  };
+
+  const modalVariants = {
+    hidden: { opacity: 0, scale: 0.9 },
+    visible: { 
+      opacity: 1, 
+      scale: 1,
+      transition: { duration: 0.3, ease: "easeOut" } 
+    }
+  };
+
   return (
-    <div
+    <motion.div
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={onClose}
-      style={{animation: 'fadeIn 0.3s ease-out forwards'}}
+      initial="hidden"
+      animate="visible"
+      exit="hidden"
+      variants={backdropVariants}
     >
-      <div
+      <motion.div
         className="relative bg-white rounded-2xl overflow-hidden max-w-xl w-full shadow-2xl"
         onClick={(e) => e.stopPropagation()}
-        style={{animation: 'zoomIn 0.3s ease-out forwards'}}
+        variants={modalVariants}
       >
         <button
           onClick={onClose}
@@ -308,8 +345,8 @@ function TeamMemberDetailModal({ member, onClose }) {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
