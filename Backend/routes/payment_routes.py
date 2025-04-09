@@ -2,13 +2,13 @@ from flask import request, jsonify
 from flask_cors import CORS  # Import flask_cors
 import logging
 from datetime import datetime, timedelta
-from config import Session, razorpay_client, RAZORPAY_KEY_ID
+from config import Session, razorpay_client, RAZORPAY_KEY_ID, ALLOWED_ORIGINS
 from models import User
 
 
 def register_payment_routes(app):
-    
-    CORS(app, resources={r"*": {"origins": "*"}})
+    # Restrict CORS to allowed origins
+    CORS(app, resources={r"*": {"origins": ALLOWED_ORIGINS}})
     
     @app.route('/api/payment', methods=['POST'])
     def create_payment():
