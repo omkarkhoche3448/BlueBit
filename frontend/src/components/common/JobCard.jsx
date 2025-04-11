@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, memo, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -23,139 +23,267 @@ import {
   ThumbsDown,
   Lock,
 } from "lucide-react";
+import { saveJob, removeJob, updateJobInterest } from "../../slices/jobsSlice";
 import { useUser } from "@clerk/clerk-react";
 import { useProStatusContext } from "../../contexts/ProStatusContext";
-import React from "react";
+import PaymentService from "../../services/paymentService";
+import { toast } from "react-hot-toast";
 
-function JobCard({ job, onNotInterested, isRecommended }) {
+const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
+
+const JobCard = memo(({ job, onNotInterested, isRecommended }) => {
   const [showActions, setShowActions] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const { user, isSignedIn } = useUser();
   const dispatch = useDispatch();
-  const savedJobs = useSelector((state) => state.jobs.savedJobs);
-  const isSaved = savedJobs.some((savedJob) => savedJob.id === job.id);
-  const { isPro } = useProStatusContext();
-  
-  // Simplified state without interaction tracking
+  const savedJobs = useSelector((state) => state.jobs.savedJobs || []);
+  const isSaved = useMemo(() => {
+    return Array.isArray(savedJobs) && savedJobs.some((savedJob) => savedJob.id === job.id);
+  }, [savedJobs, job.id]);
+  const { isPro, refreshProStatus } = useProStatusContext();
+
   const [isInterested, setIsInterested] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [showProModal, setShowProModal] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  // Simple job click handler without tracking
-  const handleJobClick = () => {
-    window.open(job.job_url_direct || job.job_url, '_blank', 'noopener,noreferrer');
+  // Add payment handler function inside the component
+
+  const handlePayment = async () => {
+    try {
+      if (!user) return;
+
+      setIsProcessingPayment(true);
+      setTimeout(() => {
+        setShowProModal(false);
+      }, 1000);
+
+      await PaymentService.initiatePayment(
+        user.id,
+        user.primaryEmailAddress.emailAddress,
+        user.fullName
+      );
+
+      // Refresh pro status after successful payment
+      await refreshProStatus();
+
+      toast.success("Payment successful! Pro features activated.", {
+        duration: 4000,
+        position: "top-center",
+        icon: "🎉",
+        onClose: () => {
+          window.location.reload();
+        },
+      });
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast.error(`Payment failed: ${error.message}`, {
+        duration: 4000,
+        position: "top-center",
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+  // Add abort controller for API calls
+  const abortController = useMemo(() => new AbortController(), [job.id]);
+
+  useEffect(() => {
+    console.log("JobCard mounted with job:", job?.id);
+    
+    const fetchData = async () => {
+      if (isSignedIn && user?.id && job?.id) {
+        await fetchJobInterest();
+      }
+    };
+
+    // Add cleanup function
+    return () => {
+      console.log("JobCard cleanup:", job?.id);
+      abortController.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn, user?.id, job.id]); // Remove spread operator from job.id
+
+  const fetchJobInterest = async () => {
+    if (!job?.id) return;
+    
+    try {
+      console.log(`Fetching job interest for user ${user.id} and job ${job.id}`);
+      const response = await fetch(
+        `${API_URL_BACKEND}/users/${user.id}/job-interest/${job.id}`,
+        { signal: abortController.signal } // Add abort signal
+      );
+      
+      // Add component mounted check
+      if (!abortController.signal.aborted && response.ok) {
+        const data = await response.json();
+        console.log("Fetched job interest data:", data);
+        setIsInterested(data.interest);
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error("Error fetching job interest:", err);
+      }
+    }
   };
 
-  // Local action handlers without API calls
-  const handleSaveJob = (e) => {
+  const handleSaveJob = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    if (!isSignedIn || !isPro) {
-      if (!isPro) setShowProModal(true);
+
+    if (!isSignedIn) {
+      setShowProModal(true);
       return;
     }
-    
-    // Just dispatch to Redux without API calls
-    dispatch({ type: 'jobs/toggleSaveJob', payload: job });
+
+    if (!isPro) {
+      setShowProModal(true);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      if (isSaved) {
+        // Remove job from database
+        await dispatch(removeJob({ job, userId: user.id })).unwrap();
+      } else {
+        // Save job to database
+        await dispatch(saveJob({ job, userId: user.id })).unwrap();
+      }
+    } catch (error) {
+      toast.error("Failed to save job. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
-  const handleLike = (e) => {
+
+  // Add a check for onNotInterested before calling it
+  const handleJobInterest = async (interested, e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    if (!isSignedIn || !isPro) {
-      if (!isPro) setShowProModal(true);
+
+    console.log("Setting job interest for job:", job.id, "to", interested);
+
+    if (!isSignedIn) {
+      setShowProModal(true);
       return;
     }
-    
-    // Just update local state
-    setIsInterested(isInterested === true ? null : true);
-  };
-  
-  const handleDislike = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (!isSignedIn || !isPro) {
-      if (!isPro) setShowProModal(true);
+
+    if (!isPro) {
+      setShowProModal(true);
       return;
     }
-    
-    // Just update local state
-    setIsInterested(isInterested === false ? null : false);
-    
-    // If marking as not interested and onNotInterested prop exists
-    if (isInterested !== false && onNotInterested) {
+
+    // Optimistically update UI first for better responsiveness
+    const previousInterest = isInterested;
+    const newInterestValue = isInterested === interested ? null : interested;
+    setIsInterested(newInterestValue);
+
+    // If marking as not interested and onNotInterested prop exists, call it immediately
+    if (newInterestValue === false && onNotInterested) {
       onNotInterested(job.id);
+    }
+
+    setIsLoading(true);
+
+    try {
+      console.log(`Setting interest for job ${job.id} to ${newInterestValue}`);
+
+      // Dispatch the updateJobInterest action
+      await dispatch(
+        updateJobInterest({
+          userId: user.id,
+          jobId: job.id,
+          interest: newInterestValue,
+        })
+      ).unwrap();
+
+      console.log("Successfully updated job interest for job:", job.id);
+    } catch (err) {
+      // Revert to previous state if request fails
+      setIsInterested(previousInterest);
+      console.error("Error updating job interest:", err);
+      alert("Failed to update job interest. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleShare = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    if (!isPro) {
-      setShowProModal(true);
-      return;
-    }
-    
+
+    // Get the job URL
+    const jobUrl = job.job_url_direct || job.job_url || window.location.href;
+
     // Implement share functionality
     if (navigator.share) {
       navigator.share({
         title: `${job.title} at ${job.company}`,
         text: `Check out this job: ${job.title} at ${job.company}`,
-        url: job.job_url_direct || job.job_url || window.location.href,
+        url: jobUrl,
       });
     } else {
-      // Fallback for browsers that don't support navigator.share
-      alert("Share link copied to clipboard!");
+      // Copy to clipboard as fallback
+      navigator.clipboard
+        .writeText(jobUrl)
+        .then(() => {
+          alert("Job link copied to clipboard!");
+        })
+        .catch((err) => {
+          console.error("Failed to copy link: ", err);
+          alert("Failed to copy link. Please try again.");
+        });
     }
   };
 
   // Pro upgrade modal
   const ProUpgradeModal = () => {
     if (!showProModal) return null;
-    
+
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowProModal(false)}>
-        <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full" onClick={e => e.stopPropagation()}>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-gray-900">Pro Feature</h3>
-            <button onClick={() => setShowProModal(false)} className="text-gray-500 hover:text-gray-700">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </button>
-          </div>
-          <div className="mb-4">
-            <p className="text-gray-700 mb-2">This feature is only available for Pro users.</p>
-            <p className="text-gray-600 text-sm">Upgrade to Pro to unlock:</p>
-            <ul className="list-disc pl-5 mt-2 text-sm text-gray-600">
-              <li>Save jobs to your favorites</li>
-              <li>Mark jobs as interested or not interested</li>
-              <li>Share job listings with others</li>
-              <li>And many more premium features!</li>
-            </ul>
-          </div>
-          <div className="flex justify-end">
-            <button 
-              onClick={() => setShowProModal(false)} 
-              className="mr-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
+      <div
+        className="fixed inset-0 bg-transapernt bg-opacity-10 backdrop-blur-sm flex items-center justify-center z-50"
+        onClick={() => setShowProModal(false)}
+      >
+        <div
+          className="bg-white p-6 rounded-lg border border-gray-200 max-w-md w-full"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Pro Feature
+            </h3>
+            <div className="bg-blue-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+              <Lock className="h-8 w-8 text-blue-500" />
+            </div>
+            <p className="text-gray-600 mb-4">
+              Upgrade to Pro to unlock this feature and enjoy unlimited access
+              to job saving, liking and more premium features.
+            </p>
+            <button
+              className={`block w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors duration-200 ${
+                isProcessingPayment ? "opacity-70 cursor-not-allowed" : ""
+              }`}
+              onClick={handlePayment}
+              disabled={isProcessingPayment}
             >
-              Not now
+              {isProcessingPayment ? "Processing..." : "Try for 1 Month"}
             </button>
-            <a 
-              href="/pricing" 
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+            <button
+              className="mt-3 text-sm text-gray-500 hover:text-gray-700"
+              onClick={() => setShowProModal(false)}
             >
-              Upgrade to Pro
-            </a>
+              Maybe Later
+            </button>
           </div>
         </div>
       </div>
     );
   };
 
+  // Rest of your component remains the same
   const toggleExpand = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -232,7 +360,7 @@ function JobCard({ job, onNotInterested, isRecommended }) {
     // Remove special characters that may have been used for formatting
     cleanText = cleanText.replace(/[\\*_\-~`]/g, "");
 
-    // Remove any consecutive dashes that might be formatting
+    // Remove consecutive dashes that might be formatting
     cleanText = cleanText.replace(/\-{2,}/g, "");
 
     // Remove consecutive spaces
@@ -255,26 +383,56 @@ function JobCard({ job, onNotInterested, isRecommended }) {
       : cleanText;
   };
 
+  useEffect(() => {
+    console.log("JobCard mounted:", job.id);
+    return () => {
+      console.log("JobCard unmounted:", job.id);
+    };
+  }, [job.id]);
+
+  const handleNotInterested = useCallback(() => {
+    if (onNotInterested) {
+      onNotInterested(job.id);
+    }
+  }, [job.id, onNotInterested]);
+
+  // Log when the Pro modal is shown
+  useEffect(() => {
+    if (showProModal) {
+      console.log("Pro modal is shown");
+    }
+  }, [showProModal]);
+
   return (
     <div
-      className={`block cursor-pointer ${isRecommended ? "animate-fadeIn" : ""}`}
+      className={`block cursor-pointer ${
+        isRecommended ? "animate-fadeIn" : ""
+      }`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
-      onClick={handleJobClick}
+      onClick={(e) => {
+        window.open(
+          job.job_url_direct || job.job_url,
+          "_blank",
+          "noopener,noreferrer"
+        );
+      }}
+      key={job.id}
     >
-      <div className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden border ${
-        isRecommended 
-          ? "border-amber-300 shadow-amber-100 hover:shadow-amber-200" 
-          : "border-gray-200"
-      }`}>
+      <div
+        className={`bg-white rounded-xl duration-200 overflow-hidden border ${
+          isRecommended ? "border-amber-300" : "border-gray-200"
+        }`}
+      >
         {isRecommended && (
           <div className="bg-gradient-to-r from-amber-100 to-amber-50 px-4 py-1 border-b border-amber-200">
             <span className="text-xs font-medium text-amber-800 flex items-center">
-              <Star className="h-3 w-3 mr-1 text-amber-500" /> Recommended for you
+              <Building className="h-3 w-3 mr-1 text-amber-500" /> Recommended
+              for you
             </span>
           </div>
         )}
-        
+
         <div className="p-4">
           <div className="flex items-start">
             {/* Company Logo */}
@@ -504,68 +662,78 @@ function JobCard({ job, onNotInterested, isRecommended }) {
           </div>
         </div>
 
-        {/* Card Actions - With Lock Icons */}
+        {/* Card Actions - Modified for Pro status */}
         <div
-          className={`flex justify-between items-center px-4 py-2 bg-gray-50 border-t border-gray-100 ${
-            showActions ? "opacity-100" : "opacity-0 md:opacity-100"
-          } transition-opacity duration-200`}
+          className={`flex justify-between items-center px-4 py-2 bg-gray-50 border-t border-gray-100 opacity-100 transition-opacity duration-200`}
         >
           <div className="flex space-x-2">
             <button
               onClick={handleSaveJob}
-              className={`p-1.5 rounded-full relative ${
+              className={`p-1.5 rounded-full ${
                 isSaved
                   ? "text-blue-600 bg-blue-50"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-              } transition-all duration-200 transform hover:scale-110 ${!isPro ? "opacity-60" : ""}`}
+              } transition-all duration-200 transform hover:scale-110 ${
+                !isPro ? "opacity-60" : ""
+              } ${isLoading ? "animate-pulse" : ""}`}
               title={isPro ? (isSaved ? "Unsave" : "Save") : "Pro Feature"}
+              disabled={isLoading}
             >
+              {!isPro && (
+                <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />
+              )}
               <Bookmark
                 className="h-4 w-4"
                 fill={isSaved ? "currentColor" : "none"}
               />
-              {!isPro && <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />}
             </button>
 
             <button
-              onClick={handleLike}
-              className={`p-1.5 rounded-full relative ${
+              onClick={(e) => handleJobInterest(true, e)}
+              className={`p-1.5 rounded-full ${
                 isInterested === true
                   ? "text-green-600 bg-green-50"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-              } transition-all duration-200 transform hover:scale-110 ${!isPro ? "opacity-60" : ""}`}
+              } transition-all duration-200 transform hover:scale-110 ${
+                !isPro ? "opacity-60" : ""
+              }`}
               title={isPro ? "Interested" : "Pro Feature"}
             >
+              {!isPro && (
+                <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />
+              )}
               <ThumbsUp
-                className="h-4 w-4"
+                className={`h-4 w-4 ${isLoading ? "opacity-50" : ""}`}
                 fill={isInterested === true ? "currentColor" : "none"}
               />
-              {!isPro && <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />}
             </button>
 
             <button
-              onClick={handleDislike}
-              className={`p-1.5 rounded-full relative ${
+              onClick={(e) => handleJobInterest(false, e)}
+              className={`p-1.5 rounded-full ${
                 isInterested === false
                   ? "text-red-600 bg-red-50"
                   : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-              } transition-all duration-200 transform hover:scale-110 ${isInterested === false ? "animate-pulse" : ""} ${!isPro ? "opacity-60" : ""}`}
+              } transition-all duration-200 transform hover:scale-110 ${
+                isInterested === false ? "animate-pulse" : ""
+              } ${!isPro ? "opacity-60" : ""}`}
               title={isPro ? "Not for me" : "Pro Feature"}
             >
+              {!isPro && (
+                <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />
+              )}
               <ThumbsDown
-                className="h-4 w-4"
+                className={`h-4 w-4 ${isLoading ? "opacity-50" : ""}`}
                 fill={isInterested === false ? "currentColor" : "none"}
               />
-              {!isPro && <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />}
             </button>
 
             <button
               onClick={handleShare}
-              className={`p-1.5 rounded-full relative text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 transform hover:scale-110 ${!isPro ? "opacity-60" : ""}`}
-              title={isPro ? "Share" : "Pro Feature"}
+              className="p-1.5 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all duration-200 transform hover:scale-110"
+              title="Share"
             >
               <Share2 className="h-4 w-4" />
-              {!isPro && <Lock className="absolute h-2 w-2 top-0 right-0 text-gray-500" />}
             </button>
           </div>
 
@@ -588,11 +756,11 @@ function JobCard({ job, onNotInterested, isRecommended }) {
           </div>
         </div>
       </div>
-      
+
       {/* Pro Upgrade Modal */}
       <ProUpgradeModal />
     </div>
   );
-}
+});
 
 export default JobCard;

@@ -19,6 +19,10 @@ class User(Base):
     resume_text = Column(Text, nullable=True)  # Stores extracted text from resume
     resume_path = Column(String(500), nullable=True)  # Stores path to resume file
     resume_keywords = Column(JSON, nullable=True)  # Stores keywords extracted from resume
+    pro_expiration_date = Column(Date, nullable=True)  # Stores expiration date of pro account
+    preferred_address = Column(String(500), nullable=True)  # Stores preferred address for job search
+    bookmarks = Column(JSON, nullable=True)  # Stores bookmarks for jobs or other items
+    autofill_limit = Column(Float, default=50)  # Stores autofill limit for user
 
 # Define Job model
 class Job(Base):

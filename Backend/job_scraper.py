@@ -79,7 +79,7 @@ def scrape_and_store_jobs(session, params=None):
                 all_jobs.extend(jobs_dict)
                 
                 # Break if we have collected enough jobs
-                if len(all_jobs) >= 500:
+                if len(all_jobs) >= 10:
                     logging.info(f"Reached target of 500 jobs. Stopping scraping.")
                     break
                     
@@ -88,7 +88,7 @@ def scrape_and_store_jobs(session, params=None):
                 continue
         
         # Break outer loop if we have enough jobs
-        if len(all_jobs) >= 500:
+        if len(all_jobs) >= .0:
             break
     
     # Additional search for LinkedIn-specific remote jobs globally

@@ -5,6 +5,8 @@ import JobCard from "./JobCard";
 import { useLocation } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 import { useProStatusContext } from "../../contexts/ProStatusContext";
+import { handleClearFilters } from "../common/SearchFilters";
+import { useFilters } from "../../contexts/FiltersContext";
 
 const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 
@@ -15,29 +17,27 @@ function JobList() {
   const location = useLocation();
   const { user, isSignedIn } = useUser();
   const { isPro } = useProStatusContext();
+  const { clearFilters } = useFilters();
 
-  // Not interested jobs state
   const [notInterestedJobs, setNotInterestedJobs] = useState({});
   const [jobsToHide, setJobsToHide] = useState(new Set());
-
-  // Set per_page based on pro status
+  // Combined useEffect for initialization and job fetching
   useEffect(() => {
     const jobsPerPage = isPro ? 10 : 5;
-    dispatch(setPerPage(jobsPerPage));
-  }, [isPro, dispatch]);
+    if (jobsPerPage !== pagination.per_page) {
+      dispatch(setPerPage(jobsPerPage));
+    }
+  }, [dispatch, isPro, pagination.per_page]);
 
-  // Fetch jobs with pagination
+  // Effect to fetch jobs when Pro status, filters, or page changes
   useEffect(() => {
-    const fetchJobsWithParams = () => {
-      dispatch(fetchJobs({
-        filters,
-        page: pagination.page,
-        per_page: pagination.per_page
-      }));
-    };
-    
-    fetchJobsWithParams();
-  }, [dispatch, filters, pagination.page, pagination.per_page]);
+    const jobsPerPage = isPro ? 10 : 5;
+    dispatch(fetchJobs({
+      filters,
+      page: pagination.page,
+      per_page: jobsPerPage
+    }));
+  }, [dispatch, isPro, filters, pagination.page]);
 
   // Handle marking a job as not interested
   const handleNotInterested = (jobId) => {
@@ -115,7 +115,7 @@ function JobList() {
         {[...Array(skeletonCount)].map((_, index) => (
           <div
             key={index}
-            className="bg-white rounded-lg shadow-sm p-4 animate-pulse"
+            className="bg-white rounded-lg p-4 animate-pulse border border-gray-200"
           >
             <div className="flex items-start">
               <div className="h-12 w-12 bg-gray-200 rounded mr-4"></div>
@@ -158,9 +158,7 @@ function JobList() {
           Try adjusting your search filters or try again later.
         </p>
         <button
-          onClick={() => {
-            dispatch(fetchJobs({ page: 1, per_page: pagination.per_page }));
-          }}
+          onClick={() => handleClearFilters(dispatch, pagination, clearFilters)}
           className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           Clear filters
@@ -198,8 +196,8 @@ function JobList() {
 
       {/* Pagination Controls - modified for server-side pagination */}
       {pagination.total_pages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
-          <div className="flex flex-1 justify-between sm:hidden">
+        <div className="flex items-center justify-between border-t border-gray-200 bg-white py-2 md:px-4 md:py-3 sm:px-6">
+          <div className="flex flex-1 justify-between sm:hidden ">
             {/* Mobile version */}
             <button
               onClick={() => handlePageChange(Math.max(1, pagination.page - 1))}
@@ -208,7 +206,7 @@ function JobList() {
             >
               Previous
             </button>
-            <span className="text-sm text-gray-700">
+            <span className="text-sm text-gray-700 mt-2">
               Page {pagination.page} of {pagination.total_pages}
             </span>
             <button
@@ -243,7 +241,7 @@ function JobList() {
             </div>
             <div>
               <nav
-                className="isolate inline-flex -space-x-px rounded-md shadow-sm"
+                className="isolate inline-flex -space-x-px rounded-md"
                 aria-label="Pagination"
               >
                 <button

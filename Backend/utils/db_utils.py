@@ -40,5 +40,5 @@ def init_db_and_load_jobs():
     
     logging.info("Loading initial jobs on startup...")
     session = Session()
-    scrape_and_store_jobs(session)
+    # scrape_and_store_jobs(session)
     session.close()

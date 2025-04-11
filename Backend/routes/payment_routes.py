@@ -1,21 +1,21 @@
 from flask import request, jsonify
 from flask_cors import CORS  # Import flask_cors
 import logging
-from datetime import datetime
-from config import Session, razorpay_client, RAZORPAY_KEY_ID
+from datetime import datetime, timedelta
+from config import Session, razorpay_client, RAZORPAY_KEY_ID, ALLOWED_ORIGINS
 from models import User
 
 
 def register_payment_routes(app):
-    
-    CORS(app, resources={r"*": {"origins": "*"}})
+    # Restrict CORS to allowed origins
+    CORS(app, resources={r"*": {"origins": ALLOWED_ORIGINS}})
     
     @app.route('/api/payment', methods=['POST'])
     def create_payment():
         try:
             data = request.json
             clerk_id = data.get('clerkId')
-            amount = 100  # ₹100.00 in smallest currency unit
+            amount = 149  # ₹100.00 in smallest currency unit
             
             if not clerk_id:
                 return jsonify({'error': 'User ID is required'}), 400
@@ -80,7 +80,7 @@ def register_payment_routes(app):
                 if user:
                     print('inside user', user.is_pro)
                     user.is_pro = True
-                    user.pro_subscription_date = datetime.now()
+                    user.pro_expiration_date  = datetime.now() + timedelta(days=30)  # Set expiration date to 30 days from now
                     session.commit()
                     print('inside commit', user.is_pro)
                     

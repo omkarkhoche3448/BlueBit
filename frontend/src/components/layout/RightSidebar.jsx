@@ -2,80 +2,40 @@ import { useEffect, useState } from 'react';
 import { ExternalLink } from "lucide-react";
 import { useUser } from '@clerk/clerk-react';
 import { useProStatusContext } from '../../contexts/ProStatusContext';
-
-const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
+import PaymentService from '../../services/paymentService';
+import toast from 'react-hot-toast';
 
 function RightSidebar() {
   const { user } = useUser();
-  const { isPro } = useProStatusContext();
+  const { isPro, refreshProStatus } = useProStatusContext();
 
   const handlePayment = async () => {
     try {
-      console.log('Fetching from:', `${API_URL_BACKEND}/payment`);
-      const response = await fetch(`${API_URL_BACKEND}/payment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ clerkId: user.id })
+      if (!user) return;
+      
+      const result = await PaymentService.initiatePayment(
+        user.id,
+        user.primaryEmailAddress.emailAddress,
+        user.fullName
+      );
+      
+      // Refresh pro status after successful payment
+      await refreshProStatus();
+      
+      toast.success('Payment successful! Pro features activated.', {
+        duration: 4000,
+        position: 'top-center',
+        icon: '🎉',
+        // When toast is closed or dismissed, reload the page
+        onClose: () => window.location.reload()
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      }
-      
-      const order = await response.json();
-      
-      const options = {
-        key: order.key,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'ProFind Pro Subscription',
-        description: '1 Month Pro Subscription',
-        order_id: order.order_id,
-        handler: async (response) => {
-          try {
-            const verificationResponse = await fetch(`${API_URL_BACKEND}/payment/success`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                clerkId: user.id,
-                paymentId: response.razorpay_payment_id,
-                orderId: order.order_id,
-                signature: response.razorpay_signature
-              })
-            });
-            
-            if (!verificationResponse.ok) {
-              const errorData = await verificationResponse.json().catch(() => ({}));
-              throw new Error(errorData.error || `HTTP error! status: ${verificationResponse.status}`);
-            }
-            
-            const result = await verificationResponse.json();
-            alert('Payment successful! Pro features activated.');
-          } catch (error) {
-            console.error('Payment verification error:', error);
-            alert('Payment verification failed: ' + error.message);
-          }
-        },
-        prefill: {
-          email: user.primaryEmailAddress.emailAddress,
-          name: user.fullName
-        },
-        theme: {
-          color: '#2563eb',
-        }
-      };
-      
-      const rzp = new window.Razorpay(options);
-      rzp.open();
       
     } catch (error) {
       console.error('Payment error:', error);
-      alert('Payment failed: ' + error.message);
+      toast.error(`Payment failed: ${error.message}`, {
+        duration: 4000,
+        position: 'top-center'
+      });
     }
   };
 
@@ -127,7 +87,7 @@ function RightSidebar() {
         {!isPro && (
           <button 
             onClick={handlePayment} 
-            className="w-full bg-blue-600 text-white text-sm py-1.5 px-3 rounded-md hover:bg-blue-700"
+            className="w-full bg-blue-600 text-white text-sm py-1.5 px-3 rounded-md hover:bg-blue-700 cursor-pointer"
           >
             Try for 1 Month
           </button>

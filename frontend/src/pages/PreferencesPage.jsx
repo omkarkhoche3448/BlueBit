@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 import { CheckSquare, Square, Loader, Check, Pencil } from "lucide-react";
 import PreferencesService from "../services/PreferencesService";
@@ -45,6 +45,9 @@ const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 function PreferencesPage() {
   const { user, isSignedIn } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isEditMode = location.pathname === "/edit-preferences";
+  
   const [preferences, setPreferences] = useState({
     jobPreferences: [],
     culturalPreferences: [],
@@ -52,12 +55,20 @@ function PreferencesPage() {
     workPreferences: [],
     jobTypePreferences: [],
     companyPreferences: [],
+    preferredAddress: {
+      addressLine1: "",
+      addressLine2: "",
+      landmark: "",
+      city: "",
+      pincode: "",
+      state: "",
+      country: "",
+    },
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [hasExistingPreferences, setHasExistingPreferences] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
 
   // Keyword definitions
   const preferenceKeywords = {
@@ -141,6 +152,15 @@ function PreferencesPage() {
           workPreferences: data.workPreferences || [],
           jobTypePreferences: data.jobTypePreferences || [],
           companyPreferences: data.companyPreferences || [],
+          preferredAddress: data.preferredAddress || {
+            addressLine1: "",
+            addressLine2: "",
+            landmark: "",
+            city: "",
+            pincode: "",
+            state: "",
+            country: "",
+          },
         });
         setHasExistingPreferences(true);
       }
@@ -177,6 +197,18 @@ function PreferencesPage() {
     setIsLoading(true);
     setError(null);
 
+    // Format address into a single line with field titles
+    const { preferredAddress } = preferences;
+    const formattedAddress = [
+      preferredAddress.addressLine1 ? `Address Line 1: ${preferredAddress.addressLine1}` : '',
+      preferredAddress.addressLine2 ? `Address Line 2: ${preferredAddress.addressLine2}` : '',
+      preferredAddress.landmark ? `Landmark: ${preferredAddress.landmark}` : '',
+      preferredAddress.city ? `City: ${preferredAddress.city}` : '',
+      preferredAddress.pincode ? `Pincode: ${preferredAddress.pincode}` : '',
+      preferredAddress.state ? `State: ${preferredAddress.state}` : '',
+      preferredAddress.country ? `Country: ${preferredAddress.country}` : ''
+    ].filter(Boolean).join(", ");
+
     try {
       const response = await fetch(
         `${API_URL_BACKEND}/users/${user.id}/preferences`,
@@ -187,6 +219,7 @@ function PreferencesPage() {
           },
           body: JSON.stringify({
             preferences: preferences,
+            formattedAddress: formattedAddress // Add as separate field at the root level
           }),
         }
       );
@@ -198,9 +231,13 @@ function PreferencesPage() {
       // On success, show success message briefly
       setSuccess(true);
       
-      // Then redirect to resume upload page
+      // Then redirect based on mode
       setTimeout(() => {
-        navigate("/resume-upload");
+        if (isEditMode) {
+          navigate("/home"); // After editing, go to home
+        } else {
+          navigate("/resume-upload"); // New users go to resume upload
+        }
       }, 1000);
     } catch (err) {
       console.error("Error saving preferences:", err);
@@ -220,8 +257,8 @@ function PreferencesPage() {
     const keywords = preferenceKeywords[category];
     const selectedPreferences = preferences[category];
 
-    return (
-      <div className="p-6 bg-gray-50 rounded-lg">
+  return (
+      <div className="rounded-lg">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
           <button
@@ -275,34 +312,166 @@ function PreferencesPage() {
     );
   };
 
+  // Add handler for address field changes
+  const handleAddressChange = (field, value) => {
+    setPreferences((prev) => ({
+      ...prev,
+      preferredAddress: {
+        ...prev.preferredAddress,
+        [field]: value,
+      },
+    }));
+  };
+
+  // Render address section
+  const renderAddressSection = () => {
+    return (
+      <div className="rounded-lg">
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">Preferred Address</h2>
+          <p className="text-sm text-gray-600 mb-4">Enter your preferred address details:</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="addressLine1" className="block text-sm font-medium text-gray-700 mb-1">
+              Address Line 1
+            </label>
+            <input
+              type="text"
+              id="addressLine1"
+              value={preferences.preferredAddress.addressLine1}
+              onChange={(e) => handleAddressChange("addressLine1", e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter your street address"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="addressLine2" className="block text-sm font-medium text-gray-700 mb-1">
+              Address Line 2
+            </label>
+            <input
+              type="text"
+              id="addressLine2"
+              value={preferences.preferredAddress.addressLine2}
+              onChange={(e) => handleAddressChange("addressLine2", e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Apartment, suite, unit, etc. (optional)"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="landmark" className="block text-sm font-medium text-gray-700 mb-1">
+              Landmark
+            </label>
+            <input
+              type="text"
+              id="landmark"
+              value={preferences.preferredAddress.landmark}
+              onChange={(e) => handleAddressChange("landmark", e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Nearby landmark (optional)"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+              City
+            </label>
+            <input
+              type="text"
+              id="city"
+              value={preferences.preferredAddress.city}
+              onChange={(e) => handleAddressChange("city", e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter your city"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="pincode" className="block text-sm font-medium text-gray-700 mb-1">
+              Pincode
+            </label>
+            <input
+              type="text"
+              id="pincode"
+              value={preferences.preferredAddress.pincode}
+              onChange={(e) => handleAddressChange("pincode", e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter your pincode"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
+              State
+            </label>
+            <input
+              type="text"
+              id="state"
+              value={preferences.preferredAddress.state}
+              onChange={(e) => handleAddressChange("state", e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter your state"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
+              Country
+            </label>
+            <input
+              type="text"
+              id="country"
+              value={preferences.preferredAddress.country}
+              onChange={(e) => handleAddressChange("country", e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter your country"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Loading state
   if (isLoading && !hasExistingPreferences) {
     return <PreferencesPageSkeleton />;
   }
 
+  // Determine page title and description based on route and existing preferences
+  const getPageHeader = () => {
+    if (isEditMode) {
+      return {
+        title: "Update Your Preferences",
+        description: "Modify your job preferences and settings"
+      };
+    } else if (hasExistingPreferences) {
+      return {
+        title: "Review Your Preferences",
+        description: "Make any changes to your existing preferences"
+      };
+    } else {
+      return {
+        title: "Welcome to KaamDekho!",
+        description: "Let's personalize your experience"
+      };
+    }
+  };
+
+  const pageHeader = getPageHeader();
+
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-6 md:py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow p-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {isEditMode ? "Update Preferences" : "Welcome to JobFinder!"}
-            </h1>
-            <p className="mt-2 text-lg text-gray-600">
-              {isEditMode
-                ? "Modify your existing preferences"
-                : "Let's personalize your experience"}
-            </p>
-          </div>
-          {hasExistingPreferences && !isEditMode && (
-            <button
-              onClick={() => setIsEditMode(true)}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-            >
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit Preferences
-            </button>
-          )}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
+            {pageHeader.title}
+          </h1>
+          <p className="mt-2 text-md text-gray-600 md:text-lg">
+            {pageHeader.description}
+          </p>
         </div>
 
         {error && (
@@ -390,63 +559,38 @@ function PreferencesPage() {
             "Select your preferred types of companies:"
           )}
 
-          {isEditMode ? (
-            <div className="flex justify-between items-center pt-6">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsEditMode(false);
-                  fetchUserPreferences();
-                }}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className={`inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 ${
-                  isLoading ? "opacity-70 cursor-not-allowed" : ""
-                }`}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
-                    Updating...
-                  </>
-                ) : (
-                  "Update Preferences"
-                )}
-              </button>
-            </div>
-          ) : (
-            <div className="flex justify-between items-center pt-6">
-              <button
-                type="button"
-                onClick={() => navigate("/home")}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                {hasExistingPreferences ? "Skip for now" : "I'll do this later"}
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveButton}
-                disabled={isLoading}
-                className={`inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 ${
-                  isLoading ? "opacity-70 cursor-not-allowed" : ""
-                }`}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Preferences"
-                )}
-              </button>
-            </div>
-          )}
+          <div className="flex justify-between items-center pt-6">
+            <button
+              type="button"
+              onClick={() => {
+                if (isEditMode) {
+                  navigate("/home");
+                } else {
+                  navigate("/home");
+                }
+              }}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              {isEditMode ? "Cancel" : "I'll do this later"}
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveButton}
+              disabled={isLoading}
+              className={`inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 ${
+                isLoading ? "opacity-70 cursor-not-allowed" : ""
+              }`}
+            >
+              {isLoading ? (
+                <>
+                  <Loader className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" />
+                  {isEditMode ? "Updating..." : "Saving..."}
+                </>
+              ) : (
+                isEditMode ? "Update Preferences" : "Save Preferences"
+              )}
+            </button>
+          </div>
         </form>
       </div>
     </div>

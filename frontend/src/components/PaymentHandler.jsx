@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { createPaymentOrder, verifyPayment } from '../services/paymentService';
 import toast from 'react-hot-toast';
+import { useProStatusContext } from '../contexts/ProStatusContext';
 
 const PaymentHandler = ({ clerkId }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { refreshProStatus } = useProStatusContext();
 
   const handlePayment = async () => {
     setLoading(true);
@@ -26,12 +28,16 @@ const PaymentHandler = ({ clerkId }) => {
           try {
             // Verify payment
             await verifyPayment(clerkId, response.razorpay_payment_id);
+            // Refresh pro status
+            await refreshProStatus();
+            
             toast.success('Payment successful! Pro features activated.', {
               duration: 4000,
               position: 'top-center',
-              icon: '🎉'
+              icon: '🎉',
+              // When toast is closed or dismissed, reload the page
+              onClose: () => window.location.reload()
             });
-            // You might want to refresh user data or redirect
           } catch (error) {
             toast.error('Payment verification failed', {
               duration: 4000,

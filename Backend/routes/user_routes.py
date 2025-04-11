@@ -16,6 +16,37 @@ genai.configure(api_key="AIzaSyDCSbDt2Xdd3xvvIIwqqcc9EiZfQ_mTyHM")  # Replace wi
 # Configure Google Generative AI with your API key
 # genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
 
+def is_valid_resume(text):
+    """
+    Validate if the extracted text looks like a resume using Gemini API.
+    Returns True if it's a valid resume, False otherwise.
+    """
+    try:
+        prompt = """
+        Does the following text look like a resume or CV? 
+        Please respond ONLY with "YES" or "NO" - nothing else.
+        
+        ```
+        {text}
+        ```
+        """
+        
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        response = model.generate_content(prompt.format(text=text[:10000])) # Limit text length
+        
+        # Clean the response - strip whitespace and convert to uppercase
+        response_text = response.text.strip().upper()
+        
+        # Log the response for debugging
+        logging.info(f"Resume validation response: {response_text}")
+        
+        # Return True only if response is exactly "YES"
+        return response_text == "YES"
+        
+    except Exception as e:
+        logging.error(f"Error validating resume: {str(e)}")
+        return False  # Default to False on error
+
 def register_user_routes(app):
     @app.route('/api/users/<string:clerk_id>/preferences', methods=['GET', 'POST'])
     def manage_preferences(clerk_id):
@@ -36,6 +67,7 @@ def register_user_routes(app):
             elif request.method == 'POST':
                 data = request.json
                 preferences = data.get('preferences')
+                formatted_address = data.get('formattedAddress')
                 
                 if not preferences:
                     return jsonify({'error': 'No preferences provided'}), 400
@@ -46,11 +78,14 @@ def register_user_routes(app):
                 if user:
                     # Update existing user
                     user.preferences = preferences
+                    if formatted_address:
+                        user.preferred_address = formatted_address
                 else:
                     # Create new user
                     new_user = User(
                         clerk_id=clerk_id,
-                        preferences=preferences
+                        preferences=preferences,
+                        preferred_address=formatted_address if formatted_address else None
                     )
                     session.add(new_user)
                 
@@ -213,44 +248,43 @@ def register_user_routes(app):
                 elif file.filename.endswith('.docx'):
                     text, error = extract_text_from_docx(file)
                     
-                # Check for extraction errors
                 if error:
-                    return jsonify({'error': f'Failed to extract text: {error}'}), 400
-                if not text:
-                    return jsonify({'error': 'No text extracted from the file'}), 400
-                    
+                    return jsonify({'error': f'Failed to extract text from resume: {error}'}), 400
+                
+                if not text or text.strip() == '':
+                    return jsonify({'error': 'No text could be extracted from the file'}), 400
+                
+                # NEW: Validate if the extracted text is actually a resume
+                if not is_valid_resume(text):
+                    # Remove the uploaded file if it's not a valid resume
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                    return jsonify({'error': 'The uploaded file does not appear to be a valid resume. Please upload a valid resume.'}), 400
+                
                 # Extract keywords from the resume text
                 keywords = extract_resume_keywords(text)
-                    
-                # Save to database
-                user = session.query(User).filter(User.clerk_id == clerk_id).first()
                 
-                if user:
-                    # Update existing user
-                    user.resume_text = text
-                    user.resume_path = file_path
-                    user.resume_keywords = keywords
-                else:
-                    # Create new user
-                    new_user = User(
-                        clerk_id=clerk_id,
-                        resume_text=text,
-                        resume_path=file_path,
-                        resume_keywords=keywords
-                    )
-                    session.add(new_user)
+                # Store the resume info in the user record
+                user = session.query(User).filter(User.clerk_id == clerk_id).first()
+                if not user:
+                    user = User(clerk_id=clerk_id)
+                    session.add(user)
+                
+                user.resume_path = file_path
+                user.resume_text = text
+                user.resume_keywords = keywords
                 
                 session.commit()
+                
                 return jsonify({
                     'message': 'Resume uploaded successfully',
-                    'keywordsExtracted': len(keywords)
+                    'path': file_path,
+                    'keywords': keywords
                 })
         
         except Exception as e:
-            session.rollback()
             logging.error(f"Error managing resume: {str(e)}")
-            return jsonify({'error': f'Failed to manage resume: {str(e)}'}), 500
-        
+            return jsonify({'error': str(e)}), 500
         finally:
             session.close()
 
@@ -523,3 +557,89 @@ def register_user_routes(app):
             'resumeText': sample_resume,
             'message': 'This is a sample resume for testing. Please upload your actual resume in ProFind.'
         })
+    
+    @app.route('/api/users/<string:clerk_id>', methods=['DELETE'])
+    def delete_user(clerk_id):
+        session = Session()
+        try:
+            # Find the user
+            user = session.query(User).filter(User.clerk_id == clerk_id).first()
+            
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+            
+            # Delete the user
+            session.delete(user)
+            session.commit()
+            
+            return jsonify({
+                'message': 'User account successfully deleted',
+                'clerk_id': clerk_id
+            })
+        
+        except Exception as e:
+            session.rollback()
+            logging.error(f"Error deleting user account: {str(e)}")
+            return jsonify({'error': f'Failed to delete user account: {str(e)}'}), 500
+        finally:
+            session.close()
+
+    @app.route('/api/maintenance/clear-data', methods=['POST'])
+    def clear_stale_data():
+        """
+        Maintenance endpoint to:
+        1. Update expired pro users (set is_pro to False)
+        2. Delete jobs that haven't been updated in 30+ days
+        """
+        session = Session()
+        try:
+            # Get current date for comparison
+            today = datetime.now().date()
+            
+            # Track statistics for response
+            updated_users_count = 0
+            deleted_jobs_count = 0
+            
+            # 1. Update expired pro users
+            expired_pro_users = session.query(User).filter(
+                User.is_pro == True,
+                User.pro_expiration_date < today
+            ).all()
+            
+            for user in expired_pro_users:
+                user.is_pro = False
+                updated_users_count += 1
+                logging.info(f"User {user.clerk_id} pro status expired and set to False")
+            
+            # 2. Find and delete stale jobs (older than 30 days)
+            thirty_days_ago = today - datetime.timedelta(days=30)
+            stale_jobs = session.query(Job).filter(
+                Job.date_posted < thirty_days_ago
+            ).all()
+            
+            # Store job IDs before deletion for reporting
+            stale_job_ids = [job.id for job in stale_jobs]
+            
+            # Delete the stale jobs
+            for job in stale_jobs:
+                session.delete(job)
+                deleted_jobs_count += 1
+            
+            # Commit all changes
+            session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Maintenance completed successfully',
+                'expired_pro_users_count': updated_users_count,
+                'deleted_jobs_count': deleted_jobs_count,
+                'timestamp': datetime.now().isoformat()
+            })
+            
+        except Exception as e:
+            session.rollback()
+            logging.error(f"Error during maintenance clean-up: {str(e)}")
+            return jsonify({'error': f'Maintenance failed: {str(e)}'}), 500
+        finally:
+            session.close()
+

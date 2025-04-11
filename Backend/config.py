@@ -6,26 +6,40 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 # Load environment variables
-load_dotenv(dotenv_path="./.env")
+load_dotenv()
 
-# Set up SQLAlchemy with Neon PostgreSQL
-# Update this line to use NEON_CONNECTION_STRING from .env
-engine = create_engine(os.getenv('NEON_CONNECTION_STRING'))
+# Database Configuration
+DATABASE_URL = os.getenv('DATABASE_URL')
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is not set")
+
+engine = create_engine(DATABASE_URL)
 session_factory = sessionmaker(bind=engine)
 Session = scoped_session(session_factory)
 
 # Razorpay Configuration
 RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID')
 RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET')
+
+if not all([RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET]):
+    raise ValueError("Razorpay credentials not properly configured")
+
 razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
-# Configure Gemini API for resume parsing
-GEMINI_API_KEY = 'AIzaSyDCSbDt2Xdd3xvvIIwqqcc9EiZfQ_mTyHM'  
+# Gemini API Configuration
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY environment variable is not set")
+
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-2.0-flash', generation_config={
     'temperature': 0
 })
 
-# Create resume directory if it doesn't exist
-RESUME_UPLOAD_FOLDER = 'resume'
+# Resume upload configuration
+RESUME_UPLOAD_FOLDER = os.getenv('RESUME_UPLOAD_FOLDER', 'resume')
 os.makedirs(RESUME_UPLOAD_FOLDER, exist_ok=True)
+
+# Environment-specific settings
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173').split(',')

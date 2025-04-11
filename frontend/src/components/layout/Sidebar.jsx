@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import {
   Bookmark,
   User,
@@ -9,186 +9,234 @@ import {
   HelpCircle,
   ClipboardIcon,
   LogOut,
+  ChevronRight,
 } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
 import { useClerk } from "@clerk/clerk-react";
 import { useProStatusContext } from "../../contexts/ProStatusContext";
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
-
-const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
+import SettingsModal from "../common/SettingsModal";
+import { fetchSavedJobs, fetchLikedJobs } from "../../slices/jobsSlice";
+import PaymentService from '../../services/paymentService';
 
 function Sidebar() {
   const { user } = useUser();
-  const savedJobs = useSelector((state) => state.jobs.savedJobs);
+  const dispatch = useDispatch();
+  const savedJobs = useSelector((state) => state.jobs.savedJobs || []);
+  const savedJobsStatus = useSelector((state) => state.jobs.savedJobsStatus);
+  const likedJobs = useSelector((state) => state.jobs.likedJobs || []);
   const { openUserProfile, signOut } = useClerk();
-  const { isPro } = useProStatusContext();
-  const [likedJobsCount, setLikedJobsCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  
-  const fetchLikedJobsCount = async () => {
-    const clerkId = user?.id || null;
-    if (!clerkId) return;
-
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_URL_BACKEND}/users/${clerkId}/interested-jobs`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch liked jobs");
-      }
-      const data = await response.json();
-      setLikedJobsCount(data.jobs?.length || 0);
-    } catch (error) {
-      console.error("Error fetching liked jobs count:", error);
-      setLikedJobsCount(0);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { isPro, refreshProStatus } = useProStatusContext();
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      fetchLikedJobsCount();
+    if (user?.id) {
+      console.log(`Fetching saved and liked jobs for user ${user.id} in Sidebar`);
+      
+      // Fetch saved jobs
+      dispatch(fetchSavedJobs(user.id))
+        .unwrap()
+        .then(jobs => {
+          console.log(`Successfully fetched ${jobs.length} saved jobs in Sidebar`);
+        })
+        .catch(error => {
+          console.error("Error fetching saved jobs in Sidebar:", error);
+        });
+      
+      // Fetch liked jobs
+      dispatch(fetchLikedJobs(user.id))
+        .unwrap()
+        .then(jobs => {
+          console.log(`Successfully fetched ${jobs?.length || 0} liked jobs in Sidebar`);
+        })
+        .catch(error => {
+          console.error("Error fetching liked jobs in Sidebar:", error);
+        });
     }
-  }, [user]);
+  }, [dispatch, user?.id]);
+
+  // Calculate counts safely
+  const savedJobsCount = Array.isArray(savedJobs) ? savedJobs.length : 0;
+  const likedJobsCount = Array.isArray(likedJobs) ? likedJobs.length : 0;
+  const isLoadingSavedJobs = savedJobsStatus === "loading";
 
   const copyClerkId = () => {
-    navigator.clipboard.writeText(user?.id || '');
-    toast.success('Clerk ID copied to clipboard!');
+    navigator.clipboard.writeText(user?.id || "");
+    toast.success("Clerk ID copied to clipboard!");
+  };
+
+  const handlePayment = async () => {
+    try {
+      if (!user) return;
+      
+      await PaymentService.initiatePayment(
+        user.id,
+        user.primaryEmailAddress.emailAddress,
+        user.fullName
+      );
+      
+      // Refresh pro status after successful payment
+      await refreshProStatus();
+      
+      toast.success('Payment successful! Pro features activated.', {
+        duration: 4000,
+        position: 'top-center',
+        icon: '🎉',
+        // When toast is closed or dismissed, reload the page
+        onClose: () => window.location.reload()
+      });
+      
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast.error(`Payment failed: ${error.message}`, {
+        duration: 4000,
+        position: 'top-center'
+      });
+    }
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden sticky top-20 transition-all duration-300 hover:shadow-lg">
-      {/* User Profile Section */}
-      <div className="p-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-        {/* Profile image */}
-        <div className="flex flex-col items-center">
-          {user?.imageUrl ? (
-            <img
-              src={user.imageUrl}
-              alt="Profile"
-              className="h-16 w-16 rounded-full object-cover border-2 border-white shadow-sm transition-transform duration-300 hover:scale-105"
-            />
-          ) : (
-            <div className="h-16 w-16 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 flex items-center justify-center border-2 border-white shadow-sm">
-              <User className="h-8 w-8 text-white" />
-            </div>
-          )}
+    <>
+      <div className="bg-white rounded-xl overflow-hidden sticky top-20 transition-all duration-300 border border-gray-100">
+        {/* User Profile Section */}
+        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center gap-4">
+            {/* Profile image */}
+            {user?.imageUrl ? (
+              <img
+                src={user.imageUrl}
+                alt="Profile"
+                className="h-14 w-14 rounded-full object-cover border-2 border-white transition-transform duration-300 hover:scale-105 flex-shrink-0"
+              />
+            ) : (
+              <div className="h-14 w-14 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 flex items-center justify-center border-2 border-white flex-shrink-0">
+                <User className="h-7 w-7 text-white" />
+              </div>
+            )}
 
-          {/* User info */}
-          <div className="text-center mt-3 w-full">
-            <div className="flex items-center justify-center space-x-1">
-              <h3 className="font-semibold text-lg text-gray-800">
+            {/* User info */}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-base text-gray-800 truncate">
                 {user?.fullName || user?.username || "User"}
               </h3>
-              <button
-                onClick={copyClerkId}
-                className="ml-1 p-1 text-gray-500 hover:text-blue-600 transition-colors rounded-full hover:bg-gray-100"
-                title="Copy Clerk ID"
-              >
-                <ClipboardIcon className="h-4 w-4" />
-              </button>
+              <p className="text-xs text-gray-500 truncate mt-0.5">
+                {user?.primaryEmailAddress?.emailAddress || ""}
+              </p>
+              <div className="flex items-center mt-1">
+                <p className="text-[10px] text-gray-500 truncate">{user?.id}</p>
+                <button
+                  onClick={copyClerkId}
+                  className="ml-1 p-1 text-gray-400 hover:text-blue-600 transition-colors rounded-full hover:bg-gray-100"
+                  title="Copy Clerk ID"
+                >
+                  <ClipboardIcon className="h-3 w-3" />
+                </button>
+              </div>
             </div>
-            <p className="text-sm text-gray-500 mt-1 truncate max-w-full">
-              {user?.primaryEmailAddress?.emailAddress || ""}
-            </p>
+          </div>
+        </div>
+
+        {/* Stats Section */}
+        <div className="grid grid-cols-2 divide-x divide-gray-200 border-b border-gray-200">
+          {/* Saved Jobs */}
+          <Link 
+            to="/saved"
+            className="p-4 hover:bg-gray-50 transition-colors group"
+          >
+            <div className="flex flex-col items-center">
+              <div className="flex items-center justify-center mb-1 text-blue-600 bg-blue-50 p-2 rounded-full group-hover:bg-blue-100 transition-colors">
+                <Bookmark className="h-5 w-5" />
+              </div>
+              <span className="text-xl font-semibold text-gray-800 mt-1">
+                {isLoadingSavedJobs ? "..." : savedJobsCount}
+              </span>
+              <span className="mt-1 text-xs text-blue-600 group-hover:text-blue-800 group-hover:underline">
+                Saved Jobs
+              </span>
+            </div>
+          </Link>
+
+          {/* Liked Jobs */}
+          <Link 
+            to="/liked"
+            className="p-4 hover:bg-gray-50 transition-colors group"
+          >
+            <div className="flex flex-col items-center">
+              <div className="flex items-center justify-center mb-1 text-rose-500 bg-rose-50 p-2 rounded-full group-hover:bg-rose-100 transition-colors">
+                <Heart className="h-5 w-5" />
+              </div>
+              <span className="text-xl font-semibold text-gray-800 mt-1">
+                {isLoadingSavedJobs ? "..." : likedJobsCount} 
+              </span>
+              <span className="mt-1 text-xs text-blue-600 group-hover:text-blue-800 group-hover:underline">
+                Liked Jobs
+              </span>
+            </div>
+          </Link>
+        </div>
+
+        {/* Membership Section */}
+        <div className="p-4 border-b border-gray-200">
+          <h3 className="text-gray-700 mb-2 text-sm">Membership</h3>
+          <div
+            onClick={!isPro ? handlePayment : undefined}
+            className={`flex items-center justify-between p-3 rounded-lg ${
+              isPro
+                ? "bg-blue-50/30 text-gray-600 border border-blue-100"
+                : "bg-blue-50/30 text-gray-600 border border-blue-100 cursor-pointer hover:bg-blue-50/50"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Briefcase
+                className={`h-4 w-4 ${
+                  isPro ? "text-blue-600/70" : "text-blue-600/70"
+                }`}
+              />
+              <span className="text-sm">
+                {isPro ? "Pro Membership" : "Upgrade to Premium"}
+              </span>
+            </div>
+            {!isPro ? (
+              <div className="flex items-center">
+                <span className="text-gray-600 font-medium">₹100</span>
+                <ChevronRight className="h-4 w-4 ml-1 text-blue-600/70" />
+              </div>
+            ) : (
+              <span className="text-xs px-2 py-1 bg-blue-100/50 text-gray-700 rounded-full">
+                Active
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Settings & Help Section */}
+        <div className="p-5">
+          <h3 className="text-gray-700 mb-3 font-medium text-sm uppercase tracking-wide">Account</h3>
+          <div className="flex flex-col space-y-1">
+            <button
+              onClick={() => setIsSettingsModalOpen(true)}
+              className="text-sm text-gray-700 hover:text-blue-700 flex items-center p-3 hover:bg-gray-50 rounded-md transition-colors cursor-pointer"
+            >
+              <Settings className="h-4 w-4 mr-3 text-gray-500" />
+              Settings
+            </button>
 
             <button
-              onClick={() => openUserProfile()}
-              className="mt-4 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-all duration-300 w-full shadow-sm hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+              onClick={() => signOut()}
+              className="text-sm text-gray-700 hover:text-red-600 flex items-center p-3 hover:bg-red-50 rounded-md transition-colors cursor-pointer mt-2"
             >
-              View Profile
+              <LogOut className="h-4 w-4 mr-3 text-gray-500" />
+              Quick sign out
             </button>
           </div>
         </div>
       </div>
-
-      {/* Stats Section */}
-      <div className="grid grid-cols-2 divide-x divide-gray-200 border-b border-gray-200">
-        {/* Saved Jobs */}
-        <div className="p-4 hover:bg-gray-50 transition-colors">
-          <div className="flex flex-col items-center">
-            <div className="flex items-center justify-center mb-1 text-blue-600">
-              <Bookmark className="h-5 w-5" />
-            </div>
-            <span className="text-xl font-semibold text-gray-800">{savedJobs.length}</span>
-            <Link
-              to="/saved"
-              className="mt-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
-            >
-              Saved Jobs
-            </Link>
-          </div>
-        </div>
-
-        {/* Liked Jobs */}
-        <div className="p-4 hover:bg-gray-50 transition-colors">
-          <div className="flex flex-col items-center">
-            <div className="flex items-center justify-center mb-1 text-rose-500">
-              <Heart className="h-5 w-5" />
-            </div>
-            {isLoading ? (
-              <div className="h-6 w-6 rounded-full border-2 border-gray-300 border-t-blue-600 animate-spin"></div>
-            ) : (
-              <span className="text-xl font-semibold text-gray-800">{likedJobsCount}</span>
-            )}
-            <Link
-              to="/liked"
-              className="mt-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
-            >
-              Liked Jobs
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Membership Section */}
-      <div className="p-4 border-b border-gray-200">
-        <h3 className="text-gray-700 mb-3 font-medium">Membership</h3>
-        <Link
-          to="/premium-access"
-          className={`flex items-center justify-between text-sm py-3 px-4 rounded-lg shadow-sm transition-all duration-300 hover:shadow ${
-            isPro 
-              ? "bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 hover:from-green-100 hover:to-emerald-100" 
-              : "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-800 hover:from-blue-100 hover:to-indigo-100"
-          }`}
-        >
-          <div className="flex items-center">
-            <Briefcase className={`h-5 w-5 mr-2 ${isPro ? "text-green-600" : "text-blue-600"}`} />
-            <span>{isPro ? "Pro Membership" : "Upgrade to Premium"}</span>
-          </div>
-          {!isPro && <span className="font-semibold text-indigo-600">₹100</span>}
-          {isPro && <span className="text-xs px-2 py-1 bg-green-200 text-green-800 rounded-full">Active</span>}
-        </Link>
-      </div>
-
-      {/* Settings & Help Section */}
-      <div className="p-4">
-        <div className="flex flex-col space-y-2">
-          <button
-            onClick={() => openUserProfile()}
-            className="text-sm text-gray-700 hover:text-blue-700 flex items-center p-2 hover:bg-gray-50 rounded-md transition-colors"
-          >
-            <Settings className="h-4 w-4 mr-3" />
-            Settings
-          </button>
-          <Link
-            to="/help"
-            className="text-sm text-gray-700 hover:text-blue-700 flex items-center p-2 hover:bg-gray-50 rounded-md transition-colors"
-          >
-            <HelpCircle className="h-4 w-4 mr-3" />
-            Help Center
-          </Link>
-          <button
-            onClick={() => signOut()}
-            className="text-sm text-gray-700 hover:text-red-600 flex items-center p-2  rounded-md transition-colors"
-          >
-            <LogOut className="h-4 w-4 mr-3" />
-            Sign Out
-          </button>
-        </div>
-      </div>
-    </div>
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+      />
+    </>
   );
 }
 

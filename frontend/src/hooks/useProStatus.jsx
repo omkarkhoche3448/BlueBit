@@ -9,45 +9,53 @@ const useProStatus = () => {
   const [isPro, setIsPro] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [lastChecked, setLastChecked] = useState(0);
+  const [expiryDate, setExpiryDate] = useState(null);
   
   // Cache duration in milliseconds (10 minutes)
   const CACHE_DURATION = 10 * 60 * 1000;
 
+  const checkProStatus = async (forceRefresh = false) => {
+    if (!isSignedIn || !user) {
+      setIsPro(false);
+      setIsLoading(false);
+      return;
+    }
+
+    // Check if we need to refresh the pro status
+    const currentTime = Date.now();
+    if (!forceRefresh && currentTime - lastChecked < CACHE_DURATION && lastChecked !== 0) {
+      // Use cached value if within cache duration
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      // Replace with your actual API endpoint to check pro status
+      const response = await fetch(`${API_URL_BACKEND}/users/${user.id}/pro-status`);
+      if (response.ok) {
+        const data = await response.json();
+        setIsPro(data.isPro || false);
+        setExpiryDate(data.expiryDate || null);
+      } else {
+        setIsPro(false);
+      }
+      // Update the last checked timestamp
+      setLastChecked(currentTime);
+    } catch (error) {
+      console.error("Error checking pro status:", error);
+      setIsPro(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to manually refresh pro status
+  const refreshProStatus = async () => {
+    return await checkProStatus(true);
+  };
+
   useEffect(() => {
-    const checkProStatus = async () => {
-      if (!isSignedIn || !user) {
-        setIsPro(false);
-        setIsLoading(false);
-        return;
-      }
-
-      // Check if we need to refresh the pro status
-      const currentTime = Date.now();
-      if (currentTime - lastChecked < CACHE_DURATION && lastChecked !== 0) {
-        // Use cached value if within cache duration
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        // Replace with your actual API endpoint to check pro status
-        const response = await fetch(`${API_URL_BACKEND}/users/${user.id}/pro-status`);
-        if (response.ok) {
-          const data = await response.json();
-          setIsPro(data.isPro || false);
-        } else {
-          setIsPro(false);
-        }
-        // Update the last checked timestamp
-        setLastChecked(currentTime);
-      } catch (error) {
-        console.error("Error checking pro status:", error);
-        setIsPro(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     checkProStatus();
   }, [user, isSignedIn]); // Removed lastChecked and isLoading from dependencies
 
@@ -81,7 +89,7 @@ const useProStatus = () => {
     };
   };
 
-  return { isPro, isLoading, withProCheck, requirePro };
+  return { isPro, isLoading, withProCheck, requirePro, refreshProStatus, expiryDate };
 };
 
 export default useProStatus;

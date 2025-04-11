@@ -117,7 +117,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
  * @returns {Promise<Array>} Array of AI responses for each field
  */
 async function processFieldsWithBackend(fields, clerkId) {
-  const BACKEND_URL = "http://localhost:8000/chrome-extension";
+  const BACKEND_URL = "https://handjobs-backend-2ceb83f7e7a2.herokuapp.com/chrome-extension";
   
   try {
     console.log("Sending request to backend with clerk ID:", clerkId);

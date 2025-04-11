@@ -20,12 +20,21 @@ import {
   AlertCircle,
   Bell,
 } from "lucide-react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import { useClerk } from "@clerk/clerk-react";
+import { Link as ScrollLink } from "react-scroll";
+import Logo from "../assets/Logo4.png";
+import  Team  from "../components/landing/Team";
 
 // Lazy load components that aren't needed immediately
-const SignIn = lazy(() => import("@clerk/clerk-react").then(module => ({ default: module.SignIn })));
-const SignUp = lazy(() => import("@clerk/clerk-react").then(module => ({ default: module.SignUp })));
+const SignIn = lazy(() =>
+  import("@clerk/clerk-react").then((module) => ({ default: module.SignIn }))
+);
+const SignUp = lazy(() =>
+  import("@clerk/clerk-react").then((module) => ({ default: module.SignUp }))
+);
 
 export default function LandingPage() {
   const clerk = useClerk();
@@ -43,17 +52,26 @@ export default function LandingPage() {
     pricing: false,
   });
   const [isMobile, setIsMobile] = useState(false);
+  const [isAnnual, setIsAnnual] = useState(true);
+
+  // Check if on mobile
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Check if device is mobile
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   // Intersection Observer for scroll animations - optimized with fewer re-renders
@@ -65,15 +83,15 @@ export default function LandingPage() {
 
     const observerCallback = (entries) => {
       const updatedSections = {};
-      
+
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           updatedSections[entry.target.id] = true;
         }
       });
-      
+
       if (Object.keys(updatedSections).length > 0) {
-        setIsVisible(prev => ({ ...prev, ...updatedSections }));
+        setIsVisible((prev) => ({ ...prev, ...updatedSections }));
       }
     };
 
@@ -103,6 +121,91 @@ export default function LandingPage() {
       },
     },
   };
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
+  const partners = [
+    {
+      name: "LinkedIn",
+      logo: "https://upload.wikimedia.org/wikipedia/commons/0/01/LinkedIn_Logo.svg",
+    },
+    {
+      name: "Indeed",
+      logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Indeed_logo.svg/1920px-Indeed_logo.svg.png",
+    },
+    {
+      name: "Ziprecruiter",
+      logo: "https://imgs.search.brave.com/KiAmPaTDZjLngP86tg5MArFpRoMZ-5B4rkxh0KdJGko/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly91cGxv/YWQud2lraW1lZGlh/Lm9yZy93aWtpcGVk/aWEvY29tbW9ucy9k/L2QyL1ppcFJlY3J1/aXRlcl9sb2dvX2Js/YWNrX3RleHQuc3Zn",
+    },
+    {
+      name: "Glassdoor",
+      logo: "https://upload.wikimedia.org/wikipedia/commons/f/f0/Glassdoor_Logo_2023.svg",
+    },
+  ];
+
+  const plans = [
+    {
+      name: "Free",
+      monthlyPrice: "₹0",
+      period: "/month",
+      description: "Perfect for casual job seekers",
+      popular: false,
+      color: "bg-white",
+      cta: "Get Started",
+      features: [
+        "Basic job search across platforms",
+        "Limited filters",
+        "Save up to 5 jobs",
+        "Weekly email alerts",
+      ],
+    },
+    {
+      name: "Pro",
+      monthlyPrice: "₹149",
+      originalPrice: "₹299", // Add the original price for strike-through
+      period: "/month",
+      description: "For serious job hunters",
+      popular: true,
+      color: "bg-blue-50",
+      cta: "Start Free Trial",
+      features: [
+        "Advanced search with all filters",
+        "Unlimited saved jobs",
+        "Real-time notifications",
+        "Application tracking",
+        "Resume analyzer",
+        "Salary insights",
+      ],
+      offer: "Early Bird Offer", // Add the offer label
+    },
+    {
+      name: "Enterprise",
+      monthlyPrice: "Custom",
+      period: "",
+      description: "For teams and organizations",
+      popular: false,
+      color: "bg-white",
+      cta: "Contact Sales",
+      features: [
+        "Everything in Pro",
+        "API access",
+        "Custom integrations",
+        "Dedicated account manager",
+        "Advanced analytics",
+        "White-label options",
+      ],
+    },
+  ];
+
+  // For mobile, make popular plan first
+  const displayPlans = isMobile
+    ? [...plans].sort((a, b) => b.popular - a.popular)
+    : plans;
 
   const staggerContainer = {
     hidden: { opacity: 0 },
@@ -155,16 +258,16 @@ export default function LandingPage() {
       color: "bg-gradient-to-br from-amber-500 to-amber-600",
     },
     {
-      title: "Direct Applications",
+      title: "AI-Based Automated Form Filler",
       description:
-        "Apply to jobs directly through our platform with just a few clicks. Track your applications in one place.",
+        "Apply to jobs effortlessly with our AI-powered form filler that completes applications for you.",
       icon: <ExternalLink className="h-6 w-6" />,
       color: "bg-gradient-to-br from-green-500 to-green-600",
     },
     {
-      title: "Data Insights",
+      title: "ML-Based Job Recommendations",
       description:
-        "Gain valuable insights into job market trends, salary ranges, and in-demand skills.",
+        "Receive personalized job recommendations tailored to your resume and preferences using machine learning.",
       icon: <BarChart2 className="h-6 w-6" />,
       color: "bg-gradient-to-br from-red-500 to-red-600",
     },
@@ -214,7 +317,7 @@ export default function LandingPage() {
       role: "Software Engineer",
       company: "Recently hired at Google",
       quote:
-        "Handjobs saved me countless hours of searching across different platforms. I found my dream job at Google in just two weeks!",
+        "KaamDekho saved me countless hours of searching across different platforms. I found my dream job at Google in just two weeks!",
       avatar: "https://i.pravatar.cc/80?img=1",
     },
     {
@@ -235,61 +338,10 @@ export default function LandingPage() {
     },
   ];
 
-  const plans = [
-    {
-      name: "Free",
-      price: "₹0",
-      period: "/month",
-      description: "Perfect for casual job seekers",
-      features: [
-        "Basic job search across platforms",
-        "Limited filters",
-        "Save up to 5 jobs",
-        "Weekly email alerts",
-      ],
-      cta: "Get Started",
-      popular: false,
-      color: "border-gray-200",
-    },
-    {
-      name: "Pro",
-      price: "₹199",
-      period: "/month",
-      description: "For serious job hunters",
-      features: [
-        "Advanced search with all filters",
-        "Unlimited saved jobs",
-        "Real-time notifications",
-        "Application tracking",
-        "Resume analyzer",
-        "Salary insights",
-      ],
-      cta: "Start Free Trial",
-      popular: true,
-      color: "border-blue-500",
-    },
-    {
-      name: "Enterprise",
-      price: "Custom",
-      description: "For teams and organizations",
-      features: [
-        "Everything in Pro",
-        "API access",
-        "Custom integrations",
-        "Dedicated account manager",
-        "Advanced analytics",
-        "White-label options",
-      ],
-      cta: "Contact Sales",
-      popular: false,
-      color: "border-gray-200",
-    },
-  ];
-
   const footerLinks = [
     {
       title: "Product",
-      links: [{ name: "Features", href: "#" }],
+      links: [{ name: "Features", href: "#features" }],
     },
     {
       title: "Support",
@@ -297,26 +349,64 @@ export default function LandingPage() {
     },
   ];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Email submitted:", email);
-    setEmail("");
+
+    // Regular expression for validating email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!email) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    try {
+      const googleFormUrl =
+        "https://docs.google.com/forms/d/e/1FAIpQLSfgMLqH5s89tMH4R0a0iojbz73Aubwf3Uo1WrDdryW5RCVQUg/formResponse";
+      const formData = new URLSearchParams();
+      formData.append("entry.1242802776", email);
+      const response = await fetch(googleFormUrl, {
+        method: "POST",
+        body: formData,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        mode: "no-cors", // Allow the request to bypass CORS restrictions
+      });
+
+      // Since we can't access the response in no-cors mode, assume success
+      toast.success("We received your request. We'll revert you back soon!");
+      setEmail(""); // Clear input field
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      toast.error("An error occurred. Please try again later.");
+    }
   };
 
   // Close mobile menu when clicking on a link
   const handleMobileNavClick = (sectionId) => {
     setIsMenuOpen(false);
     // Smooth scroll to section
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
     <div className="min-h-screen bg-white overflow-hidden">
+      {/* Toast container for displaying notifications */}
+      <ToastContainer />
       {/* Add viewport meta tag for better mobile experience */}
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
       </head>
-      
+
       {/* Auth Modals - Lazy loaded */}
       <AnimatePresence>
         {showSignIn && (
@@ -330,10 +420,12 @@ export default function LandingPage() {
             <motion.div
               initial={{ y: 50 }}
               animate={{ y: 0 }}
-              className="bg-white rounded-xl p-4 sm:p-8 max-w-md w-full mx-4"
+              className=" rounded-xl p-4 sm:p-8 max-w-md w-full mx-4"
               onClick={(e) => e.stopPropagation()}
             >
-              <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
+              <Suspense
+                fallback={<div className="text-center py-8">Loading...</div>}
+              >
                 <SignIn afterSignInUrl="/home" />
               </Suspense>
             </motion.div>
@@ -351,17 +443,19 @@ export default function LandingPage() {
             <motion.div
               initial={{ y: 50 }}
               animate={{ y: 0 }}
-              className="bg-white rounded-xl p-4 sm:p-8 max-w-md w-full mx-4"
+              className=" rounded-xl p-4 sm:p-8 max-w-md w-full mx-4"
               onClick={(e) => e.stopPropagation()}
             >
-              <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
+              <Suspense
+                fallback={<div className="text-center py-8">Loading...</div>}
+              >
                 <SignUp afterSignUpUrl="/home" />
               </Suspense>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-      
+
       {/* Navigation - Optimized for mobile */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -372,39 +466,51 @@ export default function LandingPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5 }}
+                onClick={scrollToTop}
               >
-                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center mr-2">
-                  <Briefcase className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                </div>
-                <span className="text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-                  Handjobs
-                </span>
+                <img src={Logo} alt="Logo" className="h-12 w-fit mr-2" />
               </motion.div>
-              <div className="hidden md:ml-8 md:flex md:space-x-8">
-                <a
-                  href="#features"
-                  className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+              <div className="hidden md:ml-6 md:flex md:space-x-8">
+                <ScrollLink
+                  to="features"
+                  spy={true}
+                  smooth={true}
+                  offset={-70} // Adjust this value based on your header height
+                  duration={800}
+                  className="cursor-pointer text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 text-sm font-medium"
                 >
                   Features
-                </a>
-                <a
-                  href="#howItWorks"
-                  className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+                </ScrollLink>
+                <ScrollLink
+                  to="howItWorks"
+                  spy={true}
+                  smooth={true}
+                  offset={-70}
+                  duration={800}
+                  className="cursor-pointer text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 text-sm font-medium"
                 >
                   How It Works
-                </a>
-                <a
-                  href="#testimonials"
-                  className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+                </ScrollLink>
+                <ScrollLink
+                  to="testimonials"
+                  spy={true}
+                  smooth={true}
+                  offset={-70}
+                  duration={800}
+                  className="cursor-pointer text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 text-sm font-medium"
                 >
                   Testimonials
-                </a>
-                <a
-                  href="#pricing"
-                  className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
+                </ScrollLink>
+                <ScrollLink
+                  to="pricing"
+                  spy={true}
+                  smooth={true}
+                  offset={-70}
+                  duration={800}
+                  className="cursor-pointer text-gray-500 hover:text-gray-700 hover:border-gray-300 inline-flex items-center px-1 pt-1 text-sm font-medium"
                 >
                   Pricing
-                </a>
+                </ScrollLink>
               </div>
             </div>
             <div className="hidden md:flex items-center space-x-4">
@@ -449,35 +555,65 @@ export default function LandingPage() {
               transition={{ duration: 0.3 }}
             >
               <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white shadow-lg border-b border-gray-200">
-                <a
-                  href="#features"
-                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-                  onClick={() => handleMobileNavClick("features")}
+                <ScrollLink
+                  to="features"
+                  spy={true}
+                  smooth={true}
+                  offset={-70}
+                  duration={800}
+                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setIsMenuOpen(false)} // Close mobile menu after click
                 >
                   Features
-                </a>
-                <a
-                  href="#howItWorks"
-                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-                  onClick={() => handleMobileNavClick("howItWorks")}
+                </ScrollLink>
+                <ScrollLink
+                  to="howItWorks"
+                  spy={true}
+                  smooth={true}
+                  offset={-70}
+                  duration={800}
+                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   How It Works
-                </a>
-                <a
-                  href="#testimonials"
-                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-                  onClick={() => handleMobileNavClick("testimonials")}
+                </ScrollLink>
+                <ScrollLink
+                  to="testimonials"
+                  spy={true}
+                  smooth={true}
+                  offset={-70}
+                  duration={800}
+                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   Testimonials
-                </a>
-                <a
-                  href="#pricing"
-                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-                  onClick={() => handleMobileNavClick("pricing")}
+                </ScrollLink>
+                <ScrollLink
+                  to="pricing"
+                  spy={true}
+                  smooth={true}
+                  offset={-70}
+                  duration={800}
+                  className="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   Pricing
-                </a>
-                {/* Auth buttons commented out as in original code */}
+                </ScrollLink>
+                <div className="flex items-center space-x-4 ml-3">
+                  {/* Enable Sign In and Sign Up buttons */}
+                  <button
+                    onClick={() => setShowSignIn(true)}
+                    className="px-4 py-2 text-sm font-medium text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={() => setShowSignUp(true)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                  >
+                    Sign Up
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}
@@ -521,9 +657,9 @@ export default function LandingPage() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6, duration: 0.8 }}
               >
-                Stop jumping between job sites. Handjobs aggregates opportunities
-                from LinkedIn, Indeed, Ziprecruiter, and more — all in one powerful
-                search platform.
+                Stop jumping between job sites. KaamDekho aggregates
+                opportunities from LinkedIn, Indeed, Ziprecruiter, and more —
+                all in one powerful search platform.
               </motion.p>
               <motion.div
                 className="mt-8 mx-auto max-w-sm sm:max-w-lg lg:mx-0"
@@ -531,7 +667,10 @@ export default function LandingPage() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8, duration: 0.8 }}
               >
-                <form onSubmit={handleSubmit} className="mt-3 flex flex-col sm:flex-row">
+                <form
+                  onSubmit={handleSubmit}
+                  className="mt-3 flex flex-col sm:flex-row"
+                >
                   <label htmlFor="email" className="sr-only">
                     Email
                   </label>
@@ -560,7 +699,7 @@ export default function LandingPage() {
                 </p>
               </motion.div>
             </motion.div>
-            
+
             {/* App mockup - Only show on larger screens or simplified on mobile */}
             <motion.div
               className="mt-12 relative sm:max-w-lg sm:mx-auto lg:mt-0 lg:max-w-none lg:mx-0 lg:col-span-6 lg:flex lg:items-center"
@@ -577,10 +716,7 @@ export default function LandingPage() {
                         {/* Header */}
                         <div className="flex items-center justify-between mb-6">
                           <div className="flex items-center space-x-2">
-                            <div className="h-8 w-8 rounded-md bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
-                              <Briefcase className="h-5 w-5 text-white" />
-                            </div>
-                            <span className="font-bold text-lg">Handjobs</span>
+                          <img src={Logo} alt="Logo" className="h-8 w-fit" />
                           </div>
                           <div className="flex items-center space-x-3">
                             <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
@@ -632,7 +768,7 @@ export default function LandingPage() {
                               company: "Airbnb",
                               location: "Remote",
                               posted: "2h ago",
-                              logo: "https://imgs.search.brave.com/oBliE7TXIHe3I5t7Ifr_5bcQlQIf7rR5I6dx9mHcBMQ/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9taXJv/Lm1lZWRpdW0uY29t/vjIvMSpNbE5RS2ct/c2llQkdXNXByV29l/OUhRLmpwZWc",
+                              logo: "https://imgs.search.brave.com/v7LTwd66GARrCdy_CKH2bHH5MFyed6rjD-ZI2bzzCmg/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9wbHVz/cG5nLmNvbS9pbWct/cG5nL2FpcmJuYi1s/b2dvLXBuZy1haXJi/bmItbG9nby0xNjAw/LnBuZw",
                               source: platformTabs[activeTab].name,
                               sourceColor: platformTabs[activeTab].color,
                             },
@@ -646,15 +782,19 @@ export default function LandingPage() {
                               sourceColor: platformTabs[activeTab].color,
                             },
                             // Show only 2 jobs on mobile, 3 on desktop
-                            ...(!isMobile ? [{
-                              title: "Data Scientist",
-                              company: "Netflix",
-                              location: "Los Angeles",
-                              posted: "1d ago",
-                              logo: "https://upload.wikimedia.org/wikipedia/commons/6/69/Netflix_logo.svg",
-                              source: platformTabs[activeTab].name,
-                              sourceColor: platformTabs[activeTab].color,
-                            }] : []),
+                            ...(!isMobile
+                              ? [
+                                  {
+                                    title: "Data Scientist",
+                                    company: "Netflix",
+                                    location: "Los Angeles",
+                                    posted: "1d ago",
+                                    logo: "https://imgs.search.brave.com/jlYYZNC0nF9fAoNASa3s8JPNgMcfYdZravm2ilUMd-k/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly9zdHls/ZXMucmVkZGl0bWVk/aWEuY29tL3Q1XzNm/emsyL3N0eWxlcy9j/b21tdW5pdHlJY29u/X3RnYzE1ZGJndWQw/MTEucG5n",
+                                    source: platformTabs[activeTab].name,
+                                    sourceColor: platformTabs[activeTab].color,
+                                  },
+                                ]
+                              : []),
                           ].map((job, i) => (
                             <motion.div
                               key={i}
@@ -723,62 +863,28 @@ export default function LandingPage() {
       </section>
 
       {/* Logos Section - Optimized for mobile */}
-      <section className="py-8 sm:py-12 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.p
-                      className="text-center text-sm sm:text-base font-medium text-gray-500 mb-8"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
+      <section className="py-8 px-4 md:py-12">
+        <div className="max-w-7xl mx-auto">
+          <p className="text-center text-sm sm:text-base font-medium text-gray-600 mb-8">
             Aggregating jobs from leading platforms
-          </motion.p>
-          <motion.div
-            className="grid grid-cols-2 gap-8 md:grid-cols-6 lg:grid-cols-5"
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-          >
-            {[
-              {
-                name: "LinkedIn",
-                logo: "https://upload.wikimedia.org/wikipedia/commons/0/01/LinkedIn_Logo.svg",
-              },
-              {
-                name: "Indeed",
-                logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Indeed_logo.svg/1920px-Indeed_logo.svg.png",
-              },
-              {
-                name: "Ziprecruiter",
-                logo: "https://mms.businesswire.com/media/20240725864404/en/2196160/4/ZipRecruiter_logo_dark_web.jpg",
-              },
-              {
-                name: "Glassdoor",
-                logo: "https://upload.wikimedia.org/wikipedia/commons/f/f0/Glassdoor_Logo_2023.svg",
-              },
-              {
-                name: "Monster",
-                logo: "https://upload.wikimedia.org/wikipedia/commons/2/2c/Monster.com_Logo_2019.svg",
-              },
-            ].map((item, index) => (
-              <motion.div
-                key={index}
-                className="col-span-1 flex justify-center md:col-span-2 lg:col-span-1"
-                variants={fadeInUp}
-              >
-                <div className="h-12 flex items-center justify-center">
-                  <img
-                    src={item.logo}
-                    alt={item.name}
-                    className="h-full w-auto"
-                    loading="lazy"
-                    width={120}
-                    height={48}
-                  />
-                </div>
-              </motion.div>
+          </p>
+
+          <div className="flex flex-wrap justify-center items-center gap-x-16 gap-y-8 md:gap-x-32">
+            {partners.map((item, index) => (
+              <div key={index} className="flex items-center justify-center">
+                <img
+                  src={item.logo}
+                  alt={item.name}
+                  className="h-auto w-auto opacity-80 hover:opacity-100 transition-opacity"
+                  loading="lazy"
+                  style={{
+                    maxWidth: isMobile ? "120px" : "140px",
+                    maxHeight: isMobile ? "30px" : "40px",
+                  }}
+                />
+              </div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -800,8 +906,8 @@ export default function LandingPage() {
               Everything you need to find your dream job
             </p>
             <p className="mt-4 max-w-2xl text-lg sm:text-xl text-gray-500 mx-auto">
-              Handjobs brings all job opportunities to one place, saving you time
-              and helping you find the perfect match.
+              KaamDekho brings all job opportunities to one place, saving you
+              time and helping you find the perfect match.
             </p>
           </motion.div>
 
@@ -880,9 +986,9 @@ export default function LandingPage() {
                       ? { opacity: 1, y: 0 }
                       : { opacity: 0, y: 30 }
                   }
-                  transition={{ 
-                    duration: isMobile ? 0.4 : 0.5, 
-                    delay: isMobile ? index * 0.08 + 0.3 : index * 0.1 + 0.5 
+                  transition={{
+                    duration: isMobile ? 0.4 : 0.5,
+                    delay: isMobile ? index * 0.08 + 0.3 : index * 0.1 + 0.5,
                   }}
                 >
                   <div className="flex flex-col items-center text-center">
@@ -894,7 +1000,9 @@ export default function LandingPage() {
                     <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
                       {step.title}
                     </h3>
-                    <p className="text-gray-600 max-w-xs mx-auto">{step.description}</p>
+                    <p className="text-gray-600 max-w-xs mx-auto">
+                      {step.description}
+                    </p>
                   </div>
                 </motion.div>
               ))}
@@ -924,7 +1032,7 @@ export default function LandingPage() {
             </p>
             <p className="mt-4 max-w-2xl text-lg sm:text-xl text-gray-500 mx-auto">
               Hear from job seekers who found their dream positions using
-              Handjobs.
+              KaamDekho.
             </p>
           </motion.div>
 
@@ -969,93 +1077,111 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing Section - Optimized for mobile */}
-      <section id="pricing" className="py-16 sm:py-20 bg-white">
+      {/* Pricing Section - Updated */}
+      <section id="pricing" className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            className="text-center mb-12 sm:mb-16"
-            initial={{ opacity: 0, y: 40 }}
-            animate={
-              isVisible.pricing ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }
-            }
-            transition={{ duration: 0.7 }}
-          >
-            <h2 className="text-base font-semibold tracking-wide uppercase text-blue-600">
-              Pricing
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h2 className="text-xl font-semibold text-blue-600">
+              Simple Pricing
             </h2>
-            <p className="mt-2 text-2xl sm:text-3xl font-extrabold text-gray-900 sm:text-4xl lg:text-5xl">
-              Plans for every stage of your job search
+            <h3 className="mt-2 text-3xl sm:text-4xl font-bold text-gray-900">
+              Choose the plan that's right for you
+            </h3>
+            <p className="mt-4 text-xl text-gray-600 max-w-2xl mx-auto">
+              Start for free, upgrade when you need more features
             </p>
-            <p className="mt-4 max-w-2xl text-lg sm:text-xl text-gray-500 mx-auto">
-              Start for free, upgrade when you need more features.
-            </p>
-          </motion.div>
+          </div>
 
-          {/* Pricing cards - Optimized for mobile with scrollable container on small screens */}
-          <div className={`${isMobile ? 'flex overflow-x-auto pb-6 -mx-4 px-4 hide-scrollbar' : ''}`}>
-            <motion.div
-              className={`${isMobile ? 'flex space-x-6' : 'grid gap-8 lg:grid-cols-3'}`}
-              variants={staggerContainer}
-              initial="hidden"
-              animate={isVisible.pricing ? "visible" : "hidden"}
+          {/* Plans container */}
+          <div
+            className={
+              isMobile ? "py-2 overflow-x-auto pb-8 hide-scrollbar" : ""
+            }
+          >
+            <div
+              className={
+                isMobile
+                  ? "flex space-x-6 px-2 pb-4"
+                  : "grid grid-cols-1 md:grid-cols-3 gap-8"
+              }
             >
-              {plans.map((plan, index) => (
-                <motion.div
+              {displayPlans.map((plan, index) => (
+                <div
                   key={index}
-                  className={`${isMobile ? 'flex-shrink-0 w-[85vw] max-w-sm' : ''} 
-                    bg-white rounded-xl shadow-md overflow-hidden border-2 ${
+                  className={`${isMobile ? "min-w-[280px] flex-shrink-0" : ""} 
+                  ${
+                    plan.color
+                  } rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300
+                  ${
                     plan.popular
-                      ? "border-blue-500 ring-2 ring-blue-500 ring-opacity-50"
-                      : plan.color
-                    } hover:shadow-xl transition-shadow duration-300`}
-                  variants={fadeInUp}
+                      ? "border-2 border-blue-500 relative transform md:scale-105"
+                      : "border border-gray-200"
+                  }`}
                 >
-                  <div className="p-6 sm:p-8">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
-                        {plan.name}
-                      </h3>
-                      {plan.popular && (
-                        <span className="inline-flex items-center px-2 py-0.5 sm:px-3 sm:py-0.5 rounded-full text-xs sm:text-sm font-medium bg-blue-100 text-blue-800">
-                          Popular
-                        </span>
-                      )}
+                  {plan.popular && (
+                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-blue-600 text-white px-4 py-1 rounded-full text-sm font-medium">
+                      Recommended
                     </div>
-                    <div className="flex items-end mb-6">
-                      <span className="text-3xl sm:text-4xl font-extrabold text-gray-900">
-                        {plan.price}
+                  )}
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-gray-900">
+                      {plan.name}
+                    </h3>
+                    <div className="mt-4 flex items-baseline">
+                      <span className="text-3xl font-extrabold tracking-tight text-gray-900">
+                        {plan.monthlyPrice}
                       </span>
                       {plan.period && (
-                        <span className="text-lg sm:text-xl text-gray-500 ml-1">
+                        <span className="ml-1 text-lg text-gray-500">
                           {plan.period}
                         </span>
                       )}
                     </div>
-                    <p className="text-gray-500 mb-6">{plan.description}</p>
-                    <ul className="space-y-4 mb-8">
+
+                    {plan.offer && (
+                      <div className="mt-2 text-sm text-green-600 font-medium">
+                        {plan.offer}
+                      </div>
+                    )}
+                    <p className="mt-5 text-gray-500">{plan.description}</p>
+
+                    <button
+                      className={`mt-6 w-full py-3 px-4 rounded-lg text-center font-medium transition-colors duration-200 ${
+                        plan.popular
+                          ? "bg-blue-600 text-white hover:bg-blue-700"
+                          : "bg-white border border-blue-600 text-blue-600 hover:bg-blue-50"
+                      }`}
+                    >
+                      {plan.cta}
+                    </button>
+
+                    <ul className="mt-6 space-y-3">
                       {plan.features.map((feature, i) => (
-                        <li key={i} className="flex items-start">
-                          <CheckCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                          <span className="text-gray-600">{feature}</span>
+                        <li key={i} className="flex">
+                          <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                          <span className="ml-3 text-gray-600">{feature}</span>
                         </li>
                       ))}
                     </ul>
-                    <motion.a
-                      href="#"
-                      className={`block w-full py-3 px-4 rounded-md text-center font-medium ${
-                        plan.popular
-                          ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700"
-                          : "bg-white text-blue-600 border border-blue-600 hover:bg-blue-50"
-                      } shadow-sm hover:shadow transition-all duration-200`}
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                    >
-                      {plan.cta}
-                    </motion.a>
                   </div>
-                </motion.div>
+                </div>
               ))}
-            </motion.div>
+            </div>
+          </div>
+
+          {/* FAQ teaser */}
+          <div className="mt-12 text-center">
+            <p className="text-gray-600">
+              Have questions?{" "}
+              <a href="#faq" className="text-blue-600 font-medium">
+                Check our FAQ
+              </a>{" "}
+              or{" "}
+              <a href="#contact" className="text-blue-600 font-medium">
+                contact us
+              </a>
+            </p>
           </div>
         </div>
       </section>
@@ -1071,19 +1197,19 @@ export default function LandingPage() {
               Frequently asked questions
             </p>
             <p className="mt-4 max-w-2xl text-lg sm:text-xl text-gray-500 mx-auto">
-              Everything you need to know about Handjobs Job Aggregator.
+              Everything you need to know about KaamDekho Job Aggregator.
             </p>
           </div>
 
           <div className="max-w-3xl mx-auto divide-y divide-gray-200">
             {[
               {
-                question: "How does Handjobs aggregate job listings?",
+                question: "How does KaamDekho aggregate job listings?",
                 answer:
-                  "Handjobs uses advanced web crawling techniques to fetch job postings from multiple platforms like LinkedIn, Indeed, Ziprecruiter, and more. Our algorithms process and categorize these listings to ensure you get relevant, high-quality results.",
+                  "KaamDekho uses advanced web crawling techniques to fetch job postings from multiple platforms like LinkedIn, Indeed, Ziprecruiter, and more. Our algorithms process and categorize these listings to ensure you get relevant, high-quality results.",
               },
               {
-                question: "Is Handjobs completely free to use?",
+                question: "Is KaamDekho completely free to use?",
                 answer:
                   "We offer a free tier that gives you access to basic search functionality across platforms. For advanced features like unlimited saved jobs, real-time notifications, and application tracking, we offer affordable premium plans.",
               },
@@ -1093,15 +1219,15 @@ export default function LandingPage() {
                   "Our crawlers run continuously, ensuring that new job postings are added to our database as soon as they appear on the source platforms. Premium users receive real-time notifications for new jobs matching their criteria.",
               },
               {
-                question: "Can I apply to jobs directly through Handjobs?",
+                question: "Can I apply to jobs directly through KaamDekho?",
                 answer:
                   "Yes, for many job listings you can apply directly through our platform. For others, we provide a direct link to the original posting where you can complete your application.",
               },
               {
                 question:
-                  "How is Handjobs different from other job search platforms?",
+                  "How is KaamDekho different from other job search platforms?",
                 answer:
-                  "Unlike traditional job boards, Handjobs doesn't host job listings directly. Instead, we aggregate opportunities from multiple sources, saving you the time and effort of searching across different platforms. Our advanced filtering and search capabilities help you find exactly what you're looking for.",
+                  "Unlike traditional job boards, KaamDekho doesn't host job listings directly. Instead, we aggregate opportunities from multiple sources, saving you the time and effort of searching across different platforms. Our advanced filtering and search capabilities help you find exactly what you're looking for.",
               },
             ].map((faq, index) => (
               <motion.div
@@ -1121,7 +1247,9 @@ export default function LandingPage() {
                   </span>
                 </div>
                 <div className="mt-2">
-                  <p className="text-sm sm:text-base text-gray-500">{faq.answer}</p>
+                  <p className="text-sm sm:text-base text-gray-500">
+                    {faq.answer}
+                  </p>
                 </div>
               </motion.div>
             ))}
@@ -1129,59 +1257,52 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Team Section */}
+        <Team />
+
+      {/* Contact Section */}
+
       {/* CTA Section - Optimized for mobile */}
-      <section className="py-16 sm:py-20 bg-gradient-to-r from-blue-600 to-purple-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <motion.h2
-              className="text-2xl sm:text-3xl font-extrabold text-white sm:text-4xl"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-            >
-              <span className="block">Ready to simplify your job search?</span>
-              <span className="block mt-2">Get early access today.</span>
-            </motion.h2>
-            <motion.p
-              className="mt-4 text-base sm:text-lg leading-6 text-blue-100"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              viewport={{ once: true }}
-            >
-              Join thousands of job seekers who are already saving time and
-              finding better opportunities.
-            </motion.p>
-            <motion.div
-              className="mt-8 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              viewport={{ once: true }}
-            >
-              <div className="inline-flex rounded-md shadow">
-                <motion.a
-                  href="#"
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50"
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Get started
-                </motion.a>
-              </div>
-              <div className="inline-flex">
-                <motion.a
-                  href="#"
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-800 bg-opacity-60 hover:bg-opacity-70"
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Learn more
-                </motion.a>
-              </div>
-            </motion.div>
-          </div>
+      <section className="max-w-7xl mx-auto  px-4 rounded-xl md:mt-4">
+        <div className="text-center bg-gradient-to-r from-blue-600 to-purple-600 px-4 lg:px-8 py-12 rounded-2xl">
+          <motion.h2
+            className="text-2xl sm:text-3xl font-extrabold text-white sm:text-4xl"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            viewport={{ once: true }}
+          >
+            <span className="block">Ready to simplify your job search?</span>
+            <span className="block mt-2">Get early access today.</span>
+          </motion.h2>
+          <motion.p
+            className="mt-4 text-base sm:text-lg leading-6 text-blue-100"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            viewport={{ once: true }}
+          >
+            Join thousands of job seekers who are already saving time and
+            finding better opportunities.
+          </motion.p>
+          <motion.div
+            className="mt-8 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            viewport={{ once: true }}
+          >
+            <div className="inline-flex rounded-md shadow">
+              <motion.a
+                href="#"
+                className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Get Started
+              </motion.a>
+            </div>
+          </motion.div>
         </div>
       </section>
 
@@ -1196,7 +1317,7 @@ export default function LandingPage() {
                   <Briefcase className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 </div>
                 <span className="text-xl sm:text-2xl font-bold text-gray-800">
-                  Handjobs
+                  KaamDekho
                 </span>
               </div>
               <p className="text-gray-600 text-sm sm:text-base">
@@ -1253,18 +1374,18 @@ export default function LandingPage() {
           {/* Copyright Section */}
           <div className="mt-12 border-t border-gray-200 pt-8 text-center">
             <p className="text-sm sm:text-base text-gray-500">
-              &copy; {new Date().getFullYear()} Handjobs Job Aggregator. All
+              &copy; {new Date().getFullYear()} KaamDekho Job Aggregator. All
               rights reserved.
             </p>
           </div>
         </div>
       </footer>
-      
+
       {/* Add custom CSS for hiding scrollbars but allowing scrolling */}
       <style jsx global>{`
         .hide-scrollbar {
-          -ms-overflow-style: none;  /* IE and Edge */
-          scrollbar-width: none;  /* Firefox */
+          -ms-overflow-style: none; /* IE and Edge */
+          scrollbar-width: none; /* Firefox */
         }
         .hide-scrollbar::-webkit-scrollbar {
           display: none; /* Chrome, Safari and Opera */

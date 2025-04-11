@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -14,6 +14,7 @@ import {
   MobileFiltersToggle,
   SearchHeader,
 } from "../components/searchpage";
+import MobileNavigation from "../components/common/MobileNavigation"; // Import the MobileNavigation component
 
 function SearchPage() {
   const location = useLocation();
@@ -24,35 +25,52 @@ function SearchPage() {
 
   const [searchInput, setSearchInput] = useState("");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const initialLoad = useRef(true);
+  const searchTimeout = useRef(null);
 
-  // Parse search params from URL - Memoize URL parsing logic
+  // Unified search param handler
+  useEffect(() => {
+    if (initialLoad.current) {
+      initialLoad.current = false;
+      return;
+    }
+
+    // Clear any existing timeout
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current);
+    }
+
+    // Debounce the search execution
+    searchTimeout.current = setTimeout(() => {
+      const searchParams = new URLSearchParams(location.search);
+      const currentQuery = searchParams.get("q") || "";
+      
+      if (currentQuery !== filters.searchTerm) {
+        dispatch(fetchJobs()); // Replace with actual job fetch action
+      }
+    }, 300);
+    
+    return () => clearTimeout(searchTimeout.current);
+  }, [location.search, filters.searchTerm, dispatch]);
+
+  // Update URL sync effect
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
-    
-    // Handle search term
     const query = searchParams.get("q") || "";
-    if (query && query !== filters.searchTerm) {
-      dispatch(setSearchTerm(query));
-    }
     setSearchInput(query);
-    
-    // Handle company filter
-    const company = searchParams.get("company") || "";
-    if (company && company !== filters.company) {
-      dispatch(setCompany(company));
-    }
-  }, [location.search, dispatch, filters.searchTerm, filters.company]);
+    dispatch(setSearchTerm(query));
+  }, [location.search, dispatch]);
 
   // Memoize search params with useMemo
   const currentSearchParams = useMemo(() => {
     return new URLSearchParams(location.search);
   }, [location.search]);
 
-  // Handle search form submission with useCallback
+  // Simplified search handler
   const handleSearch = useCallback((e) => {
     e.preventDefault();
+    const searchParams = new URLSearchParams(location.search);
     
-    const searchParams = new URLSearchParams(currentSearchParams);
     if (searchInput) {
       searchParams.set("q", searchInput);
     } else {
@@ -63,9 +81,7 @@ function SearchPage() {
       pathname: "/search",
       search: searchParams.toString(),
     });
-    
-    dispatch(setSearchTerm(searchInput));
-  }, [searchInput, currentSearchParams, navigate, dispatch]);
+  }, [searchInput, navigate, location.search]);
 
   // Handle sort change with useCallback
   const handleSortChange = useCallback((e) => {
@@ -84,12 +100,42 @@ function SearchPage() {
   }, [dispatch, navigate]);
 
   // Memoize searchInput change handler
+  // Unified debounced search handler
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      const searchParams = new URLSearchParams(location.search);
+      const currentQuery = searchParams.get("q") || "";
+      
+      if (currentQuery !== filters.searchTerm) {
+        dispatch(fetchJobs());
+      }
+    }, 500);
+
+    return () => clearTimeout(debounceTimer);
+  }, [location.search, filters.searchTerm, dispatch]);
+
+  // Update URL with debounce
   const handleSearchInputChange = useCallback((e) => {
     setSearchInput(e.target.value);
-  }, []);
+    const debounceTimer = setTimeout(() => {
+      const searchParams = new URLSearchParams(location.search);
+      searchParams.set("q", e.target.value);
+      navigate({ pathname: "/search", search: searchParams.toString() });
+    }, 500);
+
+    return () => clearTimeout(debounceTimer);
+  }, [navigate, location.search]);
+
+  // Add useEffect to clear filters when component unmounts
+  useEffect(() => {
+    return () => {
+      dispatch(clearFilters());
+      dispatch(setSearchTerm(''));
+    };
+  }, [dispatch]);
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 p-4 max-w-7xl mx-auto">
+    <div className="flex flex-col md:flex-row md:gap-6 md:p-4 max-w-7xl mx-auto">
       {/* Mobile Filters Toggle - Enhanced styling */}
       <MobileFiltersToggle 
         onClick={toggleMobileFilters}
@@ -125,7 +171,7 @@ function SearchPage() {
       )}
       
       {/* Main Content - Enhanced mobile spacing */}
-      <main className="flex-1 space-y-4 md:space-y-6 w-full">
+      <main className="flex-1 space-y-4 md:space-y-6 w-full pb-16 md:pb-0"> {/* Added padding bottom for mobile navigation */}
         <SearchHeader
           searchInput={searchInput}
           onSearchInputChange={handleSearchInputChange}
@@ -145,6 +191,11 @@ function SearchPage() {
         
         <JobList />
       </main>
+
+      {/* Mobile Navigation - Fixed to bottom of viewport */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30">
+        <MobileNavigation />
+      </div>
     </div>
   );
 }
