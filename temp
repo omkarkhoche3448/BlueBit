@@ -67,4 +67,3 @@
             
             logging.info(f"Successfully inserted {successful_inserts} out of {len(new_jobs_to_add)} jobs")
         
-        # ... rest of the code remains the same ...

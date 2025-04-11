@@ -19,3 +19,4 @@ try:
         print("✅ 'bookmarks' column added successfully to store list of values!")
 except Exception as e:
     print("❌ Error adding column:", e)
+

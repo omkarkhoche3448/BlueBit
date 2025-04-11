@@ -35,5 +35,4 @@ async function checkUserResume() {
   }
 }
 
-// Run the check
 checkUserResume(); 
