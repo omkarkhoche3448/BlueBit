@@ -167,8 +167,8 @@ This project is licensed under the **MIT License**.
 
 ## 🙌 Acknowledgments
 
-- JobSpy for providing job search capabilities
-- Google Gemini API for powerful AI analysis
+- [JobSpy](https://github.com/realTristan/jobspy) for providing job scraping tools.
+- [Google Gemini API](https://ai.google.dev/) for powerful resume analysis.
 
 ## Contact
 
@@ -176,7 +176,4 @@ For any questions or support, please reach out to the project maintainers at:
 - Email: support@bluebit.dev
 - Twitter: [@BlueBitDev](https://twitter.com/BlueBitDev)
 
-
-- [JobSpy](https://github.com/realTristan/jobspy) for providing job scraping tools.
-- [Google Gemini API](https://ai.google.dev/) for powerful resume analysis.
 
