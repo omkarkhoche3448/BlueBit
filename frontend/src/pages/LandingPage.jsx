@@ -28,7 +28,7 @@ import { Link as ScrollLink } from "react-scroll";
 import Logo from "../assets/Logo4.png";
 import  Team  from "../components/landing/Team";
 import Footer from "../components/footer/Footer";
-
+import ScrollToTop from "../components/common/ScrollToTop";
 // Lazy load components that aren't needed immediately
 const SignIn = lazy(() =>
   import("@clerk/clerk-react").then((module) => ({ default: module.SignIn }))
@@ -339,17 +339,6 @@ export default function LandingPage() {
     },
   ];
 
-  const footerLinks = [
-    {
-      title: "Product",
-      links: [{ name: "Features", href: "#features" }],
-    },
-    {
-      title: "Support",
-      links: [{ name: "Help Center", href: "#" }],
-    },
-  ];
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -400,6 +389,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white overflow-hidden">
       {/* Toast container for displaying notifications */}
       <ToastContainer />
+      <ScrollToTop />
       {/* Add viewport meta tag for better mobile experience */}
       <head>
         <meta

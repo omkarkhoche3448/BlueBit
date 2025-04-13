@@ -3,6 +3,7 @@ import { useState } from "react";
 import PolicyLayout from "./PolicyLayout";
 import { toast } from "react-hot-toast";
 import { Mail, Phone, MapPin } from "lucide-react";
+import { companyInfo, contactFormSubjects } from "./data/footerSectionData";
 
 const ContactUs = () => {
   const [formData, setFormData] = useState({
@@ -23,7 +24,6 @@ const ContactUs = () => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate form submission
     setTimeout(() => {
       toast.success("Thank you! Your message has been sent successfully.");
       setFormData({
@@ -50,8 +50,8 @@ const ContactUs = () => {
               <Mail className="h-6 w-6 text-blue-600 mr-3 mt-1" />
               <div>
                 <h3 className="text-lg font-medium text-gray-800">Email Us</h3>
-                <p className="text-gray-600">support@kaamdekho.com</p>
-                <p className="text-gray-600">For business inquiries: business@kaamdekho.com</p>
+                <p className="text-gray-600">{companyInfo.contact.support.email}</p>
+                <p className="text-gray-600">For business inquiries: {companyInfo.contact.business.email}</p>
               </div>
             </div>
 
@@ -59,8 +59,8 @@ const ContactUs = () => {
               <Phone className="h-6 w-6 text-blue-600 mr-3 mt-1" />
               <div>
                 <h3 className="text-lg font-medium text-gray-800">Call Us</h3>
-                <p className="text-gray-600">Customer Support: +91 1234567890</p>
-                <p className="text-gray-600">Hours: Monday-Friday, 9AM-6PM IST</p>
+                <p className="text-gray-600">Customer Support: {companyInfo.contact.support.phone}</p>
+                <p className="text-gray-600">Hours: {companyInfo.contact.hours}</p>
               </div>
             </div>
 
@@ -69,10 +69,10 @@ const ContactUs = () => {
               <div>
                 <h3 className="text-lg font-medium text-gray-800">Visit Us</h3>
                 <p className="text-gray-600">
-                  KaamDekho Headquarters<br />
-                  123 Business Street<br />
-                  Tech City, 400001<br />
-                  India
+                  {companyInfo.headquarters.name}<br />
+                  {companyInfo.headquarters.address}<br />
+                  {companyInfo.headquarters.city}, {companyInfo.headquarters.pincode}<br />
+                  {companyInfo.headquarters.country}
                 </p>
               </div>
             </div>
@@ -128,11 +128,11 @@ const ContactUs = () => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Select a topic</option>
-                <option value="general">General Inquiry</option>
-                <option value="support">Technical Support</option>
-                <option value="billing">Billing Question</option>
-                <option value="partnership">Partnership Opportunity</option>
-                <option value="feedback">Feedback</option>
+                {contactFormSubjects.map((subject) => (
+                  <option key={subject.value} value={subject.value}>
+                    {subject.label}
+                  </option>
+                ))}
               </select>
             </div>
 

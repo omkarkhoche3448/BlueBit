@@ -1,5 +1,6 @@
 
 import Footer from "./Footer";
+import { companyInfo } from "./data/footerSectionData";
 
 const Index = () => {
   return (
@@ -7,11 +8,13 @@ const Index = () => {
       <main className="flex-grow">
         <div className="min-h-[calc(100vh-400px)] flex items-center justify-center bg-gray-100">
           <div className="text-center px-4">
-            <h1 className="text-4xl font-bold mb-4 text-gray-800">Welcome to KaamDekho</h1>
+            <h1 className="text-4xl font-bold mb-4 text-gray-800">
+              Welcome to {companyInfo.name}
+            </h1>
             <p className="text-xl text-gray-600 max-w-lg mx-auto">
-              One search. All job opportunities.
+              {companyInfo.slogan}
               <br />
-              Save time and find your dream job faster.
+              {companyInfo.subSlogan}
             </p>
           </div>
         </div>

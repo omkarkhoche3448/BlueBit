@@ -2,31 +2,7 @@
 import { Briefcase } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
-
-const footerLinks = [
-  {
-    title: "Product",
-    links: [
-      { name: "Features", href: "#features" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { name: "Terms and Conditions", href: "/terms" },
-      { name: "Privacy Policy", href: "/privacy" },
-      { name: "Shipping Policy", href: "/shipping" },
-    ],
-  },
-  {
-    title: "Support",
-    links: [
-      { name: "Contact Us", href: "/contact" },
-      { name: "Cancellation and Refunds", href: "/refunds" },
-    ],
-  },
-];
-
+import { companyInfo, footerLinks, socialLinks } from "./data/footerSectionData";
 
 const Footer = () => {
   const location = useLocation();
@@ -45,27 +21,26 @@ const Footer = () => {
           {/* Logo & About Section */}
           <div className="space-y-6">
             <div className="flex items-center">
-              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center mr-2">
+              <div className={`h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-r from-${companyInfo.logo.gradientFrom} to-${companyInfo.logo.gradientTo} flex items-center justify-center mr-2`}>
                 <Briefcase className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <span className="text-xl sm:text-2xl font-bold text-gray-800">
-                KaamDekho
+                {companyInfo.name}
               </span>
             </div>
             <p className="text-gray-600 text-sm sm:text-base">
-              One search. All job opportunities.
+              {companyInfo.slogan}
               <br />
-              Save time and find your dream job faster.
+              {companyInfo.subSlogan}
             </p>
             <div className="flex space-x-6">
-              {/* Social Icons */}
-              {["Twitter", "GitHub", "LinkedIn"].map((social, index) => (
+              {socialLinks.map((social, index) => (
                 <a
                   key={index}
-                  href="#"
+                  href={social.href}
                   className="text-gray-500 hover:text-blue-600 transition duration-200"
                 >
-                  <span className="sr-only">{social}</span>
+                  <span className="sr-only">{social.name}</span>
                   <svg
                     className="h-5 w-5 sm:h-6 sm:w-6"
                     fill="currentColor"
@@ -79,7 +54,7 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Footer Links - Simplified for mobile */}
+          {/* Footer Links */}
           <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-8">
             {footerLinks.map((section, index) => (
               <div key={index}>
@@ -115,7 +90,7 @@ const Footer = () => {
         {/* Copyright Section */}
         <div className="mt-12 border-t border-gray-200 pt-8 text-center">
           <p className="text-sm sm:text-base text-gray-500">
-            &copy; {new Date().getFullYear()} KaamDekho Job Aggregator. All
+            &copy; {new Date().getFullYear()} {companyInfo.copyright}. All
             rights reserved.
           </p>
         </div>
