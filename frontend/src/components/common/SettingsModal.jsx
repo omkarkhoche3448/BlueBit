@@ -15,8 +15,8 @@ import {
 import { useProStatusContext } from "../../contexts/ProStatusContext";
 import { useNavigate } from "react-router-dom";
 import PreferencesService from "../../services/PreferencesService";
-import PaymentService from '../../services/paymentService';
-import UserService from '../../services/UserService';
+import PaymentService from "../../services/paymentService";
+import UserService from "../../services/UserService";
 import { toast } from "react-hot-toast";
 import ConfirmationModal from "./ConfirmationModal";
 import SignOutConfirmationModal from "./SignOutConfirmationModal";
@@ -78,22 +78,25 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
       if (result.success) {
         await refreshProStatus(); // Refresh pro status after successful payment
-        toast.success('Payment successful! Pro features activated.', {
+        toast.success("Payment successful! Pro features activated.", {
           duration: 4000,
-          position: 'top-center',
-          icon: '🎉',
+          position: "top-center",
+          icon: "🎉",
           // When toast is closed or dismissed, reload the page
-          onClose: () => window.location.reload()
+          onClose: () => window.location.reload(),
         });
       } else {
         throw new Error(result.message || "Payment failed");
       }
     } catch (error) {
-      console.error('Payment error:', error);
-      toast.error(`Payment failed: ${error.message || 'Unknown error occurred'}`, {
-        duration: 4000,
-        position: 'top-center'
-      });
+      console.error("Payment error:", error);
+      toast.error(
+        `Payment failed: ${error.message || "Unknown error occurred"}`,
+        {
+          duration: 4000,
+          position: "top-center",
+        }
+      );
     } finally {
       setIsLoading(false);
     }
@@ -136,10 +139,10 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
     try {
       setIsDeleting(true);
-      
+
       // Add a console log to debug
       console.log(`Attempting to delete account for user: ${user.id}`);
-      
+
       const success = await UserService.deleteAccount(user.id);
 
       if (success) {
@@ -147,7 +150,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
         toast.success("Account successfully deleted", {
           duration: 3000,
         });
-        
+
         // Sign out the user after successful deletion
         await signOut();
         onClose();
@@ -156,11 +159,14 @@ const SettingsModal = ({ isOpen, onClose }) => {
       }
     } catch (error) {
       console.error("Error deleting account:", error);
-      
+
       // Use toast instead of alert for better UX
-      toast.error(`Failed to delete account: ${error.message || "Unknown error"}`, {
-        duration: 4000,
-      });
+      toast.error(
+        `Failed to delete account: ${error.message || "Unknown error"}`,
+        {
+          duration: 4000,
+        }
+      );
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirmation(false);
@@ -221,17 +227,19 @@ const SettingsModal = ({ isOpen, onClose }) => {
     if (!user) return;
     try {
       setIsExporting(true);
-      
+
       // Create obfuscated data structure with simplified but understandable names
       const obfuscatedData = {
-        profile: {  // instead of personalInfo
+        profile: {
+          // instead of personalInfo
           fname: user.firstName,
           lname: user.lastName,
           mail: user.primaryEmailAddress?.emailAddress,
           created: user.createdAt,
           lastLogin: user.lastSignInAt,
         },
-        prefs: {  // instead of preferences
+        prefs: {
+          // instead of preferences
           jobs: preferences.jobPreferences,
           culture: preferences.culturalPreferences,
           countries: preferences.countryPreferences,
@@ -239,31 +247,32 @@ const SettingsModal = ({ isOpen, onClose }) => {
           types: preferences.jobTypePreferences,
           companies: preferences.companyPreferences,
         },
-        sub: {  // instead of subscriptionStatus
+        sub: {
+          // instead of subscriptionStatus
           premium: isPro,
           expiry: expiryDate,
         },
-        timestamp: new Date().toISOString(),  // instead of exportDate
+        timestamp: new Date().toISOString(), // instead of exportDate
       };
-      
+
       // Convert data to JSON string with proper formatting
       const jsonString = JSON.stringify(obfuscatedData, null, 2);
-      
+
       // Create blob and download link
       const blob = new Blob([jsonString], { type: "application/json" });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
-      
+
       // Set filename with obfuscated user identifier and current date
       const date = new Date().toISOString().split("T")[0];
       const userIdentifier = Math.random().toString(36).substring(2, 8);
       const fileName = `user_${userIdentifier}_${date}.json`;
-      
+
       link.download = fileName;
       link.href = url;
       document.body.appendChild(link);
       link.click();
-      
+
       // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
@@ -274,6 +283,11 @@ const SettingsModal = ({ isOpen, onClose }) => {
       setIsExporting(false);
     }
   };
+  const handlePolicyNavigation = (route) => {
+    navigate(route);
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -455,6 +469,54 @@ const SettingsModal = ({ isOpen, onClose }) => {
                     </div>
                   </button>
                 </div>
+                <div className="mt-8 space-y-2">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                    Legal & Policies
+                  </h4>
+                  <button
+                    onClick={() => handlePolicyNavigation("/terms")}
+                    className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-sm text-gray-600">
+                      Terms and Conditions
+                    </span>
+                    <span className="text-gray-400">→</span>
+                  </button>
+                  <button
+                    onClick={() => handlePolicyNavigation("/privacy")}
+                    className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-sm text-gray-600">
+                      Privacy Policy
+                    </span>
+                    <span className="text-gray-400">→</span>
+                  </button>
+                  <button
+                    onClick={() => handlePolicyNavigation("/shipping")}
+                    className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-sm text-gray-600">
+                      Shipping Policy
+                    </span>
+                    <span className="text-gray-400">→</span>
+                  </button>
+                  <button
+                    onClick={() => handlePolicyNavigation("/refunds")}
+                    className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-sm text-gray-600">
+                      Cancellation and Refunds
+                    </span>
+                    <span className="text-gray-400">→</span>
+                  </button>
+                  <button
+                    onClick={() => handlePolicyNavigation("/contact")}
+                    className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-sm text-gray-600">Contact Us</span>
+                    <span className="text-gray-400">→</span>
+                  </button>
+                </div>
               </div>
             )}
 
@@ -537,6 +599,31 @@ const SettingsModal = ({ isOpen, onClose }) => {
                     )}
                   </div>
                 </div>
+                {!isPro && (
+                  <div className="mt-4 space-y-3 border-t border-gray-200 pt-4">
+                    <p className="text-sm text-gray-600">
+                      Upgrade to Pro and unlock premium features:
+                    </p>
+                    <ul className="space-y-2">
+                      <li className="flex items-center text-sm text-gray-600">
+                        <span className="mr-2">✓</span>
+                        Advanced job matching algorithm
+                      </li>
+                      <li className="flex items-center text-sm text-gray-600">
+                        <span className="mr-2">✓</span>
+                        Early access to new job postings
+                      </li>
+                      <li className="flex items-center text-sm text-gray-600">
+                        <span className="mr-2">✓</span>
+                        Priority application submissions
+                      </li>
+                      <li className="flex items-center text-sm text-gray-600">
+                        <span className="mr-2">✓</span>
+                        Unlimited job applications
+                      </li>
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
 
