@@ -8,34 +8,68 @@ import toast from 'react-hot-toast';
 function RightSidebar() {
   const { user } = useUser();
   const { isPro, refreshProStatus } = useProStatusContext();
+  const [loading, setLoading] = useState(false);
 
   const handlePayment = async () => {
     try {
       if (!user) return;
+      setLoading(true);
       
-      const result = await PaymentService.initiatePayment(
-        user.id,
-        user.primaryEmailAddress.emailAddress,
-        user.fullName
-      );
+      // Get payment session details from the backend
+      const paymentDetails = await PaymentService.initiatePayment(user.id);
+      console.log('Payment session created:', paymentDetails);
       
-      // Refresh pro status after successful payment
-      await refreshProStatus();
+      // Check if we have a valid payment session ID
+      if (!paymentDetails || !paymentDetails.payment_session_id) {
+        throw new Error('Invalid payment session');
+      }
       
-      toast.success('Payment successful! Pro features activated.', {
-        duration: 4000,
-        position: 'top-center',
-        icon: '🎉',
-        // When toast is closed or dismissed, reload the page
-        onClose: () => window.location.reload()
-      });
-      
+      // Initialize Cashfree checkout
+      if (window.Cashfree) {
+        const cashfree = new window.Cashfree({
+          mode: "production" // Since we're using production credentials
+        });
+        
+        // Configure checkout
+        const checkoutOptions = {
+          paymentSessionId: paymentDetails.payment_session_id,
+          returnUrl: window.location.href,  // Return to the same page after payment
+        };
+        
+        console.log('Opening Cashfree checkout with options:', checkoutOptions);
+        
+        // Launch Cashfree checkout
+        cashfree.checkout(checkoutOptions).then(function(result) {
+          // This will be called on successful redirection
+          if (result.error) {
+            console.error('Checkout error:', result.error);
+            toast.error(`Payment failed: ${result.error.message || 'Unknown error'}`, {
+              duration: 4000,
+              position: 'top-center'
+            });
+          } else if (result.order && result.order.status === 'PAID') {
+            // Payment successful
+            refreshProStatus();
+            toast.success('Payment successful! Pro features activated.', {
+              duration: 4000,
+              position: 'top-center',
+              icon: '🎉',
+              // When toast is closed or dismissed, reload the page
+              onClose: () => window.location.reload()
+            });
+          }
+        });
+      } else {
+        throw new Error('Cashfree SDK not loaded. Please refresh the page and try again.');
+      }
     } catch (error) {
       console.error('Payment error:', error);
       toast.error(`Payment failed: ${error.message}`, {
         duration: 4000,
         position: 'top-center'
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -86,10 +120,11 @@ function RightSidebar() {
         </p>
         {!isPro && (
           <button 
-            onClick={handlePayment} 
-            className="w-full bg-blue-600 text-white text-sm py-1.5 px-3 rounded-md hover:bg-blue-700 cursor-pointer"
+            onClick={handlePayment}
+            disabled={loading}
+            className="w-full bg-blue-600 text-white text-sm py-1.5 px-3 rounded-md hover:bg-blue-700 cursor-pointer disabled:bg-blue-400"
           >
-            Try for 1 Month
+            {loading ? 'Processing...' : 'Try for 1 Month'}
           </button>
         )}
       </div>

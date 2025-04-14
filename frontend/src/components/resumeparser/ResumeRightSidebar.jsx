@@ -8,40 +8,78 @@ import {
   Star,
 } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
+import toast from "react-hot-toast";
 import PaymentService from "../../services/paymentService";
 import { useProStatusContext } from "../../contexts/ProStatusContext";
+
 const ResumeRightSidebar = ({ score }) => {
-  const user = useUser();
-  const { isPro } = useProStatusContext();
+  const { user } = useUser();
+  const { isPro, refreshProStatus } = useProStatusContext();
+  const [loading, setLoading] = useState(false);
 
   const handlePayment = async () => {
     try {
       if (!user) return;
-
-      await PaymentService.initiatePayment(
-        user.id,
-        user.primaryEmailAddress.emailAddress,
-        user.fullName
-      );
-
-      // Refresh pro status after successful payment
-      await refreshProStatus();
-
-      toast.success("Payment successful! Pro features activated.", {
-        duration: 4000,
-        position: "top-center",
-        icon: "🎉",
-        // When toast is closed or dismissed, reload the page
-        onClose: () => window.location.reload(),
-      });
+      setLoading(true);
+      
+      // Get payment session details from the backend
+      const paymentDetails = await PaymentService.initiatePayment(user.id);
+      console.log('Payment session created:', paymentDetails);
+      
+      // Check if we have a valid payment session ID
+      if (!paymentDetails || !paymentDetails.payment_session_id) {
+        throw new Error('Invalid payment session');
+      }
+      
+      // Initialize Cashfree checkout
+      if (window.Cashfree) {
+        const cashfree = new window.Cashfree({
+          mode: "test" // Since we're using production credentials
+        });
+        
+        // Configure checkout
+        const checkoutOptions = {
+          paymentSessionId: paymentDetails.payment_session_id,
+          returnUrl: window.location.href,  // Return to the same page after payment
+        };
+        
+        console.log('Opening Cashfree checkout with options:', checkoutOptions);
+        
+        // Launch Cashfree checkout
+        cashfree.checkout(checkoutOptions).then(function(result) {
+          // This will be called on successful redirection
+          if (result.error) {
+            console.error('Checkout error:', result.error);
+            toast.error(`Payment failed: ${result.error.message || 'Unknown error'}`, {
+              duration: 4000,
+              position: 'top-center'
+            });
+          } else if (result.order && result.order.status === 'PAID') {
+            // Payment successful
+            refreshProStatus();
+            toast.success('Payment successful! Pro features activated.', {
+              duration: 4000,
+              position: 'top-center',
+              icon: '🎉',
+              // When toast is closed or dismissed, reload the page
+              onClose: () => window.location.reload()
+            });
+          }
+        });
+      } else {
+        throw new Error('Cashfree SDK not loaded. Please refresh the page and try again.');
+      }
     } catch (error) {
       console.error("Payment error:", error);
       toast.error(`Payment failed: ${error.message}`, {
         duration: 4000,
         position: "top-center",
       });
+    } finally {
+      setLoading(false);
     }
   };
+
   // Determine resume health status based on score
   const getResumeHealth = (score) => {
     if (score >= 80) return { status: "Excellent", color: "text-green-600" };
@@ -142,7 +180,6 @@ const ResumeRightSidebar = ({ score }) => {
       </div>
 
       {/* Pro Feature Highlight */}
-
       <div
         className={`rounded-lg p-4 border ${
           isPro ? "bg-amber-50 border-amber-300" : "bg-blue-50 border-blue-100"
@@ -162,9 +199,10 @@ const ResumeRightSidebar = ({ score }) => {
         {!isPro && (
           <button
             onClick={handlePayment}
-            className="w-full bg-blue-600 text-white text-sm py-1.5 px-3 rounded-md hover:bg-blue-700 cursor-pointer"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white text-sm py-1.5 px-3 rounded-md hover:bg-blue-700 cursor-pointer disabled:bg-blue-400"
           >
-            Upgarde to Pro
+            {loading ? 'Processing...' : 'Upgrade to Pro'}
           </button>
         )}
       </div>

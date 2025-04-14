@@ -16,46 +16,27 @@ const PaymentHandler = ({ clerkId }) => {
       // Create payment order
       const order = await createPaymentOrder(clerkId);
       
-      // Initialize Razorpay checkout
-      const options = {
-        key: order.key,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'ProFind Pro Subscription',
-        description: '1 Month Pro Subscription',
-        order_id: order.order_id,
-        handler: async (response) => {
-          try {
-            // Verify payment
-            await verifyPayment(clerkId, response.razorpay_payment_id);
-            // Refresh pro status
-            await refreshProStatus();
-            
-            toast.success('Payment successful! Pro features activated.', {
-              duration: 4000,
-              position: 'top-center',
-              icon: '🎉',
-              // When toast is closed or dismissed, reload the page
-              onClose: () => window.location.reload()
-            });
-          } catch (error) {
-            toast.error('Payment verification failed', {
-              duration: 4000,
-              position: 'top-center'
-            });
-            setError('Payment verification failed');
-          }
-        },
-        prefill: {
-          email: 'user@example.com', // You can get this from Clerk
-        },
-        theme: {
-          color: '#2563eb',
-        }
+      // Initialize Cashfree checkout
+      const cashfree = window.Cashfree({
+        mode: import.meta.env.VITE_CASHFREE_ENV === 'PRODUCTION' ? 'production' : 'sandbox',
+      });
+      
+      const checkoutOptions = {
+        paymentSessionId: order.payment_session_id,
+        redirectTarget: '_self',
       };
       
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      // Open Cashfree Checkout
+      cashfree.checkout(checkoutOptions).then(function(result) {
+        // This will be triggered on successful redirection from Cashfree hosted page
+        if (result.error) {
+          toast.error('Payment failed', {
+            duration: 4000,
+            position: 'top-center'
+          });
+          setError('Payment failed');
+        }
+      });
       
     } catch (error) {
       toast.error('Failed to initiate payment', {
