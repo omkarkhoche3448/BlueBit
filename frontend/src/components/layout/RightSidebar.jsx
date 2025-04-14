@@ -10,7 +10,22 @@ function RightSidebar() {
   const { user } = useUser();
   const { isPro, refreshProStatus } = useProStatusContext();
   const [loading, setLoading] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
   const location = useLocation();
+
+  // Initialize form fields with user data when available
+  useEffect(() => {
+    if (user) {
+      if (user.fullName) setFullName(user.fullName);
+      if (user.primaryEmailAddress) setEmail(user.primaryEmailAddress.emailAddress);
+    }
+  }, [user]);
 
   // Check for payment success from URL parameters on component mount
   useEffect(() => {
@@ -49,13 +64,53 @@ function RightSidebar() {
     }
   };
 
-  const handlePayment = async () => {
+  const validatePhoneNumber = (phone) => {
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phone) return "Phone number is required";
+    if (!phoneRegex.test(phone)) return "Please enter a valid 10-digit phone number";
+    return "";
+  };
+
+  const validateName = (name) => {
+    if (!name.trim()) return "Name is required";
+    if (name.trim().length < 2) return "Please enter your full name";
+    return "";
+  };
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) return "Email is required";
+    if (!emailRegex.test(email)) return "Please enter a valid email address";
+    return "";
+  };
+
+  const validateForm = () => {
+    const phoneErr = validatePhoneNumber(phoneNumber);
+    const nameErr = validateName(fullName);
+    const emailErr = validateEmail(email);
+    
+    setPhoneError(phoneErr);
+    setNameError(nameErr);
+    setEmailError(emailErr);
+    
+    return !phoneErr && !nameErr && !emailErr;
+  };
+
+  const handleProceedToPayment = async () => {
+    if (!validateForm()) return;
+    
     try {
       if (!user) return;
       setLoading(true);
       
       // Get payment session details from the backend
-      const paymentDetails = await PaymentService.initiatePayment(user.id);
+      const paymentDetails = await PaymentService.initiatePayment(
+        user.id, 
+        phoneNumber, 
+        email,
+        fullName
+      );
+      
       console.log('Payment session created:', paymentDetails);
       
       // Check if we have a valid payment session ID
@@ -103,6 +158,10 @@ function RightSidebar() {
     }
   };
 
+  const handlePayment = () => {
+    setShowPaymentForm(true);
+  };
+
   const resources = [
     { title: "Resume Builder", link: "/create-resume" },
     { title: "Interview Preparation", link: "https://www.indeed.com/career-advice/interviewing/how-to-prepare-for-an-interview" },
@@ -148,7 +207,7 @@ function RightSidebar() {
             ? 'Enjoy your current benefits like resume builder, personalized recommendations, and chrome extension.'
             : 'Get access to exclusive job listings and advanced search features.'}
         </p>
-        {!isPro && (
+        {!isPro && !showPaymentForm && (
           <button 
             onClick={handlePayment}
             disabled={loading}
@@ -156,6 +215,89 @@ function RightSidebar() {
           >
             {loading ? 'Processing...' : 'Try for 1 Month'}
           </button>
+        )}
+
+        {!isPro && showPaymentForm && (
+          <div className="space-y-3">
+            {/* Full Name Input */}
+            <div>
+              <label htmlFor="name" className="block text-xs font-medium text-gray-700 mb-1">
+                Full Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                value={fullName}
+                onChange={(e) => {
+                  setFullName(e.target.value);
+                  if (nameError) setNameError(validateName(e.target.value));
+                }}
+                placeholder="Enter your full name"
+                className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              {nameError && (
+                <p className="text-xs text-red-500 mt-1">{nameError}</p>
+              )}
+            </div>
+            
+            {/* Email Input */}
+            <div>
+              <label htmlFor="email" className="block text-xs font-medium text-gray-700 mb-1">
+                Email Address
+              </label>
+              <input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (emailError) setEmailError(validateEmail(e.target.value));
+                }}
+                placeholder="Enter your email address"
+                className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              {emailError && (
+                <p className="text-xs text-red-500 mt-1">{emailError}</p>
+              )}
+            </div>
+            
+            {/* Phone Input */}
+            <div>
+              <label htmlFor="phone" className="block text-xs font-medium text-gray-700 mb-1">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                value={phoneNumber}
+                onChange={(e) => {
+                  setPhoneNumber(e.target.value);
+                  if (phoneError) setPhoneError(validatePhoneNumber(e.target.value));
+                }}
+                placeholder="Enter 10-digit number"
+                className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              {phoneError && (
+                <p className="text-xs text-red-500 mt-1">{phoneError}</p>
+              )}
+            </div>
+            
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setShowPaymentForm(false)}
+                className="flex-1 bg-gray-200 text-gray-700 text-sm py-1.5 px-3 rounded-md hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleProceedToPayment}
+                disabled={loading}
+                className="flex-1 bg-blue-600 text-white text-sm py-1.5 px-3 rounded-md hover:bg-blue-700 cursor-pointer disabled:bg-blue-400"
+              >
+                {loading ? 'Processing...' : 'Proceed'}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

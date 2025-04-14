@@ -16,9 +16,15 @@ def register_payment_routes(app):
             data = request.json
             clerk_id = data.get('clerkId')
             amount = 1  # ₹1.00 in INR for testing (change to 149 for production)
+            customer_phone = data.get('phone', '')
+            customer_email = data.get('email', 'user@example.com')
+            customer_name = data.get('name', '')
             
             if not clerk_id:
                 return jsonify({'error': 'User ID is required'}), 400
+                
+            if not customer_phone:
+                return jsonify({'error': 'Phone number is required'}), 400
                 
             # Create a unique order ID
             order_id = f"order_{uuid.uuid4().hex[:10]}"
@@ -30,8 +36,9 @@ def register_payment_routes(app):
                 "order_currency": "INR",
                 "customer_details": {
                     "customer_id": clerk_id,
-                    "customer_email": "user@example.com",
-                    "customer_phone": "9999999999"
+                    "customer_name": customer_name,
+                    "customer_email": customer_email,
+                    "customer_phone": customer_phone
                 },
                 "order_meta": {
                     "return_url": f"https://handjobs.co.in/payment-success?order_id={order_id}&customer_id={clerk_id}",

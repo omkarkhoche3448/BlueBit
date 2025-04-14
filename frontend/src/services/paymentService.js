@@ -5,7 +5,12 @@ const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 console.log("Backend API URL:", API_URL_BACKEND);
 
 // Function to create a payment order
-export async function createPaymentOrder(clerkId) {
+export async function createPaymentOrder(
+  clerkId,
+  phone,
+  email = "user@example.com",
+  name = ""
+) {
   try {
     const url = `${API_URL_BACKEND}/payment`;
     console.log("Making payment request to:", url);
@@ -15,7 +20,12 @@ export async function createPaymentOrder(clerkId) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ clerkId }),
+      body: JSON.stringify({
+        clerkId,
+        phone,
+        email,
+        name,
+      }),
     });
 
     if (!response.ok) {
@@ -72,8 +82,8 @@ export async function verifyPayment(clerkId, orderId) {
 // For backward compatibility with existing code that uses default import
 class PaymentService {
   // Forward the functions as methods
-  async initiatePayment(userId) {
-    return await createPaymentOrder(userId);
+  async initiatePayment(userId, phone, email, name) {
+    return await createPaymentOrder(userId, phone, email, name);
   }
 
   async verifyPayment(clerkId, orderId) {
