@@ -1,15 +1,88 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head> 
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Handjobs</title>
-    <!-- Add this in the <head> section -->
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlueBit Pro Subscription</title>
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+</head>
+<body>
+    <button id="subscribeBtn">Subscribe to Pro</button>
+    
+    <script>
+        document.getElementById('subscribeBtn').addEventListener('click', async () => {
+            try {
+                // Get clerk ID from your auth system
+                const clerkId = "user_clerk_id"; // Replace with actual user ID
+                
+                // Create order on your backend
+                const response = await fetch('/api/payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ clerkId })
+                });
+                
+                const data = await response.json();
+                
+                if (!data.payment_session_id) {
+                    throw new Error('Failed to create payment session');
+                }
+                
+                // Initialize Cashfree checkout
+                const cashfree = Cashfree({
+                    mode: "sandbox" // Change to "production" for live environment
+                });
+                
+                // Open checkout
+                cashfree.checkout({
+                    paymentSessionId: data.payment_session_id,
+                    redirectTarget: "_self"
+                });
+                
+                // For popup mode, use:
+                // const result = await cashfree.checkout({
+                //     paymentSessionId: data.payment_session_id,
+                //     redirectTarget: "_modal"
+                // });
+                // 
+                // if (result.error) {
+                //     console.error(result.error);
+                // }
+                
+            } catch (error) {
+                console.error("Payment error:", error);
+                alert("Payment initialization failed. Please try again.");
+            }
+        });
+        
+        // If you have a payment status page, add code to verify payment
+        // This would be on your payment-status page:
+        async function verifyPayment(orderId) {
+            try {
+                const clerkId = "user_clerk_id"; // Replace with actual user ID
+                
+                const response = await fetch('/api/payment/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        orderId,
+                        clerkId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.is_pro) {
+                    // Show success message and update UI
+                    alert("You're now a Pro user!");
+                } else {
+                    alert("Payment verification failed: " + data.error);
+                }
+                
+            } catch (error) {
+                console.error("Verification error:", error);
+            }
+        }
+    </script>
+</body>
 </html>

@@ -16,7 +16,9 @@ if not DATABASE_URL:
 engine = create_engine(DATABASE_URL)
 session_factory = sessionmaker(bind=engine)
 Session = scoped_session(session_factory)
-
+# Add to your config.py
+CASHFREE_CLIENT_ID = os.getenv('CASHFREE_CLIENT_ID')    
+CASHFREE_CLIENT_SECRET =os.getenv('CASHFREE_CLIENT_SECRET')
 # Razorpay Configuration
 RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID')
 RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET')
