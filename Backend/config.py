@@ -35,7 +35,7 @@ model = genai.GenerativeModel('gemini-2.0-flash')
 # Cashfree Configuration
 CASHFREE_APP_ID = os.getenv('CASHFREE_APP_ID')
 CASHFREE_SECRET_KEY = os.getenv('CASHFREE_SECRET_KEY')
-CASHFREE_ENV = os.getenv('CASHFREE_ENV', 'TEST')  # 'TEST' or 'PRODUCTION'
+CASHFREE_ENV = os.getenv('CASHFREE_ENV', 'PRODUCTION')  # 'TEST' or 'PRODUCTION'
 
 if not all([CASHFREE_APP_ID, CASHFREE_SECRET_KEY]):
     raise ValueError("Cashfree credentials not properly configured")

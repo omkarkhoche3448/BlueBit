@@ -1,10 +1,16 @@
 // src/services/PaymentService.js
 const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 
+// Log the backend URL for debugging
+console.log("Backend API URL:", API_URL_BACKEND);
+
 // Function to create a payment order
 export async function createPaymentOrder(clerkId) {
   try {
-    const response = await fetch(`${API_URL_BACKEND}/payment`, {
+    const url = `${API_URL_BACKEND}/payment`;
+    console.log("Making payment request to:", url);
+
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -29,7 +35,13 @@ export async function createPaymentOrder(clerkId) {
 // Function to verify payment status
 export async function verifyPayment(clerkId, orderId) {
   try {
-    const response = await fetch(`${API_URL_BACKEND}/payment/success`, {
+    const url = `${API_URL_BACKEND}/payment/success`;
+    console.log("Verifying payment with URL:", url, "Data:", {
+      clerkId,
+      orderId,
+    });
+
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -42,12 +54,15 @@ export async function verifyPayment(clerkId, orderId) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      console.error("Payment verification failed:", errorData);
       throw new Error(
         errorData.error || `HTTP error! status: ${response.status}`
       );
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log("Payment verification result:", result);
+    return result;
   } catch (error) {
     console.error("Error verifying payment:", error);
     throw error;
@@ -60,7 +75,7 @@ class PaymentService {
   async initiatePayment(userId) {
     return await createPaymentOrder(userId);
   }
-  
+
   async verifyPayment(clerkId, orderId) {
     return await verifyPayment(clerkId, orderId);
   }

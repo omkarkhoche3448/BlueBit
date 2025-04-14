@@ -15,18 +15,18 @@ def register_payment_routes(app):
         try:
             data = request.json
             clerk_id = data.get('clerkId')
-            amount = 1  # ₹149.00 in INR
+            amount = 1  # ₹1.00 in INR for testing (change to 149 for production)
             
             if not clerk_id:
                 return jsonify({'error': 'User ID is required'}), 400
                 
             # Create a unique order ID
-            order_id = f"order_{clerk_id}_{uuid.uuid4().hex[:8]}"
+            order_id = f"order_{uuid.uuid4().hex[:10]}"
                 
-            # Create Cashfree order
+            # Create Cashfree order - following exact format from Cashfree docs
             payment_data = {
                 "order_id": order_id,
-                "order_amount": amount,
+                "order_amount": str(amount),  # Convert to string as required by Cashfree
                 "order_currency": "INR",
                 "customer_details": {
                     "customer_id": clerk_id,
@@ -34,13 +34,16 @@ def register_payment_routes(app):
                     "customer_phone": "9999999999"
                 },
                 "order_meta": {
-                    "return_url": f"https://handjobs.co.in/payment-success?order_id={order_id}&customer_id={clerk_id}"
-                },
-                "order_note": "ProFind Pro Subscription"
+                    "return_url": f"https://handjobs.co.in/payment-success?order_id={order_id}&customer_id={clerk_id}",
+                    "notify_url": "https://handjobs.co.in/api/payment/webhook"  # Optional but recommended
+                }
             }
+            
+            logging.info(f"Creating Cashfree order with data: {payment_data}")
             
             # Create the order using our helper function
             order = create_cashfree_order(payment_data)
+            logging.info(f"Cashfree order response: {order}")
             
             return jsonify({
                 'order_id': order.get('order_id', ''),

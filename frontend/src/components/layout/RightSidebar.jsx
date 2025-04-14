@@ -4,11 +4,50 @@ import { useUser } from '@clerk/clerk-react';
 import { useProStatusContext } from '../../contexts/ProStatusContext';
 import PaymentService from '../../services/paymentService';
 import toast from 'react-hot-toast';
+import { useLocation } from 'react-router-dom';
 
 function RightSidebar() {
   const { user } = useUser();
   const { isPro, refreshProStatus } = useProStatusContext();
   const [loading, setLoading] = useState(false);
+  const location = useLocation();
+
+  // Check for payment success from URL parameters on component mount
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const orderId = queryParams.get('order_id');
+    const paymentSuccess = queryParams.get('payment_success');
+    
+    // If URL contains order_id and payment_success parameters, verify the payment
+    if (orderId && paymentSuccess === 'true' && user) {
+      verifyPaymentWithBackend(user.id, orderId);
+    }
+  }, [location, user]);
+
+  // Function to verify payment with backend
+  const verifyPaymentWithBackend = async (userId, orderId) => {
+    try {
+      console.log('Verifying payment with backend:', userId, orderId);
+      const response = await PaymentService.verifyPayment(userId, orderId);
+      
+      if (response && response.is_pro) {
+        await refreshProStatus();
+        toast.success('Payment successful! Pro features activated.', {
+          duration: 4000,
+          position: 'top-center',
+          icon: '🎉',
+        });
+        
+        // Remove the query parameters from URL
+        const url = new URL(window.location.href);
+        url.searchParams.delete('order_id');
+        url.searchParams.delete('payment_success');
+        window.history.replaceState({}, '', url);
+      }
+    } catch (error) {
+      console.error('Payment verification error:', error);
+    }
+  };
 
   const handlePayment = async () => {
     try {
@@ -24,41 +63,32 @@ function RightSidebar() {
         throw new Error('Invalid payment session');
       }
       
+      // Save order ID in localStorage for verification after redirect
+      if (paymentDetails.order_id) {
+        localStorage.setItem('currentOrderId', paymentDetails.order_id);
+      }
+      
       // Initialize Cashfree checkout
       if (window.Cashfree) {
         const cashfree = new window.Cashfree({
           mode: "production" // Since we're using production credentials
         });
         
-        // Configure checkout
+        // Configure checkout with return URL that includes payment verification params
+        const returnUrl = new URL(window.location.href);
+        returnUrl.searchParams.set('order_id', paymentDetails.order_id);
+        returnUrl.searchParams.set('payment_success', 'true');
+        
         const checkoutOptions = {
           paymentSessionId: paymentDetails.payment_session_id,
-          returnUrl: window.location.href,  // Return to the same page after payment
+          returnUrl: returnUrl.toString(),
         };
         
         console.log('Opening Cashfree checkout with options:', checkoutOptions);
         
         // Launch Cashfree checkout
-        cashfree.checkout(checkoutOptions).then(function(result) {
-          // This will be called on successful redirection
-          if (result.error) {
-            console.error('Checkout error:', result.error);
-            toast.error(`Payment failed: ${result.error.message || 'Unknown error'}`, {
-              duration: 4000,
-              position: 'top-center'
-            });
-          } else if (result.order && result.order.status === 'PAID') {
-            // Payment successful
-            refreshProStatus();
-            toast.success('Payment successful! Pro features activated.', {
-              duration: 4000,
-              position: 'top-center',
-              icon: '🎉',
-              // When toast is closed or dismissed, reload the page
-              onClose: () => window.location.reload()
-            });
-          }
-        });
+        cashfree.checkout(checkoutOptions);
+        
       } else {
         throw new Error('Cashfree SDK not loaded. Please refresh the page and try again.');
       }
