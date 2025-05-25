@@ -10,6 +10,11 @@ import json
 import re
 from config import GEMINI_API_KEY
 from models import User, Job
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 from recommendation_engine import get_recommendations_for_user
 
 # Configure logging

@@ -30,6 +30,11 @@ import { ProStatusProvider } from "./contexts/ProStatusContext";
 import LikedJobsPage from "./pages/LikedJobsPage";
 import { FiltersProvider } from "./contexts/FiltersContext";
 import HelpButton from "./components/common/HelpButton";
+import TermsAndConditions from "./components/footer/TermsAndConditions";
+import PrivacyPolicy from "./components/footer/PrivacyPolicy";
+import ShippingPolicy from "./components/footer/ShippingPolicy";
+import ContactUs from "./components/footer/ContactUs";
+import Refunds from "./components/footer/Refunds";
 
 const API_URL_BACKEND = import.meta.env.VITE_API_URL_BACKEND;
 
@@ -237,6 +242,13 @@ function App() {
 
             {/* Dedicated error routes */}
             <Route path="/error" element={<NotFoundPage />} />
+
+            {/* Footer Routes */}
+            <Route path="/terms" element={<TermsAndConditions />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/shipping" element={<ShippingPolicy />} />
+            <Route path="/contact" element={<ContactUs />} />
+            <Route path="/refunds" element={<Refunds />} />
             
             {/* Catch-all route for both signed-in and signed-out users */}
             <Route

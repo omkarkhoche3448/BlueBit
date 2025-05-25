@@ -27,7 +27,8 @@ import { useClerk } from "@clerk/clerk-react";
 import { Link as ScrollLink } from "react-scroll";
 import Logo from "../assets/Logo4.png";
 import  Team  from "../components/landing/Team";
-
+import Footer from "../components/footer/Footer";
+import ScrollToTop from "../components/common/ScrollToTop";
 // Lazy load components that aren't needed immediately
 const SignIn = lazy(() =>
   import("@clerk/clerk-react").then((module) => ({ default: module.SignIn }))
@@ -338,17 +339,6 @@ export default function LandingPage() {
     },
   ];
 
-  const footerLinks = [
-    {
-      title: "Product",
-      links: [{ name: "Features", href: "#features" }],
-    },
-    {
-      title: "Support",
-      links: [{ name: "Help Center", href: "#" }],
-    },
-  ];
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -399,6 +389,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white overflow-hidden">
       {/* Toast container for displaying notifications */}
       <ToastContainer />
+      <ScrollToTop />
       {/* Add viewport meta tag for better mobile experience */}
       <head>
         <meta
@@ -1307,79 +1298,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer - Optimized for mobile */}
-      <footer className="bg-white">
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8">
-          <div className="grid gap-8 md:grid-cols-3">
-            {/* Logo & About Section */}
-            <div className="space-y-6">
-              <div className="flex items-center">
-                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center mr-2">
-                  <Briefcase className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                </div>
-                <span className="text-xl sm:text-2xl font-bold text-gray-800">
-                  KaamDekho
-                </span>
-              </div>
-              <p className="text-gray-600 text-sm sm:text-base">
-                One search. All job opportunities.
-                <br />
-                Save time and find your dream job faster.
-              </p>
-              <div className="flex space-x-6">
-                {/* Social Icons */}
-                {["Twitter", "GitHub", "LinkedIn"].map((social, index) => (
-                  <a
-                    key={index}
-                    href="#"
-                    className="text-gray-500 hover:text-blue-600 transition duration-200"
-                  >
-                    <span className="sr-only">{social}</span>
-                    <svg
-                      className="h-5 w-5 sm:h-6 sm:w-6"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      {/* Add corresponding SVG path here */}
-                    </svg>
-                  </a>
-                ))}
-              </div>
-            </div>
-
-            {/* Footer Links - Simplified for mobile */}
-            <div className="md:col-span-2 grid grid-cols-2 gap-8">
-              {footerLinks.map((section, index) => (
-                <div key={index}>
-                  <h3 className="text-sm font-semibold text-gray-600 tracking-wider uppercase">
-                    {section.title}
-                  </h3>
-                  <ul className="mt-4 space-y-4">
-                    {section.links.map((link, linkIndex) => (
-                      <li key={linkIndex}>
-                        <a
-                          href={link.href}
-                          className="text-sm sm:text-base text-gray-500 hover:text-gray-900 transition duration-200"
-                        >
-                          {link.name}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Copyright Section */}
-          <div className="mt-12 border-t border-gray-200 pt-8 text-center">
-            <p className="text-sm sm:text-base text-gray-500">
-              &copy; {new Date().getFullYear()} KaamDekho Job Aggregator. All
-              rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       {/* Add custom CSS for hiding scrollbars but allowing scrolling */}
       <style jsx global>{`
