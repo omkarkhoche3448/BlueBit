@@ -9,9 +9,9 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 load_dotenv()
 
 # Database Configuration
-DATABASE_URL = os.getenv('DATABASE_URL')
+DATABASE_URL = os.getenv('NEON_DB_URL')
 if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is not set")
+    raise ValueError("NEON_DB_URL environment variable is not set")
 
 engine = create_engine(DATABASE_URL)
 session_factory = sessionmaker(bind=engine)

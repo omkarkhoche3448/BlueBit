@@ -14,16 +14,20 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.dialects.postgresql import JSON
 import os
 from models import Job, User    
+from dotenv import load_dotenv
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
+load_dotenv()
 # Set up SQLAlchemy with Neon PostgreSQL
-NEON_DB_URL = os.getenv('NEON_CONNECTION_STRING', '')
+DATABASE_URL = os.getenv('DATABASE_URL')
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is not set")
 Base = declarative_base()
-engine = create_engine(NEON_DB_URL)
+engine = create_engine(DATABASE_URL)
 session_factory = sessionmaker(bind=engine)
 Session = scoped_session(session_factory)
 
