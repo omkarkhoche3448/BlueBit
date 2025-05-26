@@ -2,13 +2,14 @@ from flask import request, jsonify
 import logging
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 from config import Session, RESUME_UPLOAD_FOLDER
 from models import User, Job
 from utils.file_utils import extract_text_from_pdf, extract_text_from_docx
 from utils.resume_parser import extract_resume_keywords
 from recommendation_engine import get_recommendations_for_user
+from utils.jwt_middleware import jwt_required, get_current_user
 import google.generativeai as genai
 import re
 genai.configure(api_key="AIzaSyDCSbDt2Xdd3xvvIIwqqcc9EiZfQ_mTyHM")  # Replace with your actual key
@@ -48,13 +49,14 @@ def is_valid_resume(text):
         return False  # Default to False on error
 
 def register_user_routes(app):
-    @app.route('/api/users/<string:clerk_id>/preferences', methods=['GET', 'POST'])
-    def manage_preferences(clerk_id):
+    @app.route('/api/users/preferences', methods=['GET', 'POST'])
+    @jwt_required
+    def manage_preferences(user_id):
         session = Session()
         try:
             # GET request to check if user has preferences
             if request.method == 'GET':
-                user = session.query(User).filter(User.clerk_id == clerk_id).first()
+                user = session.query(User).filter(User.id == user_id).first()
                 
                 if not user:
                     return jsonify({'error': 'User not found'}), 404
@@ -73,7 +75,7 @@ def register_user_routes(app):
                     return jsonify({'error': 'No preferences provided'}), 400
                 
                 # Save to database
-                user = session.query(User).filter(User.clerk_id == clerk_id).first()
+                user = session.query(User).filter(User.id == user_id).first()
                 
                 if user:
                     # Update existing user
@@ -81,13 +83,7 @@ def register_user_routes(app):
                     if formatted_address:
                         user.preferred_address = formatted_address
                 else:
-                    # Create new user
-                    new_user = User(
-                        clerk_id=clerk_id,
-                        preferences=preferences,
-                        preferred_address=formatted_address if formatted_address else None
-                    )
-                    session.add(new_user)
+                    return jsonify({'error': 'User not found'}), 404
                 
                 session.commit()
                 return jsonify({'message': 'Preferences saved successfully'})
@@ -100,21 +96,15 @@ def register_user_routes(app):
         finally:
             session.close()
 
-    @app.route('/api/users/<string:clerk_id>/pro-status', methods=['GET'])
-    def check_pro_status(clerk_id):
+    @app.route('/api/users/pro-status', methods=['GET'])
+    @jwt_required
+    def check_pro_status(user_id):
         session = Session()
         try:
-            user = session.query(User).filter(User.clerk_id == clerk_id).first()
+            user = session.query(User).filter(User.id == user_id).first()
             
             if not user:
-                # Create a new user with default non-pro status
-                user = User(
-                    clerk_id=clerk_id,
-                    is_pro=False
-                )
-                session.add(user)
-                session.commit()
-                return jsonify({'isPro': False})
+                return jsonify({'error': 'User not found'}), 404
             
             # Return the user's pro status
             return jsonify({'isPro': user.is_pro})
@@ -125,25 +115,21 @@ def register_user_routes(app):
         finally:
             session.close()
 
-    @app.route('/api/users/<string:clerk_id>/update-pro-status', methods=['POST'])
-    def update_pro_status(clerk_id):
+    @app.route('/api/users/update-pro-status', methods=['POST'])
+    @jwt_required
+    def update_pro_status(user_id):
         session = Session()
         try:
             data = request.json
             is_pro = data.get('isPro', False)
             
-            user = session.query(User).filter(User.clerk_id == clerk_id).first()
+            user = session.query(User).filter(User.id == user_id).first()
             
             if not user:
-                # Create new user if doesn't exist
-                user = User(
-                    clerk_id=clerk_id,
-                    is_pro=is_pro
-                )
-                session.add(user)
-            else:
-                # Update existing user's pro status
-                user.is_pro = is_pro
+                return jsonify({'error': 'User not found'}), 404
+            
+            # Update existing user's pro status
+            user.is_pro = is_pro
             
             session.commit()
             return jsonify({
@@ -158,26 +144,19 @@ def register_user_routes(app):
         finally:
             session.close()
 
-    @app.route('/api/users/<string:clerk_id>/recommendations', methods=['GET'])
-    def get_user_recommendations(clerk_id):
+    @app.route('/api/users/recommendations', methods=['GET'])
+    @jwt_required
+    def get_user_recommendations(user_id):
         try:
             count = request.args.get('count', 20, type=int)
             session = Session()
             
             # Get user from database
-            user = session.query(User).filter(User.clerk_id == clerk_id).first()
+            user = session.query(User).filter(User.id == user_id).first()
             
             if not user:
-                # Create a new user if they don't exist
-                user = User(clerk_id=clerk_id, recommended_job_ids=[])
-                session.add(user)
-                session.commit()
+                return jsonify({'error': 'User not found'}), 404
                 
-                # For new users, we need to compute recommendations on the fly
-                session.close()
-                recommendations = get_recommendations_for_user(clerk_id, count=count)
-                return jsonify({'recommendations': recommendations[:count]})
-            
             # Get pre-computed recommendation IDs
             recommendation_ids = user.recommended_job_ids
             
@@ -191,7 +170,7 @@ def register_user_routes(app):
             if not recommendation_ids:
                 # If no pre-computed recommendations, compute them on the fly
                 session.close()
-                recommendations = get_recommendations_for_user(clerk_id, count=count)
+                recommendations = get_recommendations_for_user(user_id, count=count)
                 return jsonify({'recommendations': recommendations[:count]})
             
             # Fetch the actual job objects for the recommended IDs
@@ -207,13 +186,14 @@ def register_user_routes(app):
             logging.error(f"Error serving recommendations: {str(e)}")
             return jsonify({'error': str(e)}), 500
 
-    @app.route('/api/users/<string:clerk_id>/resume', methods=['POST', 'GET'])
-    def manage_resume(clerk_id):
+    @app.route('/api/users/resume', methods=['POST', 'GET'])
+    @jwt_required
+    def manage_resume(user_id):
         session = Session()
         try:
             # GET request to check if user has a resume
             if request.method == 'GET':
-                user = session.query(User).filter(User.clerk_id == clerk_id).first()
+                user = session.query(User).filter(User.id == user_id).first()
                 
                 if not user:
                     return jsonify({'error': 'User not found'}), 404
@@ -238,7 +218,7 @@ def register_user_routes(app):
                     return jsonify({'error': 'Unsupported file format (only PDF and DOCX are supported)'}), 400
                     
                 # Create a secure filename and save file
-                filename = secure_filename(f"{clerk_id}_{file.filename}")
+                filename = secure_filename(f"{user_id}_{file.filename}")
                 file_path = os.path.join(RESUME_UPLOAD_FOLDER, filename)
                 file.save(file_path)
                 
@@ -265,10 +245,9 @@ def register_user_routes(app):
                 keywords = extract_resume_keywords(text)
                 
                 # Store the resume info in the user record
-                user = session.query(User).filter(User.clerk_id == clerk_id).first()
+                user = session.query(User).filter(User.id == user_id).first()
                 if not user:
-                    user = User(clerk_id=clerk_id)
-                    session.add(user)
+                    return jsonify({'error': 'User not found'}), 404
                 
                 user.resume_path = file_path
                 user.resume_text = text
@@ -288,11 +267,12 @@ def register_user_routes(app):
         finally:
             session.close()
 
-    @app.route('/api/users/<string:clerk_id>/interested-jobs', methods=['GET'])
-    def get_interested_jobs(clerk_id):
+    @app.route('/api/users/interested-jobs', methods=['GET'])
+    @jwt_required
+    def get_interested_jobs(user_id):
         session = Session()
         try:
-            user = session.query(User).filter(User.clerk_id == clerk_id).first()
+            user = session.query(User).filter(User.id == user_id).first()
             
             if not user or not user.interested_job_ids:
                 return jsonify({'jobs': []})
@@ -308,12 +288,13 @@ def register_user_routes(app):
         finally:
             session.close()
 
-    @app.route('/api/users/<user_id>/resume-text', methods=['GET'])
+    @app.route('/api/users/resume-text', methods=['GET'])
+    @jwt_required
     def get_user_resume_text(user_id):
         session = Session()
         try:
             # Simple database query to get resume_text for the user
-            user = session.query(User).filter(User.clerk_id == user_id).first()
+            user = session.query(User).filter(User.id == user_id).first()
             
             if not user:
                 return jsonify({'error': 'User not found'}), 404
@@ -340,13 +321,21 @@ def register_user_routes(app):
             session.close()
     
     @app.route('/api/parse-resume-for-autofill', methods=['POST'])
-    def parse_resume_for_autofill():
+    @jwt_required
+    def parse_resume_for_autofill(user_id):
         try:
             data = request.json
             resume_text = data.get('resumeText', '')
             
             if not resume_text:
-                return jsonify({'error': 'Resume text is required'}), 400
+                # Try to get the resume text from the user's profile
+                session = Session()
+                user = session.query(User).filter(User.id == user_id).first()
+                
+                if user and user.resume_text:
+                    resume_text = user.resume_text
+                else:
+                    return jsonify({'error': 'Resume text is required'}), 400
             
             # Use Gemini to parse the resume text
             model = genai.GenerativeModel('gemini-1.5-pro')
@@ -393,15 +382,29 @@ def register_user_routes(app):
             json_end = response_text.rfind('}') + 1
             
             if json_start == -1 or json_end == 0:
-                return jsonify({'error': 'Failed to parse resume'}), 500
+                # If Gemini fails, use fallback parser
+                logging.warning("Gemini failed to parse resume, using fallback parser")
+                parsed_data = fallback_resume_parser(resume_text)
+                return jsonify({'parsedData': parsed_data})
             
             json_str = response_text[json_start:json_end]
             parsed_data = json.loads(json_str)
             
             return jsonify({'parsedData': parsed_data})
+        except json.JSONDecodeError:
+            # If JSON parsing fails, use fallback parser
+            logging.warning("JSON parsing failed, using fallback parser")
+            parsed_data = fallback_resume_parser(resume_text)
+            return jsonify({'parsedData': parsed_data})
         except Exception as e:
-            print(f"Error parsing resume: {str(e)}")
-            return jsonify({'error': str(e)}), 500
+            logging.error(f"Error parsing resume: {str(e)}")
+            # Use fallback parser as last resort
+            try:
+                parsed_data = fallback_resume_parser(resume_text)
+                return jsonify({'parsedData': parsed_data})
+            except Exception as fallback_error:
+                logging.error(f"Fallback parser also failed: {str(fallback_error)}")
+                return jsonify({'error': 'Failed to parse resume'}), 500
 
     def fallback_resume_parser(resume_text):
         """Simple regex-based resume parser for when Gemini is unavailable"""
@@ -482,11 +485,12 @@ def register_user_routes(app):
                 "error": str(e)
             }), 500
 
-    @app.route('/api/users/<user_id>/check-resume', methods=['GET'])
+    @app.route('/api/users/check-resume', methods=['GET'])
+    @jwt_required
     def check_user_resume(user_id):
         session = Session()
         try:
-            user = session.query(User).filter(User.clerk_id == user_id).first()
+            user = session.query(User).filter(User.id == user_id).first()
             
             if not user:
                 return jsonify({
@@ -503,7 +507,7 @@ def register_user_routes(app):
                 'resumeLength': len(user.resume_text) if user.resume_text else 0,
                 'userDetails': {
                     'id': user.id,
-                    'clerk_id': user.clerk_id,
+                    'username': user.username,
                     'email': user.email,
                     'has_preferences': bool(user.preferences)
                 }
@@ -558,12 +562,13 @@ def register_user_routes(app):
             'message': 'This is a sample resume for testing. Please upload your actual resume in ProFind.'
         })
     
-    @app.route('/api/users/<string:clerk_id>', methods=['DELETE'])
-    def delete_user(clerk_id):
+    @app.route('/api/users', methods=['DELETE'])
+    @jwt_required
+    def delete_user(user_id):
         session = Session()
         try:
             # Find the user
-            user = session.query(User).filter(User.clerk_id == clerk_id).first()
+            user = session.query(User).filter(User.id == user_id).first()
             
             if not user:
                 return jsonify({'error': 'User not found'}), 404
@@ -574,7 +579,7 @@ def register_user_routes(app):
             
             return jsonify({
                 'message': 'User account successfully deleted',
-                'clerk_id': clerk_id
+                'user_id': user_id
             })
         
         except Exception as e:
@@ -584,15 +589,119 @@ def register_user_routes(app):
         finally:
             session.close()
 
+    @app.route('/api/users/profile', methods=['GET'])
+    @jwt_required
+    def get_user_profile(user_id):
+        """Get current user's profile information"""
+        session = Session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+            
+            # Check if pro status is expired
+            is_pro_active = user.is_pro
+            if user.is_pro and hasattr(user, 'pro_expiration_date') and user.pro_expiration_date:
+                is_pro_active = datetime.now() < user.pro_expiration_date
+                if not is_pro_active and user.is_pro:
+                    # Auto-expire the pro status
+                    user.is_pro = False
+                    session.commit()
+                    logging.info(f"User {user_id} pro status expired and set to False")
+            
+            profile_data = {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'is_pro': is_pro_active,
+                'has_resume': bool(user.resume_text),
+                'has_preferences': bool(getattr(user, 'preferences', None)),
+                'pro_expiration_date': user.pro_expiration_date.isoformat() if hasattr(user, 'pro_expiration_date') and user.pro_expiration_date else None
+            }
+            
+            # Add optional fields if they exist
+            if hasattr(user, 'phone'):
+                profile_data['phone'] = user.phone
+            if hasattr(user, 'preferred_address'):
+                profile_data['preferred_address'] = user.preferred_address
+                
+            return jsonify({'profile': profile_data})
+            
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+        finally:
+            session.close()
+
+    @app.route('/api/users/profile', methods=['PUT'])
+    @jwt_required
+    def update_user_profile(user_id):
+        """Update current user's profile information"""
+        session = Session()
+        try:
+            user = session.query(User).filter(User.id == user_id).first()
+            
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+            
+            data = request.json
+            if not data:
+                return jsonify({'error': 'No data provided'}), 400
+            
+            # Update allowed fields
+            updatable_fields = ['username', 'email', 'phone', 'preferred_address']
+            updated_fields = []
+            
+            for field in updatable_fields:
+                if field in data:
+                    if hasattr(user, field):
+                        setattr(user, field, data[field])
+                        updated_fields.append(field)
+                    else:
+                        logging.warning(f"Field {field} not found in User model")
+            
+            if updated_fields:
+                session.commit()
+                return jsonify({
+                    'message': 'Profile updated successfully',
+                    'updated_fields': updated_fields
+                })
+            else:
+                return jsonify({'message': 'No fields were updated'})
+            
+        except Exception as e:
+            session.rollback()
+            logging.error(f"Error updating user profile: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+        finally:
+            session.close()
+
     @app.route('/api/maintenance/clear-data', methods=['POST'])
-    def clear_stale_data():
+    @jwt_required
+    def clear_stale_data(user_id):
         """
         Maintenance endpoint to:
         1. Update expired pro users (set is_pro to False)
         2. Delete jobs that haven't been updated in 30+ days
+        
+        Requires admin privileges
         """
         session = Session()
         try:
+            # Check if user has admin privileges
+            user = session.query(User).filter(User.id == user_id).first()
+            
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+            
+            # Check if user has admin privileges (if is_admin attribute exists)
+            if hasattr(user, 'is_admin') and not user.is_admin:
+                return jsonify({'error': 'Unauthorized. Admin privileges required'}), 403
+            elif not hasattr(user, 'is_admin'):
+                # If is_admin doesn't exist, for now allow any authenticated user
+                # You might want to restrict this further in production
+                logging.warning(f"User model doesn't have is_admin attribute. User {user_id} performing maintenance.")
+            
             # Get current date for comparison
             today = datetime.now().date()
             
@@ -609,10 +718,10 @@ def register_user_routes(app):
             for user in expired_pro_users:
                 user.is_pro = False
                 updated_users_count += 1
-                logging.info(f"User {user.clerk_id} pro status expired and set to False")
+                logging.info(f"User {user.id} pro status expired and set to False")
             
             # 2. Find and delete stale jobs (older than 30 days)
-            thirty_days_ago = today - datetime.timedelta(days=30)
+            thirty_days_ago = today - timedelta(days=30)
             stale_jobs = session.query(Job).filter(
                 Job.date_posted < thirty_days_ago
             ).all()

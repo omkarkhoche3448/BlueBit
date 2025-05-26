@@ -4,10 +4,12 @@ from flask import Blueprint, request, jsonify
 import google.generativeai as genai
 from config import GEMINI_API_KEY, Session
 from models import User
+from utils.jwt_middleware import jwt_required, get_user_id_from_jwt
 
 chrome_extension_bp = Blueprint('chrome_extension', __name__)
 
 @chrome_extension_bp.route('/chrome-extension', methods=['POST'])
+@jwt_required
 def process_chrome_extension_form():
     try:
         data = request.json
@@ -16,17 +18,13 @@ def process_chrome_extension_form():
         if not fields:
             return jsonify({"success": False, "error": "No form fields provided"}), 400
         
-        # Get clerk_id from Authorization header
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({"success": False, "error": "Authorization header with Bearer token is required"}), 401
-            
-        clerk_id = auth_header.replace('Bearer ', '')
+        # Get user_id from JWT token
+        user_id = get_user_id_from_jwt()
         
         # Fetch user's resume from the database
         session = Session()
         try:
-            user = session.query(User).filter_by(clerk_id=clerk_id).first()
+            user = session.query(User).filter_by(id=user_id).first()
             
             if not user:
                 return jsonify({"success": False, "error": "User not found"}), 404

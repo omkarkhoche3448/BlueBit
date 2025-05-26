@@ -77,7 +77,7 @@ def process_recommendations():
         for user in users:
             try:
                 # Get recommendations for this user
-                recommendations = get_recommendations_for_user(user.clerk_id, count=50)  # Get more than needed
+                recommendations = get_recommendations_for_user(user.id, count=50)  # Get more than needed
                 
                 # Filter out not interested jobs
                 not_interested_ids = user.not_interested_job_ids
@@ -94,12 +94,12 @@ def process_recommendations():
                 recommendation_ids = [job['id'] for job in recommendations]
                 user.recommended_job_ids = recommendation_ids
                 
-                logging.info(f"Updated recommendations for user {user.clerk_id}: {len(recommendation_ids)} jobs")
+                logging.info(f"Updated recommendations for user {user.id}: {len(recommendation_ids)} jobs")
                 results["success_count"] += 1
             except Exception as e:
-                error_msg = f"Error processing recommendations for user {user.clerk_id}: {str(e)}"
+                error_msg = f"Error processing recommendations for user {user.id}: {str(e)}"
                 logging.error(error_msg)
-                results["failed_users"].append({"user_id": user.clerk_id, "error": str(e)})
+                results["failed_users"].append({"user_id": user.id, "error": str(e)})
                 continue
         
         session.commit()
@@ -165,14 +165,14 @@ def clear_stale_data():
             if user.is_pro:
                 if user.pro_expiration_date:
                     days_remaining = (user.pro_expiration_date - today).days
-                    logging.info(f"User {user.clerk_id}: {days_remaining} days remaining in pro subscription")
+                    logging.info(f"User {user.id}: {days_remaining} days remaining in pro subscription")
                     
                     if days_remaining < 0:
                         user.is_pro = False
                         updated_users_count += 1
-                        logging.info(f"User {user.clerk_id} pro status expired and set to False")
+                        logging.info(f"User {user.id} pro status expired and set to False")
                 else:
-                    logging.warning(f"User {user.clerk_id} has is_pro=True but no expiration date")
+                    logging.warning(f"User {user.id} has is_pro=True but no expiration date")
         
         # 2. Find and delete stale jobs (older than 30 days)
         all_jobs = session.query(Job).all()

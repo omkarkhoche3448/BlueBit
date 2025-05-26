@@ -190,7 +190,7 @@ class RecommendationEngine:
             user_job_matrix = {}
             
             for user in users:
-                user_id = user.clerk_id
+                user_id = user.id
                 user_job_matrix[user_id] = {}
                 
                 # Handle potential string representation in SQLite
@@ -252,7 +252,7 @@ class RecommendationEngine:
         """Generate content-based recommendations for a user based on their preferences and behavior"""
         session = Session()
         try:
-            user = session.query(User).filter(User.clerk_id == user_id).first()
+            user = session.query(User).filter(User.id == user_id).first()
             
             if not user:
                 logging.warning(f"User {user_id} not found for content-based recommendations")
@@ -544,7 +544,7 @@ class RecommendationEngine:
                 logging.warning(f"No user-job matrix data for user {user_id}")
                 return []
             
-            user = session.query(User).filter(User.clerk_id == user_id).first()
+            user = session.query(User).filter(User.id == user_id).first()
             
             if not user:
                 logging.warning(f"User {user_id} not found for collaborative recommendations")
@@ -642,7 +642,7 @@ class RecommendationEngine:
         """Generate hybrid recommendations combining content-based, collaborative filtering, and diversity"""
         try:
             session = Session()
-            user = session.query(User).filter(User.clerk_id == user_id).first()
+            user = session.query(User).filter(User.id == user_id).first()
             
             if not user:
                 return []
@@ -822,7 +822,7 @@ class RecommendationEngine:
         
         # Get all user IDs first (without keeping the objects)
         session = Session()
-        user_ids = [user.clerk_id for user in session.query(User).all()]
+        user_ids = [user.id for user in session.query(User).all()]
         session.close()
         
         # Process each user with a fresh session
@@ -830,7 +830,7 @@ class RecommendationEngine:
             session = Session()  # Create a new session for each user
             try:
                 # Get fresh user object in this session
-                user = session.query(User).filter(User.clerk_id == user_id).first()
+                user = session.query(User).filter(User.id == user_id).first()
                 if not user:
                     logging.warning(f"User {user_id} not found")
                     continue
@@ -854,7 +854,7 @@ class RecommendationEngine:
                     # Try raw SQL as fallback
                     try:
                         json_data = json.dumps(recommendation_ids)
-                        sql = text("UPDATE users SET recommended_job_ids = :json_data WHERE clerk_id = :user_id")
+                        sql = text("UPDATE users SET recommended_job_ids = :json_data WHERE id = :user_id")
                         session.execute(sql, {"json_data": json_data, "user_id": user_id})
                         session.commit()
                         logging.info(f"SQL update successful for user {user_id}")
@@ -926,7 +926,7 @@ def get_recommendations_for_user(user_id, count=20):
     """Get recommendations for a specific user"""
     session = Session()
     try:
-        user = session.query(User).filter(User.clerk_id == user_id).first()
+        user = session.query(User).filter(User.id == user_id).first()
         
         if not user:
             logging.warning(f"User {user_id} not found")
@@ -981,7 +981,7 @@ def get_recommendations_for_user(user_id, count=20):
                 update_session = Session()
                 try:
                     # Get fresh user object in the new session
-                    update_user = update_session.query(User).filter(User.clerk_id == user_id).first()
+                    update_user = update_session.query(User).filter(User.id == user_id).first()
                     if update_user:
                         # Try ORM update
                         update_user.recommended_job_ids = recommendation_ids
@@ -994,7 +994,7 @@ def get_recommendations_for_user(user_id, count=20):
                     # Try SQL update as fallback
                     try:
                         json_data = json.dumps(recommendation_ids)
-                        sql = text("UPDATE users SET recommended_job_ids = :json_data WHERE clerk_id = :user_id")
+                        sql = text("UPDATE users SET recommended_job_ids = :json_data WHERE id = :user_id")
                         update_session.execute(sql, {"json_data": json_data, "user_id": user_id})
                         update_session.commit()
                         logging.info(f"SQL update successful for user {user_id}")
@@ -1020,7 +1020,7 @@ def get_recommendations_for_user(user_id, count=20):
                 job_list.append(job_dict)
             
             # Get fresh user object for matching score calculation
-            user = session.query(User).filter(User.clerk_id == user_id).first()
+            user = session.query(User).filter(User.id == user_id).first()
             
             # Calculate matching score for each job
             job_list = calculate_matching_scores(job_list, user)

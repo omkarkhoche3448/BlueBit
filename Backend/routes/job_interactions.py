@@ -3,16 +3,19 @@ from datetime import datetime
 from config import Session
 from models import User, Job, JobInteractionStats
 from flask_cors import cross_origin
+from utils.jwt_middleware import jwt_required, get_user_id_from_jwt
 
 def register_user_job_interaction_routes(app):
-    @app.route('/api/users/<string:user_id>/job-interaction', methods=['POST', 'OPTIONS'])
-    @cross_origin(methods=['POST', 'OPTIONS'], allow_headers=['Content-Type'])
-    def update_job_interaction(user_id):
+    @app.route('/api/users/job-interaction', methods=['POST', 'OPTIONS'])
+    @cross_origin(methods=['POST', 'OPTIONS'], allow_headers=['Content-Type', 'Authorization'])
+    @jwt_required
+    def update_job_interaction():
         if request.method == 'OPTIONS':
             return '', 204  # Return empty response for OPTIONS request
             
         session = Session()
         try:
+            user_id = get_user_id_from_jwt()
             data = request.get_json()
             job_id = data.get('jobId')
             interaction_type = data.get('interactionType')  # 'like', 'dislike', or 'bookmark'
@@ -22,7 +25,7 @@ def register_user_job_interaction_routes(app):
                 return jsonify({'error': 'Job ID, interaction type and value are required'}), 400
                 
             # Get user
-            user = session.query(User).filter(User.clerk_id == user_id).first()
+            user = session.query(User).filter(User.id == user_id).first()
             if not user:
                 return jsonify({'error': 'User not found'}), 404
                 
@@ -109,14 +112,16 @@ def register_user_job_interaction_routes(app):
         finally:
             session.close()
     
-    @app.route('/api/users/<string:user_id>/bookmarks', methods=['POST', 'OPTIONS'])
-    @cross_origin(methods=['POST', 'OPTIONS'], allow_headers=['Content-Type'])
-    def manage_user_bookmarks(user_id):
+    @app.route('/api/users/bookmarks', methods=['POST', 'OPTIONS'])
+    @cross_origin(methods=['POST', 'OPTIONS'], allow_headers=['Content-Type', 'Authorization'])
+    @jwt_required
+    def manage_user_bookmarks():
         if request.method == 'OPTIONS':
             return '', 204  # Return empty response for OPTIONS request
             
         session = Session()
         try:
+            user_id = get_user_id_from_jwt()
             data = request.get_json()
             item_id = data.get('itemId')
             action = data.get('action')  # 'add' or 'remove'
@@ -127,14 +132,9 @@ def register_user_job_interaction_routes(app):
             if action not in ['add', 'remove']:
                 return jsonify({'error': 'Action must be either "add" or "remove"'}), 400
                 
-            user = session.query(User).filter(User.clerk_id == user_id).first()
+            user = session.query(User).filter(User.id == user_id).first()
             if not user:
-                # Create a new user if not found
-                user = User(
-                    clerk_id=user_id,
-                    saved_jobs_ids=[]
-                )
-                session.add(user)
+                return jsonify({'error': 'User not found'}), 404
             
             # Ensure saved_jobs_ids is a list (not None)
             if user.saved_jobs_ids is None:
@@ -172,18 +172,20 @@ def register_user_job_interaction_routes(app):
         finally:
             session.close()
     
-    @app.route('/api/users/<string:user_id>/bookmarks', methods=['GET', 'OPTIONS'])
-    @cross_origin(methods=['GET', 'OPTIONS'], allow_headers=['Content-Type'])
-    def get_user_bookmarks(user_id):
+    @app.route('/api/users/bookmarks', methods=['GET', 'OPTIONS'])
+    @cross_origin(methods=['GET', 'OPTIONS'], allow_headers=['Content-Type', 'Authorization'])
+    @jwt_required
+    def get_user_bookmarks():
         if request.method == 'OPTIONS':
             return '', 204  # Return empty response for OPTIONS request
             
         session = Session()
         try:
+            user_id = get_user_id_from_jwt()
             # Log the request for debugging
             print(f"Fetching bookmarks for user: {user_id}")
             
-            user = session.query(User).filter(User.clerk_id == user_id).first()
+            user = session.query(User).filter(User.id == user_id).first()
             if not user:
                 print(f"User not found: {user_id}")
                 return jsonify([])  # Return empty list instead of error

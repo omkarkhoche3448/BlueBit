@@ -8,6 +8,7 @@ from datetime import datetime
 from contextlib import contextmanager
 from config import Session
 from models import Job, User
+from utils.jwt_middleware import jwt_required
 
 @contextmanager
 def session_scope():
@@ -155,7 +156,8 @@ def register_job_routes(app):
                 if request.method == 'POST':
                     data = request.json
                     filters = data.get('filters', {})
-                    clerk_id = data.get('clerkId')
+                    # For backward compatibility, allow optional user_id in request body
+                    user_id = data.get('userId')  # Optional for filtering out disliked jobs
                     page = int(data.get('page', 1))
                     requested_per_page = int(data.get('per_page', 10))
                     search_term = filters.get('searchTerm', '')
@@ -168,7 +170,7 @@ def register_job_routes(app):
                 else:  # GET request
                     page = int(request.args.get('page', 1))
                     requested_per_page = int(request.args.get('per_page', 10))
-                    clerk_id = request.args.get('clerkId')
+                    user_id = request.args.get('userId')  # Optional
                     search_term = request.args.get('searchTerm', '')
                     job_types = [request.args.get('jobType')] if request.args.get('jobType') else []
                     locations = [request.args.get('location')] if request.args.get('location') else []
@@ -184,8 +186,8 @@ def register_job_routes(app):
                 filter_conditions = []
                 
                 # Filter out jobs the user is not interested in - optimize with subquery
-                if clerk_id:
-                    user = session.query(User).filter(User.clerk_id == clerk_id).first()
+                if user_id:
+                    user = session.query(User).filter(User.id == user_id).first()
                     if user and user.not_interested_job_ids and len(user.not_interested_job_ids) > 0:
                         filter_conditions.append(~Job.id.in_(user.not_interested_job_ids))
                 
@@ -342,26 +344,15 @@ def register_job_routes(app):
                 return jsonify({'error': str(e)}), 500
 
     @app.route('/api/save-job/<string:job_id>', methods=['POST', 'DELETE'])
-    def manage_saved_job(job_id):
+    @jwt_required
+    def manage_saved_job(user_id, job_id):
         with session_scope() as session:
             try:
-                # Get clerk_id from request data
-                data = request.json
-                clerk_id = data.get('clerkId')
-                
-                if not clerk_id:
-                    return jsonify({'error': 'User ID (clerkId) is required'}), 400
-                    
-                # Find the user in the database
-                user = session.query(User).filter(User.clerk_id == clerk_id).first()
+                # Find the user in the database using JWT user_id
+                user = session.query(User).filter(User.id == user_id).first()
                 
                 if not user:
-                    # Create new user if doesn't exist
-                    user = User(
-                        clerk_id=clerk_id,
-                        saved_jobs_ids=[]
-                    )
-                    session.add(user)
+                    return jsonify({'error': 'User not found'}), 404
                 
                 # Initialize saved_jobs_ids if it doesn't exist
                 if user.saved_jobs_ids is None:
@@ -392,11 +383,12 @@ def register_job_routes(app):
                 logging.error(f"Error managing saved job: {str(e)}")
                 return jsonify({'error': str(e)}), 500
 
-    @app.route('/api/users/<string:clerk_id>/saved-jobs', methods=['GET'])
-    def get_saved_jobs(clerk_id):
+    @app.route('/api/users/saved-jobs', methods=['GET'])
+    @jwt_required
+    def get_saved_jobs(user_id):
         with session_scope() as session:
             try:
-                user = session.query(User).filter(User.clerk_id == clerk_id).first()
+                user = session.query(User).filter(User.id == user_id).first()
                 if not user:
                     return jsonify({'saved_jobs': []}), 200
                 
@@ -404,7 +396,7 @@ def register_job_routes(app):
                 return jsonify({'saved_jobs': saved_jobs}), 200
                 
             except Exception as e:
-                logging.error(f"Error fetching saved jobs for user {clerk_id}: {str(e)}")
+                logging.error(f"Error fetching saved jobs for user {user_id}: {str(e)}")
                 return jsonify({'error': str(e)}), 500
 
     @app.route('/api/apply-job/<string:job_id>', methods=['POST'])
@@ -415,8 +407,9 @@ def register_job_routes(app):
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 
-    @app.route('/api/users/<string:clerk_id>/job-interest', methods=['POST'])
-    def update_job_interest(clerk_id):
+    @app.route('/api/users/job-interest', methods=['POST'])
+    @jwt_required
+    def update_job_interest(user_id):
         with session_scope() as session:
             try:
                 data = request.json
@@ -426,16 +419,10 @@ def register_job_routes(app):
                 if not job_id:
                     return jsonify({'error': 'Job ID is required'}), 400
                     
-                user = session.query(User).filter(User.clerk_id == clerk_id).first()
+                user = session.query(User).filter(User.id == user_id).first()
                 
                 if not user:
-                    # Create new user if doesn't exist
-                    user = User(
-                        clerk_id=clerk_id,
-                        interested_job_ids=[],
-                        not_interested_job_ids=[]
-                    )
-                    session.add(user)
+                    return jsonify({'error': 'User not found'}), 404
                 
                 # Initialize lists if they don't exist
                 if user.interested_job_ids is None:
@@ -464,8 +451,8 @@ def register_job_routes(app):
                 user.not_interested_job_ids = not_interested_jobs
                 
                 # Debug logging
-                logging.debug(f"Updated user {clerk_id} interests: {interested_jobs}")
-                logging.debug(f"Updated user {clerk_id} not-interests: {not_interested_jobs}")
+                logging.debug(f"Updated user {user_id} interests: {interested_jobs}")
+                logging.debug(f"Updated user {user_id} not-interests: {not_interested_jobs}")
                 
                 return jsonify({
                     'message': 'Job interest updated successfully',
@@ -478,11 +465,12 @@ def register_job_routes(app):
                 logging.error(f"Error updating job interest: {str(e)}")
                 return jsonify({'error': str(e)}), 500
 
-    @app.route('/api/users/<string:clerk_id>/job-interest/<string:job_id>', methods=['GET'])
-    def get_job_interest(clerk_id, job_id):
+    @app.route('/api/users/job-interest/<string:job_id>', methods=['GET'])
+    @jwt_required
+    def get_job_interest(user_id, job_id):
         with session_scope() as session:
             try:
-                user = session.query(User).filter(User.clerk_id == clerk_id).first()
+                user = session.query(User).filter(User.id == user_id).first()
                 
                 if not user:
                     return jsonify({'interest': None})
