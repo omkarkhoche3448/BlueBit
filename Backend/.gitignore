@@ -36,3 +36,6 @@ build/
 # OS-specific
 .DS_Store
 Thumbs.db
+
+# Resume folder
+resume/

@@ -1,7 +1,7 @@
 import os
 import zipfile
 from xml.etree.ElementTree import XML
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 from docx import Document as DocxDocument
 import logging
 from config import RESUME_UPLOAD_FOLDER

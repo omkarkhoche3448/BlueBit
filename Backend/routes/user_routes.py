@@ -12,10 +12,9 @@ from recommendation_engine import get_recommendations_for_user
 from utils.jwt_middleware import jwt_required, get_current_user
 import google.generativeai as genai
 import re
-genai.configure(api_key="AIzaSyDCSbDt2Xdd3xvvIIwqqcc9EiZfQ_mTyHM")  # Replace with your actual key
 
 # Configure Google Generative AI with your API key
-# genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
 
 def is_valid_resume(text):
     """
