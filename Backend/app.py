@@ -215,4 +215,5 @@ def analyze():
         return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8000)
+    from config import APP_PORT
+    app.run(debug=True, port=APP_PORT)

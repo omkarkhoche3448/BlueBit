@@ -89,11 +89,11 @@ def register_auth_routes(app):
             # Generate verification token
             token = generate_email_verification_token(new_user.id)
             
-            # Use the correct base URL for emails
-            base_url = "http://127.0.0.1:8000"
+            # Use the base URL from environment variables
+            from config import BASE_URL
             
             # Send verification email
-            send_verification_email(new_user, token, base_url)
+            send_verification_email(new_user, token, BASE_URL)
             
             return jsonify({
                 'message': 'User registered successfully. Please check your email to verify your account.',
@@ -243,11 +243,11 @@ def register_auth_routes(app):
             # Generate reset token
             token = generate_password_reset_token(user.id)
             
-            # Use the correct base URL for emails
-            base_url = "http://127.0.0.1:8000"
+            # Use the base URL from environment variables
+            from config import BASE_URL
             
             # Send reset email
-            send_password_reset_email(user, token, base_url)
+            send_password_reset_email(user, token, BASE_URL)
             
             return jsonify({'message': 'Password reset email sent'})
             
@@ -541,11 +541,11 @@ def register_auth_routes(app):
             # Generate verification token
             token = generate_email_verification_token(user.id)
             
-            # Use the correct base URL for emails
-            base_url = "http://127.0.0.1:8000"
+            # Use the base URL from environment variables
+            from config import BASE_URL
             
             # Send verification email
-            send_verification_email(user, token, base_url)
+            send_verification_email(user, token, BASE_URL)
             
             return jsonify({'message': 'Verification email sent'})
             

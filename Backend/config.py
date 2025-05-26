@@ -61,6 +61,11 @@ os.makedirs(RESUME_UPLOAD_FOLDER, exist_ok=True)
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
 ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
 
+# Application ports and URLs
+APP_PORT = int(os.getenv('APP_PORT', 8000))
+MICROSERVICE_PORT = int(os.getenv('MICROSERVICE_PORT', 5000))
+BASE_URL = os.getenv('BASE_URL', f'http://127.0.0.1:{APP_PORT}')
+
 # Cashfree Configuration
 CASHFREE_APP_ID = os.getenv('CASHFREE_APP_ID')
 CASHFREE_SECRET_KEY = os.getenv('CASHFREE_SECRET_KEY')
