@@ -9,8 +9,7 @@ import threading
 import time
 import schedule
 from sqlalchemy import create_engine, Column, String, Boolean, Float, Date, Text, Integer, text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import declarative_base, sessionmaker, scoped_session
 from sqlalchemy.dialects.postgresql import JSON
 import os
 from models import Job, User    
