@@ -1,9 +1,9 @@
 -- Initialize database for BlueBit application
 
 -- Drop tables if they exist (use with caution in production)
-DROP TABLE IF EXISTS job_interaction_stats;
-DROP TABLE IF EXISTS jobs;
-DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS job_interaction_stats CASCADE;
+DROP TABLE IF EXISTS jobs CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 
 -- Create users table with updated authentication fields
 CREATE TABLE users (
@@ -37,7 +37,7 @@ CREATE TABLE jobs (
     job_url VARCHAR(500) NOT NULL,
     job_url_direct VARCHAR(500),
     title VARCHAR(200) NOT NULL,
-    company VARCHAR(200) NOT NULL,
+    company VARCHAR(200),
     location VARCHAR(200),
     date_posted DATE,
     job_type VARCHAR(50),
@@ -72,10 +72,10 @@ CREATE INDEX idx_jobs_date_posted ON jobs(date_posted);
 INSERT INTO users (
     email, username, password_hash, email_verified, is_pro, autofill_limit
 ) VALUES (
-    'admin@bluebit.com', 
-    'admin', 
-    '$2b$12$7yRt0REy5XQD1Z8mJ8k6xexCO3t0njNUG4m1xMPxI6ZCrDsrS1tHe', 
-    TRUE, 
-    TRUE, 
+    'admin@bluebit.com',
+    'admin',
+    '$2b$12$7yRt0REy5XQD1Z8mJ8k6xexCO3t0njNUG4m1xMPxI6ZCrDsrS1tHe',
+    TRUE,
+    TRUE,
     100
 );
