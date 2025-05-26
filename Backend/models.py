@@ -1,6 +1,5 @@
 from sqlalchemy import Column, String, Boolean, Float, Date, Text, Integer, ForeignKey
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, declarative_base  # Updated import for SQLAlchemy 2.0
 from sqlalchemy.dialects.postgresql import JSON
 from datetime import datetime
 
