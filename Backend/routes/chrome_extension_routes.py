@@ -10,7 +10,7 @@ chrome_extension_bp = Blueprint('chrome_extension', __name__)
 
 @chrome_extension_bp.route('/chrome-extension', methods=['POST'])
 @jwt_required
-def process_chrome_extension_form():
+def process_chrome_extension_form(user_id=None):
     try:
         data = request.json
         fields = data.get('fields', [])
@@ -18,8 +18,9 @@ def process_chrome_extension_form():
         if not fields:
             return jsonify({"success": False, "error": "No form fields provided"}), 400
         
-        # Get user_id from JWT token
-        user_id = get_user_id_from_jwt()
+        # Use user_id from JWT middleware or get it from token if not provided
+        if user_id is None:
+            user_id = get_user_id_from_jwt()
         
         # Fetch user's resume from the database
         session = Session()

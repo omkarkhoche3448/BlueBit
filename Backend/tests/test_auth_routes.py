@@ -19,10 +19,6 @@ def engine():
     test_db_url = os.environ.get('TEST_DATABASE_URL') 
     
     if test_db_url:
-        # Use dedicated test database if available
-        # For PostgreSQL, add query parameters to ensure proper isolation
-        if 'postgresql' in test_db_url and '?' not in test_db_url:
-            test_db_url += '?isolation_level=AUTOCOMMIT'
         engine = create_engine(test_db_url)
     else:
         # Fallback to in-memory SQLite for isolated testing
