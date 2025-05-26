@@ -8,8 +8,14 @@ Base = declarative_base()
 
 class User(Base):
     __tablename__ = 'users'
-    clerk_id = Column(String(50), primary_key=True)
-    username = Column(String(50), nullable=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String(100), unique=True, nullable=False)
+    username = Column(String(50), unique=True, nullable=False)
+    password_hash = Column(String(200), nullable=False)  # Stores hashed passwords
+    phone_number = Column(String(20), nullable=True)
+    email_verified = Column(Boolean, default=False)
+    reset_token = Column(String(200), nullable=True)
+    reset_token_expires = Column(Date, nullable=True)
     preferences = Column(JSON, nullable=True)
     recommended_job_ids = Column(JSON, nullable=True)  # Stores list of job IDs
     interested_job_ids = Column(JSON, nullable=True)  # Stores jobs user liked

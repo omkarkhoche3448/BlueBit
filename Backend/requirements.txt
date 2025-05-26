@@ -1,5 +1,6 @@
 annotated-types==0.7.0
 asttokens==2.4.1
+bcrypt==4.1.2
 beautifulsoup4==4.13.3
 bleach==6.1.0
 blinker==1.9.0
@@ -37,7 +38,7 @@ kaggle==1.6.17
 lxml==5.3.1
 markdownify==0.13.1
 MarkupSafe==3.0.2
-matplotlib-inline==0.1.7
+matplotlib-inline==0.1.6
 nest-asyncio==1.6.0
 numpy==1.26.3
 pandas==2.2.3
@@ -46,11 +47,13 @@ prompt_toolkit==3.0.47
 proto-plus==1.26.1
 protobuf==5.29.4
 psutil==6.0.0
+psycopg2-binary==2.9.9
 pure_eval==0.2.3
 pyasn1==0.6.1
 pyasn1_modules==0.4.1
 pydantic==2.10.6
 pydantic_core==2.27.2
+PyJWT==2.8.0
 pyparsing==3.2.1
 PyPDF2==3.0.1
 python-dateutil==2.9.0.post0

@@ -34,6 +34,7 @@ from routes.job_routes import register_job_routes
 from routes.user_routes import register_user_routes
 from routes.chrome_extension_routes import register_chrome_extension_routes
 from routes.job_interactions import register_user_job_interaction_routes
+from routes.auth_routes import register_auth_routes
 
 from config import Session
 
@@ -59,6 +60,7 @@ register_user_routes(app)
 register_chrome_extension_routes(app)
 register_user_job_interaction_routes(app)
 register_payment_routes(app)
+register_auth_routes(app)
 
 def extract_text_from_pdf(file):
     try:
