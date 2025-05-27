@@ -9,13 +9,12 @@ def register_user_job_interaction_routes(app):
     @app.route('/api/users/job-interaction', methods=['POST', 'OPTIONS'])
     @cross_origin(methods=['POST', 'OPTIONS'], allow_headers=['Content-Type', 'Authorization'])
     @jwt_required
-    def update_job_interaction():
+    def update_job_interaction(user_id):
         if request.method == 'OPTIONS':
             return '', 204  # Return empty response for OPTIONS request
             
         session = Session()
         try:
-            user_id = get_user_id_from_jwt()
             data = request.get_json()
             job_id = data.get('jobId')
             interaction_type = data.get('interactionType')  # 'like', 'dislike', or 'bookmark'
@@ -105,23 +104,21 @@ def register_user_job_interaction_routes(app):
                     'dislike_count': stats.dislike_count,
                     'bookmark_count': stats.bookmark_count
                 }
-            })
-        except Exception as e:
+            })        except Exception as e:
             session.rollback()
             return jsonify({'error': str(e)}), 500
         finally:
             session.close()
-    
+
     @app.route('/api/users/bookmarks', methods=['POST', 'OPTIONS'])
     @cross_origin(methods=['POST', 'OPTIONS'], allow_headers=['Content-Type', 'Authorization'])
     @jwt_required
-    def manage_user_bookmarks():
+    def manage_user_bookmarks(user_id):
         if request.method == 'OPTIONS':
             return '', 204  # Return empty response for OPTIONS request
             
         session = Session()
         try:
-            user_id = get_user_id_from_jwt()
             data = request.get_json()
             item_id = data.get('itemId')
             action = data.get('action')  # 'add' or 'remove'
@@ -171,17 +168,15 @@ def register_user_job_interaction_routes(app):
             return jsonify({'error': str(e)}), 500
         finally:
             session.close()
-    
     @app.route('/api/users/bookmarks', methods=['GET', 'OPTIONS'])
     @cross_origin(methods=['GET', 'OPTIONS'], allow_headers=['Content-Type', 'Authorization'])
     @jwt_required
-    def get_user_bookmarks():
+    def get_user_bookmarks(user_id):
         if request.method == 'OPTIONS':
             return '', 204  # Return empty response for OPTIONS request
             
         session = Session()
         try:
-            user_id = get_user_id_from_jwt()
             # Log the request for debugging
             print(f"Fetching bookmarks for user: {user_id}")
             
