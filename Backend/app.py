@@ -1,4 +1,3 @@
-import threading
 import logging
 import os
 from flask import Flask, request, jsonify
@@ -9,8 +8,7 @@ from docx import Document
 import json
 import re
 from config import GEMINI_API_KEY
-from models import User, Job
-from recommendation_engine import get_recommendations_for_user
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(
@@ -213,7 +211,10 @@ def analyze():
 
     except Exception as e:
         return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
-
+@app.route('/health', methods=['GET'])
+def health_checker():
+    """Health check endpoint"""
+    return jsonify({"status": "healthy", "timestamp": datetime.now().isoformat()})
 if __name__ == '__main__':
     from config import APP_PORT
     app.run(debug=True, port=APP_PORT)

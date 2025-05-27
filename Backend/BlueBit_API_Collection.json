@@ -1,0 +1,1024 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+		"name": "BlueBit API Collection",
+		"description": "Complete API collection for BlueBit job platform",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Signup",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"test@example.com\",\n  \"username\": \"testuser\",\n  \"password\": \"Password123\",\n  \"phoneNumber\": \"+1234567890\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/signup",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"signup"
+							]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"usernameOrEmail\": \"test@example.com\",\n  \"password\": \"Password123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					}
+				},
+				{
+					"name": "Verify Email",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/verify-email?token={{verificationToken}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"verify-email"
+							],
+							"query": [
+								{
+									"key": "token",
+									"value": "{{verificationToken}}"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"test@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/forgot-password",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"forgot-password"
+							]
+						}
+					}
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"newPassword\": \"NewPassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/reset-password",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"reset-password"
+							]
+						}
+					}
+				},
+				{
+					"name": "Resend Verification",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"test@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/resend-verification",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"resend-verification"
+							]
+						}
+					}
+				},
+				{
+					"name": "Check Verification Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/verification-status/{{email}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"verification-status",
+								"{{email}}"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "User Management",
+			"item": [
+				{
+					"name": "Manage User Preferences",
+					"item": [
+						{					"name": "Get User Preferences",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/preferences",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"preferences"
+							]
+						}
+					}
+						},
+						{					"name": "Save User Preferences",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"preferences\": {\n    \"jobTypes\": [\"full-time\", \"remote\"],\n    \"salaryRange\": {\n      \"min\": 50000,\n      \"max\": 100000\n    },\n    \"location\": \"San Francisco, CA\"\n  },\n  \"formattedAddress\": \"123 Main St, San Francisco, CA 94105\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/preferences",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"preferences"
+							]
+						}
+					}
+						}
+					]
+				},
+				{
+					"name": "Pro Status Management",
+					"item": [
+						{						"name": "Check Pro Status",
+						"request": {
+							"method": "GET",
+							"header": [
+								{
+									"key": "Authorization",
+									"value": "Bearer {{authToken}}",
+									"type": "text"
+								}
+							],
+							"url": {
+								"raw": "{{baseUrl}}/api/users/pro-status",
+								"host": [
+									"{{baseUrl}}"
+								],
+								"path": [
+									"api",
+									"users",
+									"pro-status"
+								]
+							}
+						}
+						},
+						{						"name": "Update Pro Status",
+						"request": {
+							"method": "POST",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Authorization",
+									"value": "Bearer {{authToken}}",
+									"type": "text"
+								}
+							],
+							"body": {
+								"mode": "raw",
+								"raw": "{\n  \"isPro\": true\n}"
+							},
+							"url": {
+								"raw": "{{baseUrl}}/api/users/update-pro-status",
+								"host": [
+									"{{baseUrl}}"
+								],
+								"path": [
+									"api",
+									"users",
+									"update-pro-status"
+								]
+							}
+						}
+						}
+					]
+				},
+				{
+					"name": "Resume Management",
+					"item": [
+						{						"name": "Get Resume Info",
+						"request": {
+							"method": "GET",
+							"header": [
+								{
+									"key": "Authorization",
+									"value": "Bearer {{authToken}}",
+									"type": "text"
+								}
+							],
+							"url": {
+								"raw": "{{baseUrl}}/api/users/resume",
+								"host": [
+									"{{baseUrl}}"
+								],
+								"path": [
+									"api",
+									"users",
+									"resume"
+								]
+							}
+						}
+						},
+						{
+							"name": "Upload Resume",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{authToken}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "file",
+											"type": "file",
+											"src": "/path/to/resume.pdf"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/users/resume",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"users",
+										"resume"
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Resume Text",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{authToken}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/users/resume-text",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"users",
+										"resume-text"
+									]
+								}
+							}
+						},
+						{
+							"name": "Check User Resume",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{authToken}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseUrl}}/api/users/check-resume",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"users",
+										"check-resume"
+									]
+								}
+							}
+						},
+						{
+							"name": "Parse Resume for Autofill",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{authToken}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"resumeText\": \"John Doe\\nSoftware Engineer\\n123 Main Street, San Francisco, CA 94105\\njohn.doe@email.com | (555) 123-4567\\n\\nEXPERIENCE\\nSenior Software Engineer at TechCorp Inc.\\nJanuary 2020 - Present\\n• Led development of flagship product\\n• Implemented CI/CD pipelines\\n\\nEDUCATION\\nBachelor of Science in Computer Science\\nUniversity of California, Berkeley\\nGraduated: May 2018\\nGPA: 3.8/4.0\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/parse-resume-for-autofill",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"parse-resume-for-autofill"
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Sample Resume",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/sample-resume",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"sample-resume"
+									]
+								}
+							}
+						}
+					]
+				},
+				{				"name": "User Recommendations",
+				"request": {
+					"method": "GET",
+					"header": [
+						{
+							"key": "Authorization",
+							"value": "Bearer {{authToken}}",
+							"type": "text"
+						}
+					],
+					"url": {
+						"raw": "{{baseUrl}}/api/users/recommendations?count=20",
+						"host": [
+							"{{baseUrl}}"
+						],
+						"path": [
+							"api",
+							"users",
+							"recommendations"
+						],
+						"query": [
+							{
+								"key": "count",
+								"value": "20"
+							}
+						]
+					}
+				}
+				},
+				{
+					"name": "Get User Bookmarks",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/bookmarks",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"bookmarks"
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Job Management",
+			"item": [
+				{
+					"name": "Search Jobs",
+					"item": [
+						{						"name": "Search Jobs (GET)",
+						"request": {
+							"method": "GET",
+							"header": [
+								{
+									"key": "Authorization",
+									"value": "Bearer {{authToken}}",
+									"type": "text",
+									"description": "Optional - Include for personalized results that filter out disliked jobs"
+								}
+							],
+							"url": {
+								"raw": "{{baseUrl}}/api/search-jobs?page=1&per_page=10&searchTerm=software engineer&jobType=full-time&location=san-francisco&company=google&minSalary=80000",
+								"host": [
+									"{{baseUrl}}"
+								],
+								"path": [
+									"api",
+									"search-jobs"
+								],
+								"query": [
+									{
+										"key": "page",
+										"value": "1"
+									},
+									{
+										"key": "per_page",
+										"value": "10"
+									},
+									{
+										"key": "searchTerm",
+										"value": "software engineer"
+									},
+									{
+										"key": "jobType",
+										"value": "full-time"
+									},
+									{
+										"key": "location",
+										"value": "san-francisco"
+									},
+									{
+										"key": "company",
+										"value": "google"
+									},
+									{
+										"key": "minSalary",
+										"value": "80000"
+									}
+								]
+							}
+						}
+						},
+						{						"name": "Search Jobs (POST)",
+						"request": {
+							"method": "POST",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Authorization",
+									"value": "Bearer {{authToken}}",
+									"type": "text",
+									"description": "Optional - Include for personalized results that filter out disliked jobs"
+								}
+							],
+							"body": {
+								"mode": "raw",
+								"raw": "{\n  \"page\": 1,\n  \"per_page\": 10,\n  \"filters\": {\n    \"searchTerm\": \"software engineer\",\n    \"jobType\": [\"full-time\", \"remote\"],\n    \"location\": [\"san-francisco\", \"new-york\"],\n    \"company\": [\"google\", \"microsoft\"],\n    \"minSalary\": 80000,\n    \"experienceLevel\": [\"mid-level\", \"senior\"],\n    \"sortBy\": \"datePosted\"\n  }\n}"
+							},
+							"url": {
+								"raw": "{{baseUrl}}/api/search-jobs",
+								"host": [
+									"{{baseUrl}}"
+								],
+								"path": [
+									"api",
+									"search-jobs"
+								]
+							}
+						}
+						}
+					]
+				},
+				{
+					"name": "Get Job by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/job/{{jobId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"job",
+								"{{jobId}}"
+							]
+						}
+					}
+				},
+				{				"name": "Job Interest Management",
+				"item": [
+					{
+						"name": "Update Job Interest",
+						"request": {
+							"method": "POST",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Authorization",
+									"value": "Bearer {{authToken}}",
+									"type": "text"
+								}
+							],
+							"body": {
+								"mode": "raw",
+								"raw": "{\n  \"jobId\": \"{{jobId}}\",\n  \"interactionType\": \"like\",\n  \"value\": true\n}"
+							},
+							"url": {
+								"raw": "{{baseUrl}}/api/users/job-interaction",
+								"host": [
+									"{{baseUrl}}"
+								],
+								"path": [
+									"api",
+									"users",
+									"job-interaction"
+								]
+							}
+						}
+					}
+				]
+			},
+			{				"name": "Saved Jobs Management",
+				"item": [
+					{
+						"name": "Manage Bookmark",
+						"request": {
+							"method": "POST",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Authorization",
+									"value": "Bearer {{authToken}}",
+									"type": "text"
+								}
+							],
+							"body": {
+								"mode": "raw",
+								"raw": "{\n  \"itemId\": \"{{jobId}}\",\n  \"action\": \"add\"\n}"
+							},
+							"url": {
+								"raw": "{{baseUrl}}/api/users/bookmarks",
+								"host": [
+									"{{baseUrl}}"
+								],
+								"path": [
+									"api",
+									"users",
+									"bookmarks"
+								]
+							}
+						}
+					}
+					]
+				},
+				{
+					"name": "Apply to Job",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/apply-job/{{jobId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"apply-job",
+								"{{jobId}}"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Job Interactions & Analytics",
+			"item": [
+				{
+					"name": "Get Trending Jobs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/jobs/trending",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"jobs",
+								"trending"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Payment & Subscription",
+			"item": [
+				{
+					"name": "Create Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/payment",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"payment"
+							]
+						}
+					}
+				},
+				{
+					"name": "Payment Success",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"paymentId\": \"pay_example123\",\n  \"orderId\": \"order_example123\",\n  \"signature\": \"signature_example123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/payment/success",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"payment",
+								"success"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Chrome Extension",
+			"item": [
+				{
+					"name": "Process Form Autofill",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fields\": [\n    {\n      \"label\": \"Full Name\",\n      \"type\": \"text\",\n      \"required\": true,\n      \"placeholder\": \"Enter your full name\"\n    },\n    {\n      \"label\": \"Email Address\",\n      \"type\": \"email\",\n      \"required\": true,\n      \"placeholder\": \"Enter your email\"\n    },\n    {\n      \"label\": \"Phone Number\",\n      \"type\": \"tel\",\n      \"required\": false,\n      \"placeholder\": \"Enter your phone number\"\n    },\n    {\n      \"label\": \"Current Position\",\n      \"type\": \"text\",\n      \"required\": true,\n      \"placeholder\": \"Enter your current job title\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/chrome-extension",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"chrome-extension"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Resume Analysis",
+			"item": [
+				{
+					"name": "Analyze Resume",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": "/path/to/resume.pdf"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/analyze",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"analyze"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "System & Health",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/health-check",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"health-check"
+							]
+						}
+					}
+				},
+				{
+					"name": "Clear Stale Data (Maintenance)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/maintenance/clear-data",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"maintenance",
+								"clear-data"
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "your_jwt_token_here",
+			"type": "string"
+		},
+		{
+			"key": "userId",
+			"value": "user_example123",
+			"type": "string"
+		},
+		{
+			"key": "jobId",
+			"value": "job_example123",
+			"type": "string"
+		},
+		{
+			"key": "email",
+			"value": "test@example.com",
+			"type": "string"
+		},
+		{
+			"key": "verificationToken",
+			"value": "verification_token_here",
+			"type": "string"
+		},
+		{
+			"key": "resetToken",
+			"value": "reset_token_here",
+			"type": "string"
+		}
+	]
+}

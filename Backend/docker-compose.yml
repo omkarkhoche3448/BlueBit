@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - NEON_CONNECTION_STRING=${NEON_CONNECTION_STRING}
+      - SMTP_SERVER=${SMTP_SERVER}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - FROM_EMAIL=${FROM_EMAIL}
+      - CASHFREE_APP_ID=${CASHFREE_APP_ID}
+      - CASHFREE_SECRET_KEY=${CASHFREE_SECRET_KEY}
+      - CASHFREE_ENV=${CASHFREE_ENV}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - API_SECRET_KEY=${API_SECRET_KEY}
+      - RESUME_UPLOAD_FOLDER=resume
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173}
+      - APP_PORT=8000
+      - MICROSERVICE_PORT=5000
+      - BASE_URL=${BASE_URL:-http://127.0.0.1:8000}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./resume:/app/resume
+    restart: unless-stopped
+    networks:
+      - bluebit-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  microservice:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: microservice
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - NEON_CONNECTION_STRING=${NEON_CONNECTION_STRING}
+      - API_SECRET_KEY=${API_SECRET_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - APP_PORT=8000
+      - MICROSERVICE_PORT=5000
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    networks:
+      - bluebit-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      - app
+
+networks:
+  bluebit-network:
+    driver: bridge

@@ -456,7 +456,8 @@ def register_user_routes(app):
             session = Session()
             db_status = "connected"
             try:
-                session.execute("SELECT 1")
+                from sqlalchemy import text
+                session.execute(text("SELECT * FROM USERS LIMIT 1"))  # Simple query to check connection
             except Exception as e:
                 db_status = f"error: {str(e)}"
             finally:

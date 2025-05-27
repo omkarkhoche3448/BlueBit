@@ -226,5 +226,6 @@ def clear_stale_data():
 
 if __name__ == '__main__':
     from config import MICROSERVICE_PORT
+    logging.info(os.getenv("API_SECRET_KEY"))
     logging.info(f"🚀 Starting job recommendation API service on port {MICROSERVICE_PORT}")
     app.run(host='0.0.0.0', port=MICROSERVICE_PORT)
