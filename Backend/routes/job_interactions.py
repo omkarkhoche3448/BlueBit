@@ -104,7 +104,8 @@ def register_user_job_interaction_routes(app):
                     'dislike_count': stats.dislike_count,
                     'bookmark_count': stats.bookmark_count
                 }
-            })        except Exception as e:
+            })
+        except Exception as e:
             session.rollback()
             return jsonify({'error': str(e)}), 500
         finally:
